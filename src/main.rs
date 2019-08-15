@@ -4,7 +4,8 @@ extern crate tera;
 #[macro_use]
 extern crate log;
 
-#[cfg(test)] mod tests;
+#[cfg(test)] mod main_test;
+#[cfg(test)] mod integration_tests;
 
 use actix_files;
 use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
