@@ -11,6 +11,9 @@ use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
 
 fn main() {
     env_logger::init();
+
+    let socket = "127.0.0.1:8088";
+
     debug!("Debug");
     info!("Info");
     warn!("Warning");
@@ -24,7 +27,7 @@ fn main() {
 
     // Start the web server.
     HttpServer::new(app)
-        .bind("127.0.0.1:8088")
+        .bind(socket)
         .unwrap()
         .run()
         .unwrap();
