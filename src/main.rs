@@ -18,13 +18,8 @@ fn main() {
 
     // Configure the application.
     let app = || {
-        let tera = compile_templates!("templates/**/*");
         App::new()
-            .data(tera)
-            .service(actix_files::Files::new("/css", "static/css"))
-            .service(actix_files::Files::new("/images", "static/images"))
-            .service(actix_files::Files::new("/js", "static/js"))
-            .route("/", web::get().to(index))
+            .configure(app_config)
     };
 
     // Start the web server.
@@ -39,4 +34,17 @@ fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let content = template.render("index.html", &tera::Context::new())
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Configure the application.
+fn app_config(cfg: &mut web::ServiceConfig) {
+    let tera = compile_templates!("templates/**/*");
+    cfg.service(
+        web::scope("")
+            .data(tera)
+            .service(actix_files::Files::new("/css", "static/css"))
+            .service(actix_files::Files::new("/images", "static/images"))
+            .service(actix_files::Files::new("/js", "static/js"))
+            .route("/", web::get().to(index))
+    );
 }
