@@ -62,9 +62,9 @@ fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
 }
 
 // Configure the application.
-fn app_config(cfg: &mut web::ServiceConfig) {
+fn app_config(config: &mut web::ServiceConfig) {
     let tera = compile_templates!("templates/**/*");
-    cfg.service(
+    config.service(
         web::scope("")
             .data(tera)
             .service(actix_files::Files::new("/css", "static/css"))
