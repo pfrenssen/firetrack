@@ -9,16 +9,20 @@ extern crate log;
 
 use actix_files;
 use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
+use dotenv;
 
 fn main() {
+    // Populate environment variables from the local `.env` file.
+    dotenv::dotenv().ok();
+
+    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
+    // as a fallback.
+    dotenv::from_filename(".env.dist").ok();
+
+    // Initialize the logger.
     env_logger::init();
 
     let socket = "127.0.0.1:8088";
-
-    debug!("Debug");
-    info!("Info");
-    warn!("Warning");
-    error!("Error");
 
     // Configure the application.
     let app = || {
