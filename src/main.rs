@@ -7,6 +7,8 @@ extern crate log;
 #[cfg(test)] mod main_test;
 #[cfg(test)] mod integration_tests;
 
+mod user;
+
 use actix_files;
 use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
 use dotenv;
@@ -71,5 +73,6 @@ fn app_config(config: &mut web::ServiceConfig) {
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))
             .route("/", web::get().to(index))
+            .route("/user/login", web::get().to(user::login))
     );
 }
