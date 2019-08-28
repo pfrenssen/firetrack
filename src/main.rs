@@ -10,6 +10,8 @@ extern crate log;
 use actix_files;
 use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
 use dotenv;
+use std::env;
+use std::process::exit;
 
 fn main() {
     // Populate environment variables from the local `.env` file.
@@ -22,7 +24,21 @@ fn main() {
     // Initialize the logger.
     env_logger::init();
 
-    let socket = "127.0.0.1:8088";
+    // Retrieve the hostname and port.
+    let host = match env::var("HOST") {
+        Ok(value) => value,
+        Err(_) => {
+            error!("HOST environment variable is not set.");
+            exit(1);
+        }
+    };
+    let port = match env::var("PORT") {
+        Ok(value) => value,
+        Err(_) => {
+            error!("PORT environment variable is not set.");
+            exit(1);
+        }
+    };
 
     // Configure the application.
     let app = || {
@@ -31,8 +47,9 @@ fn main() {
     };
 
     // Start the web server.
+    let addr = format!("{}:{}", host, port);
     HttpServer::new(app)
-        .bind(socket)
+        .bind(addr)
         .unwrap()
         .run()
         .unwrap();
