@@ -58,7 +58,9 @@ fn main() {
 }
 
 fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
-    let content = template.render("index.html", &tera::Context::new())
+    let mut context = tera::Context::new();
+    context.insert("title", &"Home");
+    let content = template.render("index.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
