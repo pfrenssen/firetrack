@@ -26,6 +26,28 @@ pub fn assert_page_title(body: &str, title: &str) {
     assert_xpath(body, xpath, title);
 }
 
+// Checks that the navbar is present.
+pub fn assert_navbar(body: &str) {
+    let expressions = [
+        // The navbar itself.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]",
+        // The logo, linking to the homepage.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/']//img[@src='/images/logo.png']",
+        // The site name, linking to the homepage.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/']//h3[text()='Firetrack']",
+        // The button to toggle the navbar.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//button[@class='navbar-toggler']",
+        // The link to the registration page.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/user/register']",
+        // The link to the login page.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/user/login']",
+    ];
+
+    for expression in &expressions {
+        assert_xpath_result_count(body, expression, 1);
+    }
+}
+
 // Given an HttpResponse, returns the response body as a string.
 pub fn get_response_body(response: &HttpResponse) -> String {
     // Get the response body.

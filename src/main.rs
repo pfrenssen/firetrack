@@ -93,6 +93,7 @@ fn test_index() {
     assert_response_ok(&response);
     assert_header_title(&body, "Home");
     assert_page_title(&body, "Home");
+    assert_navbar(&body);
 }
 
 // Configure the application.

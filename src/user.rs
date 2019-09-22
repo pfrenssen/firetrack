@@ -39,4 +39,5 @@ fn test_login() {
     assert_response_ok(&response);
     assert_header_title(&body, "Log in");
     assert_page_title(&body, "Log in");
+    assert_navbar(&body);
 }
