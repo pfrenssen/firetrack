@@ -4,8 +4,12 @@ extern crate tera;
 #[macro_use]
 extern crate log;
 
-#[cfg(test)] mod main_test;
+#[cfg(test)] mod firetrack_test;
 #[cfg(test)] mod integration_tests;
+
+#[cfg(test)] use actix_web::test;
+#[cfg(test)] use regex::Regex;
+#[cfg(test)] use crate::firetrack_test::*;
 
 mod user;
 
@@ -57,12 +61,38 @@ fn main() {
         .unwrap();
 }
 
+// Controller for the homepage.
 fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Home");
     let content = template.render("index.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Unit tests for the homepage.
+#[test]
+fn test_index() {
+    dotenv::dotenv().ok();
+
+    // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
+    let tera = compile_templates!("templates/**/*");
+    let request = test::TestRequest::get().data(tera).to_http_request();
+    let app_data = request.get_app_data().unwrap();
+
+    // Pass the Data struct containing the Tera templates to the index() function. This mimics how
+    // actix-web passes the data to the controller.
+    let controller = index(app_data);
+    let response = test::block_on(controller).unwrap();
+    let body = get_response_body(&response);
+
+    // Strip off the doctype declaration. This is invalid XML and prevents us from using XPath.
+    let re = Regex::new(r"<!doctype html>").unwrap();
+    let body = re.replace(body.as_str(), "");
+
+    assert_response_ok(&response);
+    assert_header_title(&body, "Home");
+    assert_page_title(&body, "Home");
 }
 
 // Configure the application.
