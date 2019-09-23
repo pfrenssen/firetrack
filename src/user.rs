@@ -16,6 +16,18 @@ pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
+// Controller for the registration form.
+pub fn register(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+    debug!("Request user registration form");
+
+    let mut context = tera::Context::new();
+    context.insert("title", &"Sign up");
+
+    let content = template.render("user/register.html", &context)
+        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
 // Unit tests for the user pages.
 #[test]
 fn test_login() {

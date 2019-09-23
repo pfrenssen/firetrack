@@ -107,5 +107,6 @@ fn app_config(config: &mut web::ServiceConfig) {
             .service(actix_files::Files::new("/js", "static/js"))
             .route("/", web::get().to(index))
             .route("/user/login", web::get().to(user::login))
+            .route("/user/register", web::get().to(user::register))
     );
 }

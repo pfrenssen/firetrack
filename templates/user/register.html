@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form class="form-register" method="post" enctype="application/x-www-form-urlencoded" action="/user/register">
+    {% include "user/authfields.html" %}
+</form>
+{% endblock content %}
