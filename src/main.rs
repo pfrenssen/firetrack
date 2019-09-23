@@ -1,8 +1,6 @@
-#[macro_use]
-extern crate tera;
-
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate log;
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate tera;
 
 #[cfg(test)] mod firetrack_test;
 #[cfg(test)] mod integration_tests;
@@ -14,7 +12,7 @@ extern crate log;
 mod user;
 
 use actix_files;
-use actix_web::{error, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use dotenv;
 use std::env;
 use std::process::exit;
@@ -49,6 +47,7 @@ fn main() {
     // Configure the application.
     let app = || {
         App::new()
+            .wrap(middleware::Logger::default())
             .configure(app_config)
     };
 
@@ -108,5 +107,6 @@ fn app_config(config: &mut web::ServiceConfig) {
             .route("/", web::get().to(index))
             .route("/user/login", web::get().to(user::login))
             .route("/user/register", web::get().to(user::register))
+            .route("/user/register", web::post().to(user::register_submit))
     );
 }
