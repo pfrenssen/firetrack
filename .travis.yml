@@ -17,6 +17,8 @@ before_install:
   - sudo apt-get install php php-dom php-mbstring composer
   - php --version
   - composer --version
+  - rustup component add clippy
+  - rustup component add rustfmt
 
 install:
   - composer install
@@ -24,6 +26,11 @@ install:
 script:
   # Compile the project.
   - cargo build
+  # Check coding standards.
+  - cargo fmt --all -- --check
+  # Run clippy.
+  - cargo clean --package firetrack
+  - cargo clippy -all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
   # Start the webserver and wait for it to come online.
