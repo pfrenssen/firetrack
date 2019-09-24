@@ -1,0 +1,18 @@
+{
+    "name": "pfrenssen/firetrack",
+    "license": "GPL",
+    "authors": [
+        {
+            "name": "Pieter Frenssen",
+            "email": "pieter@frenssen.be"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {},
+    "require-dev": {
+        "behat/behat": "^3.5@dev",
+        "behat/mink-goutte-driver": "^1.2@dev",
+        "behat/mink-extension": "^2.1@dev"
+    }
+}

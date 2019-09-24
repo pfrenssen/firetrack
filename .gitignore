@@ -2,3 +2,5 @@
 /.idea
 /target
 **/*.rs.bk
+
+/vendor/
