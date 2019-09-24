@@ -22,7 +22,9 @@ install:
   - composer install
 
 script:
+  - cargo build
   - cargo test --verbose --all
   - cargo run &> actix.log &
+  - until curl -s localhost:8088; do true; done > /dev/null
   - ./vendor/bin/behat
   - cat actix.log
