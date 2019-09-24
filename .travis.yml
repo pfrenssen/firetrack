@@ -22,9 +22,14 @@ install:
   - composer install
 
 script:
+  # Compile the project.
   - cargo build
+  # Run Rust test suites.
   - cargo test --verbose --all
+  # Start the webserver and wait for it to come online.
   - cargo run &> actix.log &
-  - until curl -s localhost:8088; do true; done > /dev/null
+  - until curl -s localhost:8088; do true; done &> /dev/null
+  # Run BDD test suite.
   - ./vendor/bin/behat
+  # Show server log.
   - cat actix.log
