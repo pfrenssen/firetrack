@@ -10,3 +10,6 @@ matrix:
     - rust: nightly
 
 cache: cargo
+
+before_install:
+  - php --version
