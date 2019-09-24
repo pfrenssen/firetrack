@@ -25,7 +25,7 @@ script:
   # Compile the project.
   - cargo build
   # Run Rust test suites.
-  - cargo test --verbose --all
+  - cargo test --all
   # Start the webserver and wait for it to come online.
   - cargo run &> actix.log &
   - until curl -s localhost:8088; do true; done &> /dev/null
