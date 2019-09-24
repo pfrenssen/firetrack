@@ -17,8 +17,6 @@ impl UserFormInput {
 
 // Controller for the login form.
 pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
-    debug!("Request user login form");
-
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
 
@@ -29,8 +27,6 @@ pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
 
 // Controller for the registration form.
 pub fn register(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
-    debug!("Request user registration form");
-
     let mut context = tera::Context::new();
     context.insert("title", &"Sign up");
 
@@ -41,8 +37,6 @@ pub fn register(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> 
 
 // Submit handler for the registration form.
 pub fn register_submit(template: web::Data<tera::Tera>, input: web::Form<UserFormInput>) -> Result<HttpResponse, Error> {
-    debug!("Submit user registration form");
-
     Ok(HttpResponse::Ok()
         .content_type("text/plain")
         .body(format!("Your email is {} with password {}", input.email, input.password)))
