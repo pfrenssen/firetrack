@@ -1,0 +1,16 @@
+default:
+  suites:
+    default:
+      contexts:
+        - FeatureContext
+        - Behat\MinkExtension\Context\MinkContext
+      filters:
+        tags: '~@wip'
+  extensions:
+    Behat\MinkExtension:
+      base_url:  'http://localhost:8088'
+      sessions:
+        default:
+          goutte: ~
+  formatters:
+    progress: ~
