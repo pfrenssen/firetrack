@@ -7,7 +7,11 @@ use std::str;
 
 // Checks that the page returns a 200 OK response.
 pub fn assert_response_ok(response: &HttpResponse) {
-    assert_eq!(response.status(), StatusCode::OK, "The HTTP response object has status 200 OK.");
+    assert_eq!(
+        response.status(),
+        StatusCode::OK,
+        "The HTTP response object has status 200 OK."
+    );
 }
 
 // Checks that the header title matches the given string.
@@ -54,8 +58,14 @@ pub fn get_response_body(response: &HttpResponse) -> String {
     let body = match response.body() {
         // It is not clear to me under which circumstances this will return a 'Body' or a 'Response'
         // so let's print out some debugging info.
-        ResponseBody::Body(b) => { println!("'Body' response body is returned."); b },
-        ResponseBody::Other(o) => { println!("'Other' response body is returned."); o },
+        ResponseBody::Body(b) => {
+            println!("'Body' response body is returned.");
+            b
+        }
+        ResponseBody::Other(o) => {
+            println!("'Other' response body is returned.");
+            o
+        }
     };
     // Convert the response in Bytes to a string slice.
     let body = match body {

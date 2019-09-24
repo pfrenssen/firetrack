@@ -6,12 +6,10 @@ pub struct UserFormInput {
     password: String,
 }
 
+#[cfg(test)]
 impl UserFormInput {
     pub fn new(email: String, password: String) -> UserFormInput {
-        UserFormInput {
-            email,
-            password,
-        }
+        UserFormInput { email, password }
     }
 }
 
@@ -20,7 +18,8 @@ pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
 
-    let content = template.render("user/login.html", &context)
+    let content = template
+        .render("user/login.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
@@ -30,16 +29,21 @@ pub fn register(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> 
     let mut context = tera::Context::new();
     context.insert("title", &"Sign up");
 
-    let content = template.render("user/register.html", &context)
+    let content = template
+        .render("user/register.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
 // Submit handler for the registration form.
-pub fn register_submit(template: web::Data<tera::Tera>, input: web::Form<UserFormInput>) -> Result<HttpResponse, Error> {
-    Ok(HttpResponse::Ok()
-        .content_type("text/plain")
-        .body(format!("Your email is {} with password {}", input.email, input.password)))
+pub fn register_submit(
+    template: web::Data<tera::Tera>,
+    input: web::Form<UserFormInput>,
+) -> Result<HttpResponse, Error> {
+    Ok(HttpResponse::Ok().content_type("text/plain").body(format!(
+        "Your email is {} with password {}",
+        input.email, input.password
+    )))
 }
 
 #[cfg(test)]

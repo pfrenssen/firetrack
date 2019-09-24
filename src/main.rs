@@ -1,12 +1,19 @@
-#[macro_use] extern crate log;
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate tera;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate tera;
 
-#[cfg(test)] mod firetrack_test;
-#[cfg(test)] mod integration_tests;
+#[cfg(test)]
+mod firetrack_test;
+#[cfg(test)]
+mod integration_tests;
 
-#[cfg(test)] use actix_web::test;
-#[cfg(test)] use crate::firetrack_test::*;
+#[cfg(test)]
+use crate::firetrack_test::*;
+#[cfg(test)]
+use actix_web::test;
 
 mod user;
 
@@ -52,18 +59,15 @@ fn main() {
 
     // Start the web server.
     let addr = format!("{}:{}", host, port);
-    HttpServer::new(app)
-        .bind(addr)
-        .unwrap()
-        .run()
-        .unwrap();
+    HttpServer::new(app).bind(addr).unwrap().run().unwrap();
 }
 
 // Controller for the homepage.
 fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Home");
-    let content = template.render("index.html", &context)
+    let content = template
+        .render("index.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
@@ -102,6 +106,6 @@ fn app_config(config: &mut web::ServiceConfig) {
             .route("/", web::get().to(index))
             .route("/user/login", web::get().to(user::login))
             .route("/user/register", web::get().to(user::register))
-            .route("/user/register", web::post().to(user::register_submit))
+            .route("/user/register", web::post().to(user::register_submit)),
     );
 }
