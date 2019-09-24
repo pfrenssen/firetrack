@@ -54,7 +54,6 @@ mod tests {
     use crate::firetrack_test::*;
 
     use actix_web::test::{block_on, TestRequest};
-    use regex::Regex;
 
     // Unit tests for the user login page.
     #[test]
@@ -71,10 +70,6 @@ mod tests {
         let controller = login(app_data);
         let response = block_on(controller).unwrap();
         let body = get_response_body(&response);
-
-        // Strip off the doctype declaration. This is invalid XML and prevents us from using XPath.
-        let re = Regex::new(r"<!doctype html>").unwrap();
-        let body = re.replace(body.as_str(), "");
 
         assert_response_ok(&response);
         assert_header_title(&body, "Log in");
@@ -97,10 +92,6 @@ mod tests {
         let controller = register(app_data);
         let response = block_on(controller).unwrap();
         let body = get_response_body(&response);
-
-        // Strip off the doctype declaration. This is invalid XML and prevents us from using XPath.
-        let re = Regex::new(r"<!doctype html>").unwrap();
-        let body = re.replace(body.as_str(), "");
 
         assert_response_ok(&response);
         assert_header_title(&body, "Sign up");

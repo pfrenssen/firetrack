@@ -6,7 +6,6 @@
 #[cfg(test)] mod integration_tests;
 
 #[cfg(test)] use actix_web::test;
-#[cfg(test)] use regex::Regex;
 #[cfg(test)] use crate::firetrack_test::*;
 
 mod user;
@@ -84,10 +83,6 @@ fn test_index() {
     let controller = index(app_data);
     let response = test::block_on(controller).unwrap();
     let body = get_response_body(&response);
-
-    // Strip off the doctype declaration. This is invalid XML and prevents us from using XPath.
-    let re = Regex::new(r"<!doctype html>").unwrap();
-    let body = re.replace(body.as_str(), "");
 
     assert_response_ok(&response);
     assert_header_title(&body, "Home");

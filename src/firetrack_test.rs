@@ -63,7 +63,8 @@ pub fn get_response_body(response: &HttpResponse) -> String {
         _ => "",
     };
 
-    body.to_string()
+    // Strip off the doctype declaration. This is invalid XML and prevents us from using XPath.
+    body.to_string().replace("<!doctype html>\n", "")
 }
 
 // Asserts that the given XPath expression results in the given string for the given XML document.
