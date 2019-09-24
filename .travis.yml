@@ -14,7 +14,7 @@ cache: cargo
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install php composer
+  - sudo apt-get install php php-mbstring composer
   - php --version
   - composer --version
 
