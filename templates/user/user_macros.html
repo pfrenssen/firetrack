@@ -1,0 +1,31 @@
+{% macro form_elements(input, validation) %}
+    {% if validation.form_is_validated %}
+        {% if validation.email %}
+            {% set email_validation = " is-valid" %}
+        {% else %}
+            {% set email_validation = " is-invalid" %}
+        {% endif %}
+        {% if validation.password %}
+            {% set password_validation = " is-valid" %}
+        {% else %}
+            {% set password_validation = " is-invalid" %}
+        {% endif %}
+    {% else %}
+        {% set email_validation = "" %}
+        {% set password_validation = "" %}
+    {% endif %}
+    <div class="form-label-group">
+        <label for="email">Email address</label>
+        <input type="email" name="email" id="email" class="form-control{{ email_validation }}" placeholder="Email address" value="{{ input.email }}" required autofocus="">
+        <div class="invalid-feedback">Please enter a valid email address.</div>
+        <small id="emailHelp" class="form-text text-muted">We'll never share your email with anyone else.</small>
+    </div>
+
+    <div class="form-label-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" class="form-control{{ password_validation }}" placeholder="Password" value="{{ input.password }}" required>
+        <div class="invalid-feedback">Please enter a password.</div>
+    </div>
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">{{ title }}</button>
+{% endmacro form_elements %}
