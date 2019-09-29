@@ -30,7 +30,7 @@ script:
   - cargo fmt --all -- --check
   # Run clippy.
   - cargo clean --package firetrack
-  - cargo clippy -all-targets --all-features -- -D warnings
+  - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
   # Start the webserver and wait for it to come online.
