@@ -13,6 +13,7 @@
     "require-dev": {
         "behat/behat": "^3.5@dev",
         "behat/mink-goutte-driver": "^1.2@dev",
-        "behat/mink-extension": "^2.1@dev"
+        "behat/mink-extension": "^2.1@dev",
+        "lovers-of-behat/screenshot-extension": "^0.1.0"
     }
 }

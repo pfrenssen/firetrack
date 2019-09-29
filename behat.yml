@@ -2,7 +2,9 @@ default:
   suites:
     default:
       contexts:
+        - BootstrapContext
         - FeatureContext
+        - HtmlContext
         - Behat\MinkExtension\Context\MinkContext
       filters:
         tags: '~@wip'
@@ -12,5 +14,9 @@ default:
       sessions:
         default:
           goutte: ~
+    LoversOfBehat\ScreenshotExtension:
+      storage:
+        filesystem:
+          path: '/tmp/screenshots/'
   formatters:
     progress: ~
