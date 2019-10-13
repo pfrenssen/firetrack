@@ -1,4 +1,6 @@
 #[macro_use]
+extern crate clap;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
@@ -19,9 +21,12 @@ mod user;
 
 use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
+use clap::{AppSettings, SubCommand};
 use dotenv;
 use std::env;
 use std::process::exit;
+
+static APPLICATION_NAME: &str = "firetrack";
 
 fn main() {
     // Populate environment variables from the local `.env` file.
@@ -50,6 +55,31 @@ fn main() {
         }
     };
 
+    // Configure the CLI.
+    let cli_app = clap::App::new(APPLICATION_NAME)
+        .version(crate_version!())
+        .subcommand(
+            SubCommand::with_name("serve").about(
+                format!(
+                    "Serves the {} application on {}:{}",
+                    APPLICATION_NAME, host, port
+                )
+                .as_str(),
+            ),
+        )
+        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .get_matches();
+
+    // Launch the passed in subcommand.
+    match cli_app.subcommand_name() {
+        Some("serve") => serve(host.as_str(), port.as_str()),
+        None => {}
+        _ => unreachable!(),
+    }
+}
+
+// Starts the web server on the given host address and port.
+fn serve(host: &str, port: &str) {
     // Configure the application.
     let app = || {
         App::new()
