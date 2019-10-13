@@ -59,7 +59,16 @@ fn main() {
 
     // Start the web server.
     let addr = format!("{}:{}", host, port);
-    HttpServer::new(app).bind(addr).unwrap().run().unwrap();
+    match HttpServer::new(app).bind(addr) {
+        Ok(server) => {
+            server.run().unwrap();
+        }
+        Err(e) => {
+            error!("Failed to start web server on {}:{}", host, port);
+            error!("{}", e.to_string());
+            exit(1);
+        }
+    }
 }
 
 // Controller for the homepage.
