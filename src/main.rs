@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate clap;
 #[macro_use]
+extern crate diesel;
+#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
@@ -17,11 +19,14 @@ use crate::firetrack_test::*;
 #[cfg(test)]
 use actix_web::test;
 
+mod schema;
 mod user;
 
 use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
-use clap::{AppSettings, SubCommand};
+use clap::{AppSettings, Arg, SubCommand};
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use dotenv;
 use std::env;
 use std::process::exit;
@@ -61,11 +66,25 @@ fn main() {
         .subcommand(
             SubCommand::with_name("serve").about(
                 format!(
-                    "Serves the {} application on {}:{}",
+                    "Serve the {} application on {}:{}",
                     APPLICATION_NAME, host, port
                 )
                 .as_str(),
             ),
+        )
+        .subcommand(
+            SubCommand::with_name("useradd")
+                .about("Create a new user account")
+                .arg(
+                    Arg::with_name("email")
+                        .required(true)
+                        .help("The user's email address"),
+                )
+                .arg(
+                    Arg::with_name("password")
+                        .required(true)
+                        .help("The user's password"),
+                ),
         )
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
@@ -73,6 +92,21 @@ fn main() {
     // Launch the passed in subcommand.
     match cli_app.subcommand_name() {
         Some("serve") => serve(host.as_str(), port.as_str()),
+        Some("useradd") => {
+            if let Some(arguments) = cli_app.subcommand_matches("useradd") {
+                match user::create(
+                    &establish_connection(),
+                    arguments.value_of("email").unwrap(),
+                    arguments.value_of("password").unwrap(),
+                ) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        error!("{}", e.to_string());
+                        exit(1);
+                    }
+                }
+            }
+        }
         None => {}
         _ => unreachable!(),
     }
@@ -95,6 +129,25 @@ fn serve(host: &str, port: &str) {
         }
         Err(e) => {
             error!("Failed to start web server on {}:{}", host, port);
+            error!("{}", e.to_string());
+            exit(1);
+        }
+    }
+}
+
+// Establishes a database connection.
+pub fn establish_connection() -> PgConnection {
+    let database_url = match env::var("DATABASE_URL") {
+        Ok(value) => value,
+        Err(_) => {
+            error!("DATABASE_URL environment variable is not set.");
+            exit(1);
+        }
+    };
+    match PgConnection::establish(&database_url) {
+        Ok(value) => value,
+        Err(e) => {
+            error!("Error connecting to {}", database_url);
             error!("{}", e.to_string());
             exit(1);
         }
@@ -143,8 +196,8 @@ fn app_config(config: &mut web::ServiceConfig) {
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))
             .route("/", web::get().to(index))
-            .route("/user/login", web::get().to(user::login))
-            .route("/user/register", web::get().to(user::register))
+            .route("/user/login", web::get().to(user::login_handler))
+            .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),
     );
 }

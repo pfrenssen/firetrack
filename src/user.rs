@@ -1,5 +1,36 @@
+use super::schema::users;
 use actix_web::{error, web, Error, HttpResponse};
+use argonautica::Hasher;
+use diesel::pg::PgConnection;
+use diesel::prelude::*;
 use validator::validate_email;
+
+#[derive(Debug, Queryable)]
+pub struct User {
+    pub email: String,
+    pub created: chrono::NaiveDateTime,
+    pub validated: bool,
+}
+
+#[derive(Queryable)]
+pub struct UserWithPassword {
+    user: User,
+    password: String,
+}
+
+// Todo: unused
+impl UserWithPassword {
+    pub fn from_values<S: Into<String>, T: Into<String>>(email: S, password: T) -> Self {
+        UserWithPassword {
+            user: User {
+                email: email.into(),
+                created: chrono::Local::now().naive_local(),
+                validated: false,
+            },
+            password: password.into(),
+        }
+    }
+}
 
 // The form fields of the user form.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -46,6 +77,33 @@ impl UserFormInputValid {
     pub fn is_valid(&self) -> bool {
         self.form_is_validated && self.email && self.password
     }
+}
+
+// Creates a user.
+// Todo: no unwrap, handle errors using enum.
+pub fn create(
+    connection: &PgConnection,
+    email: &str,
+    password: &str,
+) -> Result<User, diesel::result::Error> {
+    let hashed_password = hash_password(password).unwrap();
+    diesel::insert_into(users::table)
+        .values((
+            users::email.eq(email),
+            users::password.eq(hashed_password),
+            users::created.eq(chrono::Local::now().naive_local()),
+            users::validated.eq(false),
+        ))
+        .returning((users::email, users::created, users::validated))
+        .get_result(connection)
+}
+
+// Todo: real secret key.
+fn hash_password(password: &str) -> Result<String, argonautica::Error> {
+    Hasher::default()
+        .with_password(password)
+        .with_secret_key("very secret")
+        .hash()
 }
 
 // Request handler for the login form.
