@@ -48,8 +48,8 @@ impl UserFormInputValid {
     }
 }
 
-// Controller for the login form.
-pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+// Request handler for the login form.
+pub fn login_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
 
@@ -60,7 +60,7 @@ pub fn login(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
 }
 
 // Request handler for a GET request on the registration form.
-pub fn register(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
     let input = UserFormInput::new("".to_string(), "".to_string());
@@ -133,7 +133,7 @@ mod tests {
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = login(app_data);
+        let controller = login_handler(app_data);
         let response = block_on(controller).unwrap();
         let body = get_response_body(&response);
 
@@ -155,7 +155,7 @@ mod tests {
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = register(app_data);
+        let controller = register_handler(app_data);
         let response = block_on(controller).unwrap();
         let body = get_response_body(&response);
 
