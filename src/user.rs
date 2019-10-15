@@ -101,6 +101,8 @@ pub fn create(
 // Todo: real secret key.
 fn hash_password(password: &str) -> Result<String, argonautica::Error> {
     Hasher::default()
+        .configure_memory_size(1024)
+        .configure_iterations(64)
         .with_password(password)
         .with_secret_key("very secret")
         .hash()
