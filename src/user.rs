@@ -98,13 +98,13 @@ pub fn create(
         .get_result(connection)
 }
 
-// Todo: real secret key.
-fn hash_password(password: &str) -> Result<String, argonautica::Error> {
+// Performs an Argon2 hash of the password using the secret key.
+fn hash_password(password: &str, secret: &str) -> Result<String, argonautica::Error> {
     Hasher::default()
         .configure_memory_size(1024)
         .configure_iterations(64)
         .with_password(password)
-        .with_secret_key("very secret")
+        .with_secret_key(secret)
         .hash()
 }
 
@@ -247,5 +247,53 @@ mod tests {
             let expected = test_case.1;
             assert_eq!(validator.is_valid(), expected);
         }
+    }
+
+    // Tests hash_password().
+    #[test]
+    fn test_hash_password() {
+        let hashed_password_is_valid = |h: &str, p: &str, s: &str| {
+            Verifier::default()
+                .with_hash(h)
+                .with_password(p)
+                .with_secret_key(s)
+                .verify()
+                .unwrap()
+        };
+
+        let test_cases = [("mypass", "mysecret"), ("œ∑´®†¥¨ˆøπ“‘", "¡™£¢∞§¶•ªº–≠")];
+
+        for test_case in &test_cases {
+            let password = &test_case.0;
+            let secret = &test_case.1;
+
+            // Check that a hashed password is returned.
+            let result = hash_password(password, secret).unwrap();
+            assert!(result.starts_with("$argon2id$"));
+
+            // Check that the hashed password is valid.
+            assert!(hashed_password_is_valid(result.as_str(), password, secret));
+
+            // If we use a different password or key the result should be invalid.
+            assert!(!hashed_password_is_valid(
+                result.as_str(),
+                "incorrect password",
+                secret
+            ));
+            assert!(!hashed_password_is_valid(
+                result.as_str(),
+                password,
+                "incorrect secret"
+            ));
+            assert!(!hashed_password_is_valid(
+                result.as_str(),
+                "incorrect password",
+                "incorrect secret"
+            ));
+        }
+
+        // Empty passwords are not allowed.
+        let result = hash_password("", "mysecret");
+        assert!(result.is_err());
     }
 }
