@@ -3,6 +3,7 @@ use actix_web::{error, web, Error, HttpResponse};
 use argonautica::Hasher;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use std::fmt;
 use validator::validate_email;
 
 #[derive(Debug, Queryable)]
@@ -79,14 +80,31 @@ impl UserFormInputValid {
     }
 }
 
+// Possible errors being thrown when dealing with users.
+#[derive(Debug)]
+pub enum UserError {
+    // Thrown if a new user could not be created.
+    CreationFailed(diesel::result::Error),
+}
+
+impl fmt::Display for UserError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            UserError::CreationFailed(ref err) => write!(f, "Database error: {}", err),
+        }
+    }
+}
+
 // Creates a user.
-// Todo: no unwrap, handle errors using enum.
+// Todo:
+// - No unwrap.
+// - Check if user exists before hashing.
 pub fn create(
     connection: &PgConnection,
     email: &str,
     password: &str,
     secret: &str,
-) -> Result<User, diesel::result::Error> {
+) -> Result<User, UserError> {
     let hashed_password = hash_password(password, secret).unwrap();
     diesel::insert_into(users::table)
         .values((
@@ -97,6 +115,7 @@ pub fn create(
         ))
         .returning((users::email, users::created, users::validated))
         .get_result(connection)
+        .map_err(UserError::CreationFailed)
 }
 
 // Performs an Argon2 hash of the password using the secret key.
@@ -181,6 +200,7 @@ mod tests {
     use crate::firetrack_test::*;
 
     use actix_web::test::{block_on, TestRequest};
+    use argonautica::Verifier;
 
     // Unit tests for the user login page.
     #[test]
