@@ -13,26 +13,6 @@ pub struct User {
     pub validated: bool,
 }
 
-#[derive(Queryable)]
-pub struct UserWithPassword {
-    user: User,
-    password: String,
-}
-
-// Todo: unused
-impl UserWithPassword {
-    pub fn from_values<S: Into<String>, T: Into<String>>(email: S, password: T) -> Self {
-        UserWithPassword {
-            user: User {
-                email: email.into(),
-                created: chrono::Local::now().naive_local(),
-                validated: false,
-            },
-            password: password.into(),
-        }
-    }
-}
-
 // The form fields of the user form.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct UserFormInput {
