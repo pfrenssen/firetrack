@@ -33,6 +33,57 @@ use std::process::exit;
 
 static APPLICATION_NAME: &str = "firetrack";
 
+// Defines functions that will log an error and exit with an error code.
+// These are used for unrecoverable fatal errors instead of panics.
+pub trait ExitWithError<T> {
+    fn expect_or_exit(self, msg: &str) -> T;
+    fn unwrap_or_exit(self) -> T;
+}
+
+impl<T> ExitWithError<T> for Option<T> {
+    fn expect_or_exit(self, msg: &str) -> T {
+        match self {
+            Some(val) => val,
+            None => {
+                error!("{}", msg);
+                exit(1);
+            }
+        }
+    }
+
+    fn unwrap_or_exit(self) -> T {
+        match self {
+            Some(val) => val,
+            None => {
+                error!("called `Option::unwrap()` on a `None` value");
+                exit(1);
+            }
+        }
+    }
+}
+
+impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
+    fn expect_or_exit(self, msg: &str) -> T {
+        match self {
+            Ok(t) => t,
+            Err(_) => {
+                error!("{}", msg);
+                exit(1);
+            }
+        }
+    }
+
+    fn unwrap_or_exit(self) -> T {
+        match self {
+            Ok(t) => t,
+            Err(e) => {
+                error!("{}", &e);
+                exit(1);
+            }
+        }
+    }
+}
+
 fn main() {
     // Populate environment variables from the local `.env` file.
     dotenv::dotenv().ok();
@@ -44,33 +95,12 @@ fn main() {
     // Initialize the logger.
     env_logger::init();
 
-    // Retrieve the hostname and port.
-    let host = match env::var("HOST") {
-        Ok(value) => value,
-        Err(_) => {
-            error!("HOST environment variable is not set.");
-            exit(1);
-        }
-    };
-    let port = match env::var("PORT") {
-        Ok(value) => value,
-        Err(_) => {
-            error!("PORT environment variable is not set.");
-            exit(1);
-        }
-    };
-
     // Configure the CLI.
     let cli_app = clap::App::new(APPLICATION_NAME)
         .version(crate_version!())
         .subcommand(
-            SubCommand::with_name("serve").about(
-                format!(
-                    "Serve the {} application on {}:{}",
-                    APPLICATION_NAME, host, port
-                )
-                .as_str(),
-            ),
+            SubCommand::with_name("serve")
+                .about(format!("Serve the {} web application", APPLICATION_NAME).as_str()),
         )
         .subcommand(
             SubCommand::with_name("useradd")
@@ -91,20 +121,21 @@ fn main() {
 
     // Launch the passed in subcommand.
     match cli_app.subcommand_name() {
-        Some("serve") => serve(host.as_str(), port.as_str()),
+        Some("serve") => {
+            // Retrieve the hostname and port.
+            let host = env::var("HOST").expect_or_exit("HOST environment variable is not set.");
+            let port = env::var("PORT").expect_or_exit("PORT environment variable is not set.");
+
+            serve(host.as_str(), port.as_str());
+        }
         Some("useradd") => {
             if let Some(arguments) = cli_app.subcommand_matches("useradd") {
-                match user::create(
+                user::create(
                     &establish_connection(),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
-                ) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        error!("{}", e.to_string());
-                        exit(1);
-                    }
-                }
+                )
+                .unwrap_or_exit();
             }
         }
         None => {}
@@ -147,6 +178,7 @@ pub fn establish_connection() -> PgConnection {
     match PgConnection::establish(&database_url) {
         Ok(value) => value,
         Err(e) => {
+            error!("Could not connect to PostgreSQL.");
             error!("Error connecting to {}", database_url);
             error!("{}", e.to_string());
             exit(1);
