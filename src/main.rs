@@ -130,10 +130,18 @@ fn main() {
         }
         Some("useradd") => {
             if let Some(arguments) = cli_app.subcommand_matches("useradd") {
+                let secret = env::var("SECRET_KEY")
+                    .expect_or_exit("SECRET_KEY environment variable is not set.");
+                if secret.is_empty() {
+                    error!("SECRET_KEY environment variable is empty.");
+                    exit(1);
+                }
+
                 user::create(
                     &establish_connection(),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
+                    secret.as_str(),
                 )
                 .unwrap_or_exit();
             }

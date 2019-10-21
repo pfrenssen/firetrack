@@ -85,8 +85,9 @@ pub fn create(
     connection: &PgConnection,
     email: &str,
     password: &str,
+    secret: &str,
 ) -> Result<User, diesel::result::Error> {
-    let hashed_password = hash_password(password).unwrap();
+    let hashed_password = hash_password(password, secret).unwrap();
     diesel::insert_into(users::table)
         .values((
             users::email.eq(email),
