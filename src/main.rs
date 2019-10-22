@@ -33,10 +33,23 @@ use std::process::exit;
 
 static APPLICATION_NAME: &str = "firetrack";
 
-// Defines functions that will log an error and exit with an error code.
-// These are used for unrecoverable fatal errors instead of panics.
+/// A trait that defines functions that will log an error and exit with an error code.
+/// These can be used instead of panics to have clean logging in the console.
 pub trait ExitWithError<T> {
+    /// Unwraps an option or result, yielding the content of a [`Some`] or [`Ok`].
+    ///
+    /// # Exits
+    ///
+    /// Logs an error using the text provided by `msg` if the value is a [`None`] or [`Err`] and
+    /// exits with an error code.
     fn expect_or_exit(self, msg: &str) -> T;
+
+    /// Unwraps an option or result, yielding the content of a [`Some`] or [`Ok`].
+    ///
+    /// # Exits
+    ///
+    /// Exits with an error code if the value is a [`None`] or [`Err`]. If the value is an [`Err`]
+    /// the corresponding error message will be logged.
     fn unwrap_or_exit(self) -> T;
 }
 
