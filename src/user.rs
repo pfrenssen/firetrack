@@ -64,14 +64,16 @@ impl UserFormInputValid {
 // Possible errors being thrown when dealing with users.
 #[derive(Debug)]
 pub enum UserError {
-    // Thrown if a new user could not be created.
-    CreationFailed(diesel::result::Error),
+    // A new user could not be created due to a database error.
+    UserCreationFailed(diesel::result::Error),
 }
 
 impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            UserError::CreationFailed(ref err) => write!(f, "Database error: {}", err),
+            UserError::UserCreationFailed(ref err) => {
+                write!(f, "Database error when creating user: {}", err)
+            }
         }
     }
 }
@@ -101,7 +103,7 @@ pub fn create(
             users::validated,
         ))
         .get_result(connection)
-        .map_err(UserError::CreationFailed)
+        .map_err(UserError::UserCreationFailed)
 }
 
 // Performs an Argon2 hash of the password using the secret key.
