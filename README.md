@@ -13,10 +13,12 @@ Requirements
 Installation
 ------------
 
+```
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack
 $ cargo build --release
 $ sudo ln -s ./target/release/firetrack /usr/local/bin/
+```
 
 
 Usage
