@@ -187,15 +187,11 @@ fn serve(host: &str, port: &str) {
     }
 }
 
-// Establishes a database connection.
+// Establishes a non-pooled database connection.
 pub fn establish_connection() -> PgConnection {
-    let database_url = match env::var("DATABASE_URL") {
-        Ok(value) => value,
-        Err(_) => {
-            error!("DATABASE_URL environment variable is not set.");
-            exit(1);
-        }
-    };
+    let database_url =
+        env::var("DATABASE_URL").expect_or_exit("DATABASE_URL environment variable is not set.");
+
     match PgConnection::establish(&database_url) {
         Ok(value) => value,
         Err(e) => {
