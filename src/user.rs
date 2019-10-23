@@ -71,6 +71,9 @@ pub enum UserError {
     UserCreationFailed(diesel::result::Error),
     // A user could not be read due to a database error.
     UserReadFailed(diesel::result::Error),
+    // A new user could not be created because a user with the same email address has already been
+    // registered.
+    UserWithEmailAlreadyExists(String),
 }
 
 impl fmt::Display for UserError {
@@ -83,19 +86,27 @@ impl fmt::Display for UserError {
             UserError::UserReadFailed(ref err) => {
                 write!(f, "Database error when reading user: {}", err)
             }
+            UserError::UserWithEmailAlreadyExists(ref email) => {
+                write!(f, "A user with email {} already exists", email)
+            }
         }
     }
 }
 
-// Creates a user.
-// Todo:
-// - Check if user exists before hashing.
+/// Creates a user.
+/// Todo:
+/// - Add documentation.
+/// - Add tests.
 pub fn create(
     connection: &PgConnection,
     email: &str,
     password: &str,
     secret: &str,
 ) -> Result<User, UserError> {
+    let existing_user = read(connection, email);
+    if existing_user.is_ok() {
+        return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
+    }
     let hashed_password = hash_password(password, secret).map_err(UserError::PasswordHashFailed)?;
     diesel::insert_into(users::table)
         .values((
