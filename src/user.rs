@@ -64,6 +64,9 @@ impl UserFormInputValid {
 // Possible errors being thrown when dealing with users.
 #[derive(Debug)]
 pub enum UserError {
+    // The user password could not be hashed. This is usually due to a requirement not being met,
+    // such as a missing password.
+    PasswordHashFailed(argonautica::Error),
     // A new user could not be created due to a database error.
     UserCreationFailed(diesel::result::Error),
 }
@@ -71,6 +74,7 @@ pub enum UserError {
 impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
             UserError::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
             }
@@ -80,7 +84,6 @@ impl fmt::Display for UserError {
 
 // Creates a user.
 // Todo:
-// - No unwrap.
 // - Check if user exists before hashing.
 pub fn create(
     connection: &PgConnection,
@@ -88,7 +91,7 @@ pub fn create(
     password: &str,
     secret: &str,
 ) -> Result<User, UserError> {
-    let hashed_password = hash_password(password, secret).unwrap();
+    let hashed_password = hash_password(password, secret).map_err(UserError::PasswordHashFailed)?;
     diesel::insert_into(users::table)
         .values((
             users::email.eq(email),
