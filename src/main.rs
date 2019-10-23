@@ -149,12 +149,26 @@ fn main() {
                     error!("SECRET_KEY environment variable is empty.");
                     exit(1);
                 }
+                let memory_size = env::var("HASHER_MEMORY_SIZE")
+                    .expect_or_exit("HASHER_MEMORY_SIZE environment variable is not set.")
+                    .parse()
+                    .expect_or_exit(
+                        "HASHER_MEMORY_SIZE environment variable should be an integer value.",
+                    );
+                let iterations = env::var("HASHER_ITERATIONS")
+                    .expect_or_exit("HASHER_ITERATIONS environment variable is not set.")
+                    .parse()
+                    .expect_or_exit(
+                        "HASHER_ITERATIONS environment variable should be an integer value.",
+                    );
 
                 user::create(
                     &establish_connection(),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
                     secret.as_str(),
+                    memory_size,
+                    iterations,
                 )
                 .unwrap_or_exit();
             }

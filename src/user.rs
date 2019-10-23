@@ -105,15 +105,21 @@ pub fn create(
     email: &str,
     password: &str,
     secret: &str,
+    memory_size: u32,
+    iterations: u32,
 ) -> Result<User, UserError> {
     if !validate_email(email) {
         return Err(UserError::InvalidEmail(email.to_string()));
     }
+
     let existing_user = read(connection, email);
     if existing_user.is_ok() {
         return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
     }
-    let hashed_password = hash_password(password, secret).map_err(UserError::PasswordHashFailed)?;
+
+    let hashed_password = hash_password(password, secret, memory_size, iterations)
+        .map_err(UserError::PasswordHashFailed)?;
+
     diesel::insert_into(users::table)
         .values((
             users::email.eq(email),
@@ -131,11 +137,16 @@ pub fn create(
         .map_err(UserError::UserCreationFailed)
 }
 
-// Performs an Argon2 hash of the password using the secret key.
-fn hash_password(password: &str, secret: &str) -> Result<String, argonautica::Error> {
+// Performs an Argon2 hash of the password.
+fn hash_password(
+    password: &str,
+    secret: &str,
+    memory_size: u32,
+    iterations: u32,
+) -> Result<String, argonautica::Error> {
     Hasher::default()
-        .configure_memory_size(1024)
-        .configure_iterations(64)
+        .configure_memory_size(memory_size)
+        .configure_iterations(iterations)
         .with_password(password)
         .with_secret_key(secret)
         .hash()
@@ -295,6 +306,10 @@ mod tests {
     // Tests hash_password().
     #[test]
     fn test_hash_password() {
+        // Use low values for the memory size and iterations to speed up testing.
+        let memory_size = 512;
+        let iterations = 1;
+
         let hashed_password_is_valid = |h: &str, p: &str, s: &str| {
             Verifier::default()
                 .with_hash(h)
@@ -311,7 +326,7 @@ mod tests {
             let secret = &test_case.1;
 
             // Check that a hashed password is returned.
-            let result = hash_password(password, secret).unwrap();
+            let result = hash_password(password, secret, memory_size, iterations).unwrap();
             assert!(result.starts_with("$argon2id$"));
 
             // Check that the hashed password is valid.
@@ -336,7 +351,15 @@ mod tests {
         }
 
         // Empty passwords are not allowed.
-        let result = hash_password("", "mysecret");
+        let result = hash_password("", "mysecret", memory_size, iterations);
+        assert!(result.is_err());
+
+        // Iterations must be larger than 0.
+        let result = hash_password("mypass", "mysecret", memory_size, 0);
+        assert!(result.is_err());
+
+        // Memory size must be at least 8x the number of cores in the machine.
+        let result = hash_password("mypass", "mysecret", 7, iterations);
         assert!(result.is_err());
     }
 }
