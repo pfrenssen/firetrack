@@ -69,6 +69,8 @@ pub enum UserError {
     PasswordHashFailed(argonautica::Error),
     // A new user could not be created due to a database error.
     UserCreationFailed(diesel::result::Error),
+    // A user could not be read due to a database error.
+    UserReadFailed(diesel::result::Error),
 }
 
 impl fmt::Display for UserError {
@@ -77,6 +79,9 @@ impl fmt::Display for UserError {
             UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
             UserError::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
+            }
+            UserError::UserReadFailed(ref err) => {
+                write!(f, "Database error when reading user: {}", err)
             }
         }
     }
@@ -117,6 +122,15 @@ fn hash_password(password: &str, secret: &str) -> Result<String, argonautica::Er
         .with_password(password)
         .with_secret_key(secret)
         .hash()
+}
+
+/// Reads a user from the database.
+pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
+    use super::schema::users::dsl::users;
+    users
+        .find(email)
+        .first::<User>(connection)
+        .map_err(UserError::UserReadFailed)
 }
 
 // Request handler for the login form.
