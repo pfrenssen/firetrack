@@ -64,6 +64,8 @@ impl UserFormInputValid {
 // Possible errors being thrown when dealing with users.
 #[derive(Debug)]
 pub enum UserError {
+    // The passed in email address is not valid.
+    InvalidEmail(String),
     // The user password could not be hashed. This is usually due to a requirement not being met,
     // such as a missing password.
     PasswordHashFailed(argonautica::Error),
@@ -79,6 +81,7 @@ pub enum UserError {
 impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            UserError::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
             UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
             UserError::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
@@ -103,6 +106,9 @@ pub fn create(
     password: &str,
     secret: &str,
 ) -> Result<User, UserError> {
+    if !validate_email(email) {
+        return Err(UserError::InvalidEmail(email.to_string()));
+    }
     let existing_user = read(connection, email);
     if existing_user.is_ok() {
         return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
