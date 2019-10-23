@@ -9,6 +9,7 @@ use validator::validate_email;
 #[derive(Debug, Queryable)]
 pub struct User {
     pub email: String,
+    pub password: String,
     pub created: chrono::NaiveDateTime,
     pub validated: bool,
 }
@@ -93,7 +94,12 @@ pub fn create(
             users::created.eq(chrono::Local::now().naive_local()),
             users::validated.eq(false),
         ))
-        .returning((users::email, users::created, users::validated))
+        .returning((
+            users::email,
+            users::password,
+            users::created,
+            users::validated,
+        ))
         .get_result(connection)
         .map_err(UserError::CreationFailed)
 }
