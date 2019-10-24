@@ -98,14 +98,8 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
 }
 
 fn main() {
-    // Populate environment variables from the local `.env` file.
-    dotenv::dotenv().ok();
-
-    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
-    // as a fallback.
-    dotenv::from_filename(".env.dist").ok();
-
-    // Initialize the logger.
+    // Import environment variables from .env files, and initialize the logger.
+    import_env_vars();
     env_logger::init();
 
     // Configure the CLI.
@@ -263,4 +257,14 @@ fn app_config(config: &mut web::ServiceConfig) {
             .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),
     );
+}
+
+// Imports environment variables by reading the .env files.
+fn import_env_vars() {
+    // Populate environment variables from the local `.env` file.
+    dotenv::dotenv().ok();
+
+    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
+    // as a fallback.
+    dotenv::from_filename(".env.dist").ok();
 }

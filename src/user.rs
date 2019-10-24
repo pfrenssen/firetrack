@@ -232,6 +232,7 @@ mod tests {
     use super::*;
     use crate::firetrack_test::*;
 
+    use crate::{establish_connection, import_env_vars};
     use actix_web::test::{block_on, TestRequest};
     use argonautica::Verifier;
 
@@ -361,5 +362,23 @@ mod tests {
         // Memory size must be at least 8x the number of cores in the machine.
         let result = hash_password("mypass", "mysecret", 7, iterations);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_create() {
+        import_env_vars();
+        let connection = establish_connection();
+        connection.test_transaction::<_, Error, _>(|| {
+            let user = create(
+                &connection,
+                "test@example.com",
+                "mypass",
+                "mysecret",
+                512,
+                1,
+            );
+            println!("{:?}", user);
+            Ok(())
+        });
     }
 }
