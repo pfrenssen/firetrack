@@ -14,13 +14,13 @@ services:
 env:
   global:
     - DATABASE_URL=postgres://postgres@localhost/firetrack
-    - SECRET_KEY=travis-ci
+    - SECRET_KEY=travis123
 
 matrix:
   allow_failures:
     - rust: nightly
 
-cache: cargo
+#cache: cargo
 
 before_install:
   # Use a PPA to get a more recent version of PHP in Xenial.
@@ -58,3 +58,8 @@ script:
   - ./vendor/bin/behat
   # Show server log.
   - cat actix.log
+#  # Show how much data is cached.
+#  - du -hs /home/travis/.cargo
+#  - du -hs /home/travis/build/pfrenssen/firetrack/target
+#  - du -hs /home/travis/.rustup
+#  - du -hs /home/travis/.cache/sccache
