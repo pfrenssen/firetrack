@@ -418,6 +418,48 @@ mod tests {
         });
     }
 
+    #[test]
+    fn test_read() {
+        import_env_vars();
+        let connection = establish_connection();
+        let email = "test@example.com";
+        let password = "mypass";
+        let secret = "mysecret";
+        connection.test_transaction::<_, Error, _>(|| {
+            create(&connection, email, password, secret, 512, 1).unwrap();
+
+            // Check that the retrieved user object has the correct values.
+            let user = read(&connection, email).unwrap();
+            assert_eq!(user.email, email);
+            assert!(hashed_password_is_valid(
+                user.password.as_str(),
+                password,
+                secret
+            ));
+            assert_eq!(user.validated, false);
+
+            // Check that the creation timestamp is located somewhere in the last few seconds.
+            let now = chrono::Local::now().naive_local();
+            let two_seconds_ago = chrono::Local::now()
+                .checked_add_signed(time::Duration::seconds(-2))
+                .unwrap()
+                .naive_local();
+            assert!(user.created < now);
+            assert!(user.created > two_seconds_ago);
+
+            // Retrieving a non-existing user should result in an error.
+            let non_existing_email = "non-existing@example.com";
+            let non_existing_user = read(&connection, non_existing_email).unwrap_err();
+            println!("{:?}", non_existing_user);
+            assert_eq!(
+                non_existing_user,
+                UserError::UserNotFound(non_existing_email.to_string())
+            );
+
+            Ok(())
+        });
+    }
+
     // Checks that the given password hash matches the given password and secret key.
     fn hashed_password_is_valid(h: &str, p: &str, s: &str) -> bool {
         Verifier::default()
