@@ -315,13 +315,7 @@ mod tests {
         let memory_size = 512;
         let iterations = 1;
 
-        let test_cases = [
-            ("mypass", "mysecret"),
-            (
-                "œ∑´®†¥¨ˆøπ“‘",
-                "¡™£¢∞§¶•ªº–≠",
-            ),
-        ];
+        let test_cases = [("mypass", "mysecret"), ("œ∑´®†¥¨ˆøπ“‘", "¡™£¢∞§¶•ªº–≠")];
 
         for test_case in &test_cases {
             let password = &test_case.0;
