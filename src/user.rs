@@ -311,16 +311,13 @@ mod tests {
         let memory_size = 512;
         let iterations = 1;
 
-        let hashed_password_is_valid = |h: &str, p: &str, s: &str| {
-            Verifier::default()
-                .with_hash(h)
-                .with_password(p)
-                .with_secret_key(s)
-                .verify()
-                .unwrap()
-        };
-
-        let test_cases = [("mypass", "mysecret"), ("œ∑´®†¥¨ˆøπ“‘", "¡™£¢∞§¶•ªº–≠")];
+        let test_cases = [
+            ("mypass", "mysecret"),
+            (
+                "œ∑´®†¥¨ˆøπ“‘",
+                "¡™£¢∞§¶•ªº–≠",
+            ),
+        ];
 
         for test_case in &test_cases {
             let password = &test_case.0;
@@ -380,5 +377,15 @@ mod tests {
             println!("{:?}", user);
             Ok(())
         });
+    }
+
+    // Checks that the given password hash matches the given password and secret key.
+    fn hashed_password_is_valid(h: &str, p: &str, s: &str) -> bool {
+        Verifier::default()
+            .with_hash(h)
+            .with_password(p)
+            .with_secret_key(s)
+            .verify()
+            .unwrap()
     }
 }
