@@ -32,11 +32,11 @@ Configure your local environment by creating a `.env` file and override the
 necessary configuration options:
 
 ```
-# Show backtraces.
-RUST_BACKTRACE=1
-
 # The database connection.
 DATABASE_URL=postgres://myuser:mypass@localhost/mydatabasename
+
+# The secret key used in password hashing.
+SECRET_KEY=mysecret123
 ```
 
 
