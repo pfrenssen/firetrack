@@ -62,7 +62,7 @@ impl UserFormInputValid {
 }
 
 // Possible errors being thrown when dealing with users.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum UserError {
     // The passed in email address is not valid.
     InvalidEmail(String),
@@ -97,9 +97,6 @@ impl fmt::Display for UserError {
 }
 
 /// Creates a user.
-/// Todo:
-/// - Add documentation.
-/// - Add tests.
 pub fn create(
     connection: &PgConnection,
     email: &str,
@@ -152,7 +149,7 @@ fn hash_password(
         .hash()
 }
 
-/// Reads a user from the database.
+/// Retrieves the user with the given email address from the database.
 pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
     use super::schema::users::dsl::users;
     users
@@ -365,16 +362,51 @@ mod tests {
     fn test_create() {
         import_env_vars();
         let connection = establish_connection();
+        let email = "test@example.com";
+        let password = "mypass";
+        let secret = "mysecret";
         connection.test_transaction::<_, Error, _>(|| {
-            let user = create(
-                &connection,
-                "test@example.com",
-                "mypass",
-                "mysecret",
-                512,
-                1,
+            let user = create(&connection, email, password, secret, 512, 1).unwrap();
+
+            // Check that the user object is returned with the correct values.
+            assert_eq!(user.email, email);
+            assert!(hashed_password_is_valid(
+                user.password.as_str(),
+                password,
+                secret
+            ));
+            assert_eq!(user.validated, false);
+
+            // Check that the creation timestamp is located somewhere in the last few seconds.
+            let now = chrono::Local::now().naive_local();
+            let two_seconds_ago = chrono::Local::now()
+                .checked_add_signed(time::Duration::seconds(-2))
+                .unwrap()
+                .naive_local();
+            assert!(user.created < now);
+            assert!(user.created > two_seconds_ago);
+
+            // Creating a second user with the same email address should result in an error.
+            let same_email_user =
+                create(&connection, email, "some_other_password", secret, 512, 1).unwrap_err();
+            assert_eq!(
+                same_email_user,
+                UserError::UserWithEmailAlreadyExists(email.to_string())
             );
-            println!("{:?}", user);
+
+            // The email address should be valid.
+            let invalid_email = "invalid_email";
+            let invalid_email_user =
+                create(&connection, invalid_email, password, secret, 512, 1).unwrap_err();
+            assert_eq!(
+                invalid_email_user,
+                UserError::InvalidEmail(invalid_email.to_string())
+            );
+
+            // The password should not be empty.
+            let empty_password_user = create(&connection, "test2@example.com", "", secret, 512, 1);
+            assert!(empty_password_user.is_err());
+
             Ok(())
         });
     }
