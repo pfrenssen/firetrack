@@ -71,6 +71,8 @@ pub enum UserError {
     PasswordHashFailed(argonautica::Error),
     // A new user could not be created due to a database error.
     UserCreationFailed(diesel::result::Error),
+    // The user with the given email address does not exist.
+    UserNotFound(String),
     // A user could not be read due to a database error.
     UserReadFailed(diesel::result::Error),
     // A new user could not be created because a user with the same email address has already been
@@ -85,6 +87,9 @@ impl fmt::Display for UserError {
             UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
             UserError::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
+            }
+            UserError::UserNotFound(ref email) => {
+                write!(f, "The user with email {} does not exist", email)
             }
             UserError::UserReadFailed(ref err) => {
                 write!(f, "Database error when reading user: {}", err)
@@ -152,10 +157,12 @@ fn hash_password(
 /// Retrieves the user with the given email address from the database.
 pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
     use super::schema::users::dsl::users;
-    users
-        .find(email)
-        .first::<User>(connection)
-        .map_err(UserError::UserReadFailed)
+    let user = users.find(email).first::<User>(connection);
+    match user {
+        Ok(u) => Ok(u),
+        Err(diesel::result::Error::NotFound) => Err(UserError::UserNotFound(email.to_string())),
+        Err(e) => Err(UserError::UserReadFailed(e)),
+    }
 }
 
 // Request handler for the login form.
