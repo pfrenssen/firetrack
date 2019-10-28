@@ -1,7 +1,5 @@
 language: rust
-# Using Xenial instead of Bionic because PostgreSQL doesn't work in Bionic.
-# https://travis-ci.community/t/postgresql-fails-to-start/4558
-dist: xenial
+dist: bionic
 
 rust:
   - stable
@@ -13,7 +11,7 @@ services:
 
 env:
   global:
-    - DATABASE_URL=postgres://postgres@localhost/firetrack
+    - DATABASE_URL=postgres://travis@localhost/travis
     - SECRET_KEY=travis123
 
 matrix:
@@ -22,11 +20,16 @@ matrix:
 
 cache: cargo
 
+addons:
+  postgresql: 11
+  apt:
+    packages:
+      - postgresql-11
+      - postgresql-client-11
+
 before_install:
-  # Use a PPA to get a more recent version of PHP in Xenial.
-  - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
-  - sudo apt-get install php7.3 php7.3-xml php7.3-mbstring composer
+  - sudo apt-get install php php-xml php-mbstring composer
   - php --version
   - rustup component add clippy
   - rustup component add rustfmt
@@ -35,11 +38,7 @@ before_install:
   - diesel database setup
 
 install:
-  # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
-  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  - php composer-setup.php
-  - php composer.phar --version
-  - php composer.phar install --no-interaction --prefer-source
+  - composer install
 
 script:
   # Compile the project.
@@ -58,11 +57,6 @@ script:
   - ./vendor/bin/behat
   # Show server log.
   - cat actix.log
-  # Show how much data is cached.
-  - du -hs /home/travis/.cargo
-  - du -hs /home/travis/build/pfrenssen/firetrack/target
-  - du -hs /home/travis/.rustup
-  - du -hs /home/travis/.cache/sccache
 
 before_cache:
   - rm -rf /home/travis/.cargo/registry
