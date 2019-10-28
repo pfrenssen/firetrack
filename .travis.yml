@@ -30,6 +30,9 @@ before_install:
   - php --version
   - rustup component add clippy
   - rustup component add rustfmt
+  - cargo install diesel_cli --no-default-features --features "postgres"
+  - diesel --version
+  - diesel database setup
 
 install:
   # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
@@ -37,9 +40,6 @@ install:
   - php composer-setup.php
   - php composer.phar --version
   - php composer.phar install --no-interaction --prefer-source
-
-before_script:
-  - psql -c 'create database firetrack;' -U postgres
 
 script:
   # Compile the project.
