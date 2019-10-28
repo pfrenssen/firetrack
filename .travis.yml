@@ -30,7 +30,7 @@ before_install:
   - php --version
   - rustup component add clippy
   - rustup component add rustfmt
-  - cargo install diesel_cli --no-default-features --features "postgres"
+  - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup
 
