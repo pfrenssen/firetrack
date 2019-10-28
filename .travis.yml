@@ -63,3 +63,9 @@ script:
   - du -hs /home/travis/build/pfrenssen/firetrack/target
   - du -hs /home/travis/.rustup
   - du -hs /home/travis/.cache/sccache
+
+before_cache:
+  - rm -rf /home/travis/.cargo/registry
+  - rm -rf /home/travis/.rustup/toolchains/nightly*
+  - rm -rf /home/travis/.rustup/update-hashes/nightly*
+  - rm -rf /home/travis/build/pfrenssen/firetrack/target
