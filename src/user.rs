@@ -444,7 +444,6 @@ mod tests {
             // Retrieving a non-existing user should result in an error.
             let non_existing_email = "non-existing@example.com";
             let non_existing_user = read(&connection, non_existing_email).unwrap_err();
-            println!("{:?}", non_existing_user);
             assert_eq!(
                 non_existing_user,
                 UserError::UserNotFound(non_existing_email.to_string())
