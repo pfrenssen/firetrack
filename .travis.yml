@@ -66,6 +66,4 @@ script:
 
 before_cache:
   - rm -rf /home/travis/.cargo/registry
-  - rm -rf /home/travis/.rustup/toolchains/nightly*
-  - rm -rf /home/travis/.rustup/update-hashes/nightly*
   - rm -rf /home/travis/build/pfrenssen/firetrack/target
