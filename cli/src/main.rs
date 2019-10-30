@@ -1,14 +1,11 @@
 #[macro_use]
 extern crate clap;
 #[macro_use]
-extern crate diesel;
-#[macro_use]
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
 #[macro_use]
 extern crate tera;
-extern crate time;
 
 #[cfg(test)]
 mod firetrack_test;
@@ -20,14 +17,12 @@ use crate::firetrack_test::*;
 #[cfg(test)]
 use actix_web::test;
 
-mod schema;
 mod user;
 
 use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use clap::{AppSettings, Arg, SubCommand};
-use diesel::pg::PgConnection;
-use diesel::prelude::*;
+use db::establish_connection;
 use dotenv;
 use std::env;
 use std::process::exit;
@@ -157,7 +152,7 @@ fn main() {
                         "HASHER_ITERATIONS environment variable should be an integer value.",
                     );
 
-                user::create(
+                db::user::create(
                     &establish_connection(),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
@@ -196,22 +191,6 @@ fn serve(host: &str, port: &str) {
     }
 }
 
-// Establishes a non-pooled database connection.
-pub fn establish_connection() -> PgConnection {
-    let database_url =
-        env::var("DATABASE_URL").expect_or_exit("DATABASE_URL environment variable is not set.");
-
-    match PgConnection::establish(&database_url) {
-        Ok(value) => value,
-        Err(e) => {
-            error!("Could not connect to PostgreSQL.");
-            error!("Error connecting to {}", database_url);
-            error!("{}", e.to_string());
-            exit(1);
-        }
-    }
-}
-
 // Controller for the homepage.
 fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
@@ -228,7 +207,7 @@ fn test_index() {
     dotenv::dotenv().ok();
 
     // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-    let tera = compile_templates!("templates/**/*");
+    let tera = compile_templates();
     let request = test::TestRequest::get().data(tera).to_http_request();
     let app_data = request.get_app_data().unwrap();
 
@@ -246,7 +225,7 @@ fn test_index() {
 
 // Configure the application.
 fn app_config(config: &mut web::ServiceConfig) {
-    let tera = compile_templates!("templates/**/*");
+    let tera = compile_templates();
     config.service(
         web::scope("")
             .data(tera)
@@ -258,6 +237,19 @@ fn app_config(config: &mut web::ServiceConfig) {
             .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),
     );
+}
+
+// Compile the Tera templates.
+fn compile_templates() -> tera::Tera {
+    // Determine the path to the templates folder. This depends on whether we are running from the
+    // root of the application (e.g. when launched using `cargo run`) or from the library folder
+    // (e.g. when running tests).
+    let path = if std::env::current_dir().unwrap().ends_with("cli") {
+        "templates/**/*"
+    } else {
+        "cli/templates/**/*"
+    };
+    compile_templates!(path)
 }
 
 // Imports environment variables by reading the .env files.

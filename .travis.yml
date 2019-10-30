@@ -32,7 +32,7 @@ before_install:
   - rustup component add rustfmt
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
-  - diesel database setup
+  - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
 
 install:
   # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
