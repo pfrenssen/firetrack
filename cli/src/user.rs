@@ -127,7 +127,7 @@ mod tests {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-        let tera = compile_templates!("templates/**/*");
+        let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
         let app_data = request.get_app_data().unwrap();
 
@@ -149,7 +149,7 @@ mod tests {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-        let tera = compile_templates!("templates/**/*");
+        let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
         let app_data = request.get_app_data().unwrap();
 
