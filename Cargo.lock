@@ -529,6 +529,7 @@ dependencies = [
  "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
  "tera 0.11.20 (registry+https://github.com/rust-lang/crates.io-index)",
  "validator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "web 0.1.0-dev",
 ]
 
 [[package]]
@@ -2057,6 +2058,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "wasi"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "web"
+version = "0.1.0-dev"
+dependencies = [
+ "actix-files 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "actix-http 0.2.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "actix-web 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "db 0.1.0-dev",
+ "dotenv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libxml 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.102 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tera 0.11.20 (registry+https://github.com/rust-lang/crates.io-index)",
+ "validator 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "which"
