@@ -135,8 +135,11 @@ fn main() {
                         "HASHER_ITERATIONS environment variable should be an integer value.",
                     );
 
+                let database_url = env::var("DATABASE_URL")
+                    .expect_or_exit("DATABASE_URL environment variable is not set.");
+
                 db::user::create(
-                    &establish_connection(),
+                    &establish_connection(&database_url),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
                     secret.as_str(),

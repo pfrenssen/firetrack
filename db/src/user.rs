@@ -121,7 +121,7 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
 mod tests {
     use super::*;
 
-    use crate::{establish_connection, import_env_vars};
+    use crate::{establish_connection, get_database_url};
 
     use argonautica::Verifier;
     use diesel::result::Error;
@@ -179,8 +179,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        import_env_vars();
-        let connection = establish_connection();
+        let connection = establish_connection(&get_database_url());
         let email = "test@example.com";
         let password = "mypass";
         let secret = "mysecret";
@@ -232,8 +231,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        import_env_vars();
-        let connection = establish_connection();
+        let connection = establish_connection(&get_database_url());
         let email = "test@example.com";
         let password = "mypass";
         let secret = "mysecret";
