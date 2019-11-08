@@ -87,12 +87,14 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
 }
 
 // Starts the web server on the given host address and port.
-pub fn serve(host: &str, port: &str) {
+pub fn serve(host: &str, port: &str, database_url: &str) {
+    let pool = db::create_connection_pool(&database_url).unwrap();
+
     // Configure the application.
-    let app = || {
+    let app = move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .configure(app_config)
+            .configure(|c| app_config(c, pool.clone()))
     };
 
     // Start the web server.
@@ -142,11 +144,12 @@ fn test_index() {
 }
 
 // Configure the application.
-fn app_config(config: &mut web::ServiceConfig) {
+fn app_config(config: &mut web::ServiceConfig, pool: db::ConnectionPool) {
     let tera = compile_templates();
     config.service(
         web::scope("")
             .data(tera)
+            .data(pool.clone())
             .service(actix_files::Files::new("/css", "static/css"))
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))
