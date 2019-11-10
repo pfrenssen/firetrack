@@ -149,7 +149,7 @@ fn app_config(config: &mut web::ServiceConfig, pool: db::ConnectionPool) {
     config.service(
         web::scope("")
             .data(tera)
-            .data(pool.clone())
+            .data(pool)
             .service(actix_files::Files::new("/css", "static/css"))
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))
