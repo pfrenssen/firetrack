@@ -78,6 +78,8 @@ fn main() {
     // Use custom log levels. This can be configured in the .env files.
     initialize_logger();
 
+    let config = AppConfig::from_environment();
+
     // Configure the CLI.
     let cli_app = clap::App::new(APPLICATION_NAME)
         .version(crate_version!())
@@ -105,13 +107,7 @@ fn main() {
     // Launch the passed in subcommand.
     match cli_app.subcommand_name() {
         Some("serve") => {
-            // Retrieve the hostname and port.
-            let host = env::var("HOST").expect_or_exit("HOST environment variable is not set.");
-            let port = env::var("PORT").expect_or_exit("PORT environment variable is not set.");
-            let database_url = env::var("DATABASE_URL")
-                .expect_or_exit("DATABASE_URL environment variable is not set.");
-
-            serve(host.as_str(), port.as_str(), database_url.as_str());
+            serve(config);
         }
         Some("useradd") => {
             if let Some(arguments) = cli_app.subcommand_matches("useradd") {

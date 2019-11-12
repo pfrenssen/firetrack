@@ -19,6 +19,7 @@ mod user;
 
 use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
+use app::AppConfig;
 use std::env;
 use std::process::exit;
 
@@ -86,9 +87,9 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
     }
 }
 
-// Starts the web server on the given host address and port.
-pub fn serve(host: &str, port: &str, database_url: &str) {
-    let pool = db::create_connection_pool(&database_url).unwrap();
+// Starts the web server on the host address and port as configured in the application.
+pub fn serve(config: AppConfig) {
+    let pool = db::create_connection_pool(&config.database_url()).unwrap();
 
     // Configure the application.
     let app = move || {
@@ -98,13 +99,17 @@ pub fn serve(host: &str, port: &str, database_url: &str) {
     };
 
     // Start the web server.
-    let addr = format!("{}:{}", host, port);
+    let addr = format!("{}:{}", config.host(), config.port());
     match HttpServer::new(app).bind(addr) {
         Ok(server) => {
             server.run().unwrap();
         }
         Err(e) => {
-            error!("Failed to start web server on {}:{}", host, port);
+            error!(
+                "Failed to start web server on {}:{}",
+                config.host(),
+                config.port()
+            );
             error!("{}", e.to_string());
             exit(1);
         }

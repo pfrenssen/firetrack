@@ -8,6 +8,7 @@ edition = "2018"
 actix-files = "~0.1"
 actix-http = "~0.2"
 actix-web = "^1.0.8"
+app = { path = "../app" }
 db = { path = "../db" }
 dotenv = "^0.15"
 libxml = "~0.2"

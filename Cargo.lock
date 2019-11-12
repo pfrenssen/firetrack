@@ -2118,6 +2118,7 @@ dependencies = [
  "actix-files 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-http 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "actix-web 1.0.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "app 0.1.0-dev",
  "db 0.1.0-dev",
  "dotenv 0.15.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libxml 0.2.12 (registry+https://github.com/rust-lang/crates.io-index)",
