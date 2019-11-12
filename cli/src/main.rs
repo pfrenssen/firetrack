@@ -3,14 +3,12 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+use app::*;
 use clap::{AppSettings, Arg, SubCommand};
 use db::establish_connection;
-use dotenv;
 use std::env;
 use std::process::exit;
 use web::serve;
-
-static APPLICATION_NAME: &str = "firetrack";
 
 /// A trait that defines functions that will log an error and exit with an error code.
 /// These can be used instead of panics to have clean logging in the console.
@@ -77,9 +75,8 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
 }
 
 fn main() {
-    // Import environment variables from .env files, and initialize the logger.
-    import_env_vars();
-    env_logger::init();
+    // Use custom log levels. This can be configured in the .env files.
+    initialize_logger();
 
     // Configure the CLI.
     let cli_app = clap::App::new(APPLICATION_NAME)
@@ -154,14 +151,4 @@ fn main() {
         None => {}
         _ => unreachable!(),
     }
-}
-
-// Imports environment variables by reading the .env files.
-fn import_env_vars() {
-    // Populate environment variables from the local `.env` file.
-    dotenv::dotenv().ok();
-
-    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
-    // as a fallback.
-    dotenv::from_filename(".env.dist").ok();
 }
