@@ -6,6 +6,8 @@ extern crate log;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::r2d2::ConnectionManager;
+use diesel::connection::Connection;
+use diesel::r2d2::CustomizeConnection;
 use std::fmt;
 use std::process::exit;
 
@@ -52,6 +54,26 @@ pub fn establish_connection(database_url: &str) -> PgConnection {
         }
     }
 }
+
+// Connection customizer that starts a test transaction for each connection in the pool.
+#[derive(Debug)]
+struct TestTransactionConnectionCustomizer;
+
+impl CustomizeConnection<PgConnection, diesel::r2d2::Error> for TestTransactionConnectionCustomizer {
+    fn on_acquire(&self, conn: &mut PgConnection) -> Result<(), diesel::r2d2::Error> {
+        conn.begin_test_transaction().unwrap();
+        Ok(())
+    }
+}
+
+// Returns a pool of connections that start a transaction that is discarded on completion.
+pub fn create_test_connection_pool(database_url: &str) -> Result<ConnectionPool, DatabaseError> {
+    r2d2::Pool::builder()
+        .connection_customizer(Box::new(TestTransactionConnectionCustomizer))
+        .build(ConnectionManager::<PgConnection>::new(database_url))
+        .map_err(|err| DatabaseError::ConnectionPoolNotCreated(format!("{}", err)))
+}
+
 
 // Imports environment variables by reading the .env files.
 #[cfg(test)]
