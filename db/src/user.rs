@@ -123,11 +123,11 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
 
 #[cfg(test)]
 mod tests {
+    use super::asserts::*;
     use super::*;
 
     use crate::{establish_connection, get_database_url};
 
-    use argonautica::Verifier;
     use diesel::result::Error;
 
     // Tests hash_password().
@@ -272,9 +272,17 @@ mod tests {
             Ok(())
         });
     }
+}
+
+/// Reusable assertions.
+///
+/// Note that these are only intended for testing but the #[cfg(test)] annotation is omitted so that
+/// these functions can also be used in integration tests.
+pub mod asserts {
+    use argonautica::Verifier;
 
     // Checks that the given password hash matches the given password and secret key.
-    fn hashed_password_is_valid(h: &str, p: &str, s: &str) -> bool {
+    pub fn hashed_password_is_valid(h: &str, p: &str, s: &str) -> bool {
         Verifier::default()
             .with_hash(h)
             .with_password(p)

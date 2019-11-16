@@ -94,10 +94,13 @@ pub fn register_submit(
         return render_register(template, input.into_inner(), validation_state);
     }
 
-    Ok(HttpResponse::Ok().content_type("text/plain").body(format!(
-        "Your email is {} with password {}",
-        input.email, input.password
-    )))
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    db::user::create(&connection, &input.email, &input.password, &config)
+        .map_err(error::ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/plain")
+        .body("Your account has been created successfully."))
 }
 
 // Renders the registration form, including validation errors.

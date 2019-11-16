@@ -1,6 +1,6 @@
 use super::super::*;
-
-use actix_web::{dev::Service, http::StatusCode, test, App};
+use actix_web::{dev::Service, test, App};
+use db::user::asserts::hashed_password_is_valid;
 
 #[test]
 fn register_with_valid_data() {
@@ -27,8 +27,24 @@ fn register_with_valid_data() {
     assert_response_ok(&response.response());
 
     let body = get_response_body(&response.response());
-    assert_eq!(
-        body.as_str(),
-        "Your email is test@example.com with password mypass"
-    );
+    assert_eq!(body.as_str(), "Your account has been created successfully.");
+
+    // Check that a user with the given username and password exists in the database.
+    let user = db::user::read(&pool.get().unwrap(), email).unwrap();
+
+    assert_eq!(user.email, email);
+    assert!(hashed_password_is_valid(
+        user.password.as_str(),
+        password,
+        config.secret_key()
+    ));
+    assert_eq!(user.validated, false);
+
+    let now = chrono::Local::now().naive_local();
+    let two_seconds_ago = chrono::Local::now()
+        .checked_add_signed(time::Duration::seconds(-2))
+        .unwrap()
+        .naive_local();
+    assert!(user.created < now);
+    assert!(user.created > two_seconds_ago);
 }
