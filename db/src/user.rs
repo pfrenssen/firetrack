@@ -1,4 +1,5 @@
 use super::schema::users;
+use app::AppConfig;
 use argonautica::Hasher;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -58,9 +59,7 @@ pub fn create(
     connection: &PgConnection,
     email: &str,
     password: &str,
-    secret: &str,
-    memory_size: u32,
-    iterations: u32,
+    config: &AppConfig,
 ) -> Result<User, UserError> {
     if !validate_email(email) {
         return Err(UserError::InvalidEmail(email.to_string()));
@@ -71,8 +70,13 @@ pub fn create(
         return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
     }
 
-    let hashed_password = hash_password(password, secret, memory_size, iterations)
-        .map_err(UserError::PasswordHashFailed)?;
+    let hashed_password = hash_password(
+        password,
+        config.secret_key(),
+        config.hasher_memory_size(),
+        config.hasher_iterations(),
+    )
+    .map_err(UserError::PasswordHashFailed)?;
 
     diesel::insert_into(users::table)
         .values((
@@ -182,16 +186,16 @@ mod tests {
         let connection = establish_connection(&get_database_url());
         let email = "test@example.com";
         let password = "mypass";
-        let secret = "mysecret";
+        let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
-            let user = create(&connection, email, password, secret, 512, 1).unwrap();
+            let user = create(&connection, email, password, &config).unwrap();
 
             // Check that the user object is returned with the correct values.
             assert_eq!(user.email, email);
             assert!(hashed_password_is_valid(
                 user.password.as_str(),
                 password,
-                secret
+                config.secret_key()
             ));
             assert_eq!(user.validated, false);
 
@@ -206,7 +210,7 @@ mod tests {
 
             // Creating a second user with the same email address should result in an error.
             let same_email_user =
-                create(&connection, email, "some_other_password", secret, 512, 1).unwrap_err();
+                create(&connection, email, "some_other_password", &config).unwrap_err();
             assert_eq!(
                 same_email_user,
                 UserError::UserWithEmailAlreadyExists(email.to_string())
@@ -215,14 +219,14 @@ mod tests {
             // The email address should be valid.
             let invalid_email = "invalid_email";
             let invalid_email_user =
-                create(&connection, invalid_email, password, secret, 512, 1).unwrap_err();
+                create(&connection, invalid_email, password, &config).unwrap_err();
             assert_eq!(
                 invalid_email_user,
                 UserError::InvalidEmail(invalid_email.to_string())
             );
 
             // The password should not be empty.
-            let empty_password_user = create(&connection, "test2@example.com", "", secret, 512, 1);
+            let empty_password_user = create(&connection, "test2@example.com", "", &config);
             assert!(empty_password_user.is_err());
 
             Ok(())
@@ -234,9 +238,9 @@ mod tests {
         let connection = establish_connection(&get_database_url());
         let email = "test@example.com";
         let password = "mypass";
-        let secret = "mysecret";
+        let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
-            create(&connection, email, password, secret, 512, 1).unwrap();
+            create(&connection, email, password, &config).unwrap();
 
             // Check that the retrieved user object has the correct values.
             let user = read(&connection, email).unwrap();
@@ -244,7 +248,7 @@ mod tests {
             assert!(hashed_password_is_valid(
                 user.password.as_str(),
                 password,
-                secret
+                config.secret_key(),
             ));
             assert_eq!(user.validated, false);
 

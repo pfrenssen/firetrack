@@ -111,35 +111,11 @@ fn main() {
         }
         Some("useradd") => {
             if let Some(arguments) = cli_app.subcommand_matches("useradd") {
-                let secret = env::var("SECRET_KEY")
-                    .expect_or_exit("SECRET_KEY environment variable is not set.");
-                if secret.is_empty() {
-                    error!("SECRET_KEY environment variable is empty.");
-                    exit(1);
-                }
-                let memory_size = env::var("HASHER_MEMORY_SIZE")
-                    .expect_or_exit("HASHER_MEMORY_SIZE environment variable is not set.")
-                    .parse()
-                    .expect_or_exit(
-                        "HASHER_MEMORY_SIZE environment variable should be an integer value.",
-                    );
-                let iterations = env::var("HASHER_ITERATIONS")
-                    .expect_or_exit("HASHER_ITERATIONS environment variable is not set.")
-                    .parse()
-                    .expect_or_exit(
-                        "HASHER_ITERATIONS environment variable should be an integer value.",
-                    );
-
-                let database_url = env::var("DATABASE_URL")
-                    .expect_or_exit("DATABASE_URL environment variable is not set.");
-
                 db::user::create(
-                    &establish_connection(&database_url),
+                    &establish_connection(&config.database_url()),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
-                    secret.as_str(),
-                    memory_size,
-                    iterations,
+                    &config,
                 )
                 .unwrap_or_exit();
             }

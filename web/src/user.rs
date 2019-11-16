@@ -1,4 +1,5 @@
 use actix_web::{error, web, Error, HttpResponse};
+use app::AppConfig;
 use validator::validate_email;
 
 // The form fields of the user form.
@@ -72,6 +73,8 @@ pub fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse,
 pub fn register_submit(
     template: web::Data<tera::Tera>,
     input: web::Form<UserFormInput>,
+    pool: web::Data<db::ConnectionPool>,
+    config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
     // Validate the form input.
     let mut validation_state = UserFormInputValid::default();

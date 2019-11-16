@@ -8,16 +8,15 @@ fn register_with_valid_data() {
     dotenv::from_filename(".env.dist").ok();
     let database_url = env::var("DATABASE_URL").unwrap();
     let pool = db::create_test_connection_pool(database_url.as_str()).unwrap();
-    let mut app = test::init_service(App::new().configure(|c| app_config(c, pool)));
-    let req = test::TestRequest::get().uri("/").to_request();
-    let response = test::block_on(app.call(req)).unwrap();
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "Call to '/' returns 200 OK."
+    let config = app::AppConfig::from_test_defaults();
+    let mut app = test::init_service(
+        App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
     );
 
-    let payload = user::UserFormInput::new("test@example.com".to_string(), "mypass".to_string());
+    // Register with a valid email address and password.
+    let email = "test@example.com";
+    let password = "mypass";
+    let payload = user::UserFormInput::new(email.to_string(), password.to_string());
 
     let req = test::TestRequest::post()
         .uri("/user/register")

@@ -599,6 +599,7 @@ dependencies = [
 name = "db"
 version = "0.1.0-dev"
 dependencies = [
+ "app 0.1.0-dev",
  "argonautica 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "chrono 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "diesel 1.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
