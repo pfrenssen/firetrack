@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 actix-files = "~0.1"
 actix-http = "~0.2"
-actix-web = "^1.0.8"
+actix-web = "^1.0.9"
 clap = "~2.33"
 db = { path = "../db" }
 dotenv = "^0.15"
