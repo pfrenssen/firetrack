@@ -1,4 +1,5 @@
 use super::super::*;
+use actix_web::http::StatusCode;
 use actix_web::{dev::Service, test, App};
 use db::user::asserts::hashed_password_is_valid;
 
@@ -47,4 +48,20 @@ fn register_with_valid_data() {
         .naive_local();
     assert!(user.created < now);
     assert!(user.created > two_seconds_ago);
+
+    // Try to create the user a second time.
+    // Todo This should not result in an error and should not disclose that the user exists.
+    let req = test::TestRequest::post()
+        .uri("/user/register")
+        .set_form(&payload)
+        .to_request();
+
+    let response = test::block_on(app.call(req)).unwrap();
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR,);
+
+    let body = get_response_body(&response.response());
+    assert_eq!(
+        body.as_str(),
+        "A user with email test@example.com already exists"
+    );
 }
