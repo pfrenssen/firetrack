@@ -83,6 +83,9 @@ fn main() {
     // Configure the CLI.
     let cli_app = clap::App::new(APPLICATION_NAME)
         .version(crate_version!())
+        // The actual filename of the compiled binary is "cli" but we plan to rename this to
+        // "firetrack" when packaging.
+        .bin_name(APPLICATION_NAME)
         .subcommand(
             SubCommand::with_name("serve")
                 .about(format!("Serve the {} web application", APPLICATION_NAME).as_str()),
@@ -101,26 +104,43 @@ fn main() {
                         .help("The user's password"),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("notify")
+                .about("Send a notification")
+                .subcommand(
+                    SubCommand::with_name("activate")
+                        .about("Send an activation email")
+                        .arg(
+                            Arg::with_name("email")
+                                .required(true)
+                                .help("The email address to activate"),
+                        ),
+                ),
+        )
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .get_matches();
 
     // Launch the passed in subcommand.
-    match cli_app.subcommand_name() {
-        Some("serve") => {
+    match cli_app.subcommand() {
+        ("serve", _) => {
             serve(config);
         }
-        Some("useradd") => {
-            if let Some(arguments) = cli_app.subcommand_matches("useradd") {
-                db::user::create(
-                    &establish_connection(&config.database_url()),
-                    arguments.value_of("email").unwrap(),
-                    arguments.value_of("password").unwrap(),
-                    &config,
-                )
-                .unwrap_or_exit();
-            }
+        ("useradd", Some(arguments)) => {
+            db::user::create(
+                &establish_connection(&config.database_url()),
+                arguments.value_of("email").unwrap(),
+                arguments.value_of("password").unwrap(),
+                &config,
+            )
+            .unwrap_or_exit();
         }
-        None => {}
+        ("notify", Some(notify)) => match notify.subcommand() {
+            ("activate", Some(arguments)) => {
+                app::notifications::activate(arguments.value_of("email").unwrap());
+            }
+            _ => unreachable!(),
+        },
+        ("", None) => {}
         _ => unreachable!(),
     }
 }
