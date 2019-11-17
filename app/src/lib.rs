@@ -1,8 +1,6 @@
 use dotenv;
 use std::env::var;
 
-pub mod notifications;
-
 pub static APPLICATION_NAME: &str = "firetrack";
 
 /// Contains the configuration options for the application. These values are typically coming from

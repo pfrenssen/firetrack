@@ -1,10 +1,10 @@
 [package]
-name = "app"
+name = "notifications"
 version = "0.1.0-dev"
 authors = ["Pieter Frenssen <pieter@frenssen.be>"]
 edition = "2018"
 
 [dependencies]
-dotenv = "~0.15"
-env_logger = "~0.7"
+app = { path = "../app" }
+db = { path = "../db" }
 mailgun_v3 = "~0.6"

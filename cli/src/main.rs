@@ -136,7 +136,10 @@ fn main() {
         }
         ("notify", Some(notify)) => match notify.subcommand() {
             ("activate", Some(arguments)) => {
-                app::notifications::activate(arguments.value_of("email").unwrap());
+                let connection = establish_connection(&config.database_url());
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap();
+                notifications::activate(&user, &config);
             }
             _ => unreachable!(),
         },
