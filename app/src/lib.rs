@@ -26,50 +26,18 @@ pub struct AppConfig {
 
     // The number of password hashing iterations to perform.
     hasher_iterations: u32,
+
+    // The API key for Mailgun.
+    mailgun_api_key: String,
+
+    // The domain used for sending notifications.
+    mailgun_domain: String,
+
+    // The username used for sending notifications.
+    mailgun_user: String,
 }
 
 impl AppConfig {
-    /// Configures the application by supplying the values directly. Intended for testing.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use app::AppConfig;
-    ///
-    /// let host = "127.0.0.1";
-    /// let port = 8888;
-    /// let database_url = "postgres://username:password@localhost/firetrack";
-    /// let secret_key = "my_secret";
-    /// let hasher_memory_size = 65536;
-    /// let hasher_iterations = 512;
-    ///
-    /// let config = AppConfig::from(host, port, database_url, secret_key, hasher_memory_size, hasher_iterations);
-    ///
-    /// # assert_eq!(config.host(), host);
-    /// # assert_eq!(config.port(), port);
-    /// # assert_eq!(config.database_url(), database_url);
-    /// # assert_eq!(config.secret_key(), secret_key);
-    /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
-    /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
-    /// ```
-    pub fn from(
-        host: &str,
-        port: u16,
-        database_url: &str,
-        secret_key: &str,
-        hasher_memory_size: u32,
-        hasher_iterations: u32,
-    ) -> AppConfig {
-        AppConfig {
-            host: host.to_string(),
-            port,
-            database_url: database_url.to_string(),
-            secret_key: secret_key.to_string(),
-            hasher_memory_size,
-            hasher_iterations,
-        }
-    }
-
     /// Configures the application using default test values.
     ///
     /// This is taking essential parameters such as the hostname and database credentials from the
@@ -88,6 +56,9 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
+    /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
+    /// # let mailgun_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
+    /// # let mailgun_user = "postmaster";
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
@@ -100,6 +71,9 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
+    /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
+    /// # assert_eq!(config.mailgun_domain(), mailgun_domain);
+    /// # assert_eq!(config.mailgun_user(), mailgun_user);
     /// ```
     pub fn from_test_defaults() -> AppConfig {
         import_env_vars();
@@ -115,6 +89,9 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
+            mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
+            mailgun_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
+            mailgun_user: "postmaster".to_string(),
         }
     }
 
@@ -132,12 +109,18 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
     /// # let hasher_iterations = 4096;
+    /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
+    /// # let mailgun_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
+    /// # let mailgun_user = "postmaster";
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
     /// # env::set_var("SECRET_KEY", secret_key);
     /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
     /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
+    /// # env::set_var("MAILGUN_API_KEY", mailgun_api_key.to_string());
+    /// # env::set_var("MAILGUN_DOMAIN", mailgun_domain.to_string());
+    /// # env::set_var("MAILGUN_USER", mailgun_user.to_string());
     ///
     /// let config = AppConfig::from_environment();
     ///
@@ -147,6 +130,9 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
+    /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
+    /// # assert_eq!(config.mailgun_domain(), mailgun_domain);
+    /// # assert_eq!(config.mailgun_user(), mailgun_user);
     /// ```
     pub fn from_environment() -> AppConfig {
         import_env_vars();
@@ -173,6 +159,12 @@ impl AppConfig {
                 .expect("HASHER_ITERATIONS environment variable is not set.")
                 .parse()
                 .expect("HASHER_ITERATIONS environment variable should be an integer value."),
+            mailgun_api_key: var("MAILGUN_API_KEY")
+                .expect("MAILGUN_API_KEY environment variable is not set."),
+            mailgun_domain: var("MAILGUN_DOMAIN")
+                .expect("MAILGUN_DOMAIN environment variable is not set."),
+            mailgun_user: var("MAILGUN_USER")
+                .expect("MAILGUN_USER environment variable is not set."),
         }
     }
 
@@ -184,21 +176,10 @@ impl AppConfig {
     /// use app::AppConfig;
     /// # use std::env;
     ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
+    /// let host = "127.0.0.1";
     /// # env::set_var("HOST", host);
-    /// # env::set_var("PORT", port.to_string());
-    /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
-    /// assert_eq!(config.host(), "127.0.0.1");
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.host(), host);
     /// ```
     pub fn host(&self) -> &str {
         self.host.as_str()
@@ -211,22 +192,10 @@ impl AppConfig {
     /// ```
     /// use app::AppConfig;
     /// # use std::env;
-    ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
-    /// # env::set_var("HOST", host);
+    /// let port = 8888;
     /// # env::set_var("PORT", port.to_string());
-    /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
-    /// assert_eq!(config.port(), 8888);
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.port(), port);
     /// ```
     pub fn port(&self) -> u16 {
         self.port
@@ -240,21 +209,10 @@ impl AppConfig {
     /// use app::AppConfig;
     /// # use std::env;
     ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
-    /// # env::set_var("HOST", host);
-    /// # env::set_var("PORT", port.to_string());
+    /// let database_url = "postgres://username:password@localhost/firetrack";
     /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
-    /// assert_eq!(config.database_url(), "postgres://username:password@localhost/firetrack");
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.database_url(), database_url);
     /// ```
     pub fn database_url(&self) -> &str {
         self.database_url.as_str()
@@ -266,22 +224,8 @@ impl AppConfig {
     ///
     /// ```
     /// use app::AppConfig;
-    /// # use std::env;
     ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
-    /// # env::set_var("HOST", host);
-    /// # env::set_var("PORT", port.to_string());
-    /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
+    /// let config = AppConfig::from_test_defaults();
     /// assert_eq!(config.secret_key(), "my_secret");
     /// ```
     pub fn secret_key(&self) -> &str {
@@ -294,23 +238,9 @@ impl AppConfig {
     ///
     /// ```
     /// use app::AppConfig;
-    /// # use std::env;
     ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
-    /// # env::set_var("HOST", host);
-    /// # env::set_var("PORT", port.to_string());
-    /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
-    /// assert_eq!(config.hasher_memory_size(), 65536);
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.hasher_memory_size(), 512);
     /// ```
     pub fn hasher_memory_size(&self) -> u32 {
         self.hasher_memory_size
@@ -322,26 +252,54 @@ impl AppConfig {
     ///
     /// ```
     /// use app::AppConfig;
-    /// # use std::env;
     ///
-    /// # let host = "127.0.0.1";
-    /// # let port = 8888;
-    /// # let database_url = "postgres://username:password@localhost/firetrack";
-    /// # let secret_key = "my_secret";
-    /// # let hasher_memory_size = 65536;
-    /// # let hasher_iterations = 4096;
-    /// # env::set_var("HOST", host);
-    /// # env::set_var("PORT", port.to_string());
-    /// # env::set_var("DATABASE_URL", database_url);
-    /// # env::set_var("SECRET_KEY", secret_key);
-    /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
-    /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    ///
-    /// let config = AppConfig::from_environment();
-    /// assert_eq!(config.hasher_iterations(), 4096);
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.hasher_iterations(), 1);
     /// ```
     pub fn hasher_iterations(&self) -> u32 {
         self.hasher_iterations
+    }
+
+    /// Returns the Mailgun API key.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.mailgun_api_key(), "0123456789abcdef0123456789abcdef-01234567-89abcdef");
+    /// ```
+    pub fn mailgun_api_key(&self) -> &str {
+        self.mailgun_api_key.as_str()
+    }
+
+    /// Returns the domain used for sending notifications.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.mailgun_domain(), "sandbox0123456789abcdef0123456789abcdef.mailgun.org");
+    /// ```
+    pub fn mailgun_domain(&self) -> &str {
+        self.mailgun_domain.as_str()
+    }
+
+    /// Returns the number of password hashing iterations to perform.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.mailgun_user(), "postmaster");
+    /// ```
+    pub fn mailgun_user(&self) -> &str {
+        self.mailgun_user.as_str()
     }
 }
 
