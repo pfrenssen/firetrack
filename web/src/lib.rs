@@ -19,6 +19,7 @@ mod user;
 
 use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
+use app::AppConfig;
 use std::env;
 use std::process::exit;
 
@@ -86,23 +87,30 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
     }
 }
 
-// Starts the web server on the given host address and port.
-pub fn serve(host: &str, port: &str) {
+// Starts the web server on the host address and port as configured in the application.
+pub fn serve(config: AppConfig) {
+    let pool = db::create_connection_pool(&config.database_url()).unwrap();
+    let cloned_config = config.clone();
+
     // Configure the application.
-    let app = || {
+    let app = move || {
         App::new()
             .wrap(middleware::Logger::default())
-            .configure(app_config)
+            .configure(|c| configure_application(c, pool.clone(), cloned_config.clone()))
     };
 
     // Start the web server.
-    let addr = format!("{}:{}", host, port);
+    let addr = format!("{}:{}", config.host(), config.port());
     match HttpServer::new(app).bind(addr) {
         Ok(server) => {
             server.run().unwrap();
         }
         Err(e) => {
-            error!("Failed to start web server on {}:{}", host, port);
+            error!(
+                "Failed to start web server on {}:{}",
+                config.host(),
+                config.port()
+            );
             error!("{}", e.to_string());
             exit(1);
         }
@@ -142,11 +150,17 @@ fn test_index() {
 }
 
 // Configure the application.
-fn app_config(config: &mut web::ServiceConfig) {
+pub fn configure_application(
+    config: &mut web::ServiceConfig,
+    pool: db::ConnectionPool,
+    app_config: AppConfig,
+) {
     let tera = compile_templates();
     config.service(
         web::scope("")
             .data(tera)
+            .data(pool)
+            .data(app_config)
             .service(actix_files::Files::new("/css", "static/css"))
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))

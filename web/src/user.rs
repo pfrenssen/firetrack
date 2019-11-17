@@ -1,4 +1,5 @@
 use actix_web::{error, web, Error, HttpResponse};
+use app::AppConfig;
 use validator::validate_email;
 
 // The form fields of the user form.
@@ -72,6 +73,8 @@ pub fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse,
 pub fn register_submit(
     template: web::Data<tera::Tera>,
     input: web::Form<UserFormInput>,
+    pool: web::Data<db::ConnectionPool>,
+    config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
     // Validate the form input.
     let mut validation_state = UserFormInputValid::default();
@@ -91,10 +94,13 @@ pub fn register_submit(
         return render_register(template, input.into_inner(), validation_state);
     }
 
-    Ok(HttpResponse::Ok().content_type("text/plain").body(format!(
-        "Your email is {} with password {}",
-        input.email, input.password
-    )))
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    db::user::create(&connection, &input.email, &input.password, &config)
+        .map_err(error::ErrorInternalServerError)?;
+
+    Ok(HttpResponse::Ok()
+        .content_type("text/plain")
+        .body("Your account has been created successfully."))
 }
 
 // Renders the registration form, including validation errors.

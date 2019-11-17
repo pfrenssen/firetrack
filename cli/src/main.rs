@@ -3,14 +3,12 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+use app::*;
 use clap::{AppSettings, Arg, SubCommand};
 use db::establish_connection;
-use dotenv;
 use std::env;
 use std::process::exit;
 use web::serve;
-
-static APPLICATION_NAME: &str = "firetrack";
 
 /// A trait that defines functions that will log an error and exit with an error code.
 /// These can be used instead of panics to have clean logging in the console.
@@ -77,9 +75,10 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
 }
 
 fn main() {
-    // Import environment variables from .env files, and initialize the logger.
-    import_env_vars();
-    env_logger::init();
+    // Use custom log levels. This can be configured in the .env files.
+    initialize_logger();
+
+    let config = AppConfig::from_environment();
 
     // Configure the CLI.
     let cli_app = clap::App::new(APPLICATION_NAME)
@@ -108,43 +107,15 @@ fn main() {
     // Launch the passed in subcommand.
     match cli_app.subcommand_name() {
         Some("serve") => {
-            // Retrieve the hostname and port.
-            let host = env::var("HOST").expect_or_exit("HOST environment variable is not set.");
-            let port = env::var("PORT").expect_or_exit("PORT environment variable is not set.");
-
-            serve(host.as_str(), port.as_str());
+            serve(config);
         }
         Some("useradd") => {
             if let Some(arguments) = cli_app.subcommand_matches("useradd") {
-                let secret = env::var("SECRET_KEY")
-                    .expect_or_exit("SECRET_KEY environment variable is not set.");
-                if secret.is_empty() {
-                    error!("SECRET_KEY environment variable is empty.");
-                    exit(1);
-                }
-                let memory_size = env::var("HASHER_MEMORY_SIZE")
-                    .expect_or_exit("HASHER_MEMORY_SIZE environment variable is not set.")
-                    .parse()
-                    .expect_or_exit(
-                        "HASHER_MEMORY_SIZE environment variable should be an integer value.",
-                    );
-                let iterations = env::var("HASHER_ITERATIONS")
-                    .expect_or_exit("HASHER_ITERATIONS environment variable is not set.")
-                    .parse()
-                    .expect_or_exit(
-                        "HASHER_ITERATIONS environment variable should be an integer value.",
-                    );
-
-                let database_url = env::var("DATABASE_URL")
-                    .expect_or_exit("DATABASE_URL environment variable is not set.");
-
                 db::user::create(
-                    &establish_connection(&database_url),
+                    &establish_connection(&config.database_url()),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
-                    secret.as_str(),
-                    memory_size,
-                    iterations,
+                    &config,
                 )
                 .unwrap_or_exit();
             }
@@ -152,14 +123,4 @@ fn main() {
         None => {}
         _ => unreachable!(),
     }
-}
-
-// Imports environment variables by reading the .env files.
-fn import_env_vars() {
-    // Populate environment variables from the local `.env` file.
-    dotenv::dotenv().ok();
-
-    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
-    // as a fallback.
-    dotenv::from_filename(".env.dist").ok();
 }

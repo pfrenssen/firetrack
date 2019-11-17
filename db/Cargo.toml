@@ -5,6 +5,7 @@ authors = ["Pieter Frenssen <pieter@frenssen.be>"]
 edition = "2018"
 
 [dependencies]
+app = { path = "../app" }
 argonautica = "~0.2"
 chrono = "~0.4"
 diesel = { version = "~1.4", features = ['chrono', 'postgres', 'r2d2'] }
