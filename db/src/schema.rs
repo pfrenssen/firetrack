@@ -1,9 +1,9 @@
 table! {
-    activation_code (email) {
+    activation_codes (email) {
         email -> Varchar,
-        activation_code -> Int4,
+        code -> Int4,
         expiration_time -> Timestamp,
-        attempts -> Nullable<Int2>,
+        attempts -> Int2,
     }
 }
 
@@ -16,9 +16,9 @@ table! {
     }
 }
 
-joinable!(activation_code -> users (email));
+joinable!(activation_codes -> users (email));
 
 allow_tables_to_appear_in_same_query!(
-    activation_code,
+    activation_codes,
     users,
 );
