@@ -202,7 +202,7 @@ mod tests {
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
             let two_seconds_ago = chrono::Local::now()
-                .checked_add_signed(time::Duration::seconds(-2))
+                .checked_sub_signed(time::Duration::seconds(2))
                 .unwrap()
                 .naive_local();
             assert!(user.created < now);
@@ -255,7 +255,7 @@ mod tests {
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
             let two_seconds_ago = chrono::Local::now()
-                .checked_add_signed(time::Duration::seconds(-2))
+                .checked_sub_signed(time::Duration::seconds(2))
                 .unwrap()
                 .naive_local();
             assert!(user.created < now);
