@@ -11,6 +11,8 @@ use std::fmt;
 use std::process::exit;
 
 mod schema;
+
+pub mod activation_code;
 pub mod user;
 
 // Type alias to make it easier to refer to the connection pool.
