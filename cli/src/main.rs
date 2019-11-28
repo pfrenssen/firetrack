@@ -81,44 +81,58 @@ fn main() {
     let config = AppConfig::from_environment();
 
     // Configure the CLI.
-    let cli_app = clap::App::new(APPLICATION_NAME)
-        .version(crate_version!())
-        // The actual filename of the compiled binary is "cli" but we plan to rename this to
-        // "firetrack" when packaging.
-        .bin_name(APPLICATION_NAME)
-        .subcommand(
-            SubCommand::with_name("serve")
-                .about(format!("Serve the {} web application", APPLICATION_NAME).as_str()),
-        )
-        .subcommand(
-            SubCommand::with_name("useradd")
-                .about("Create a new user account")
-                .arg(
-                    Arg::with_name("email")
-                        .required(true)
-                        .help("The user's email address"),
-                )
-                .arg(
-                    Arg::with_name("password")
-                        .required(true)
-                        .help("The user's password"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("notify")
-                .about("Send a notification")
-                .subcommand(
-                    SubCommand::with_name("activate")
-                        .about("Send an activation email")
-                        .arg(
-                            Arg::with_name("email")
-                                .required(true)
-                                .help("The email address to activate"),
-                        ),
-                ),
-        )
-        .setting(AppSettings::SubcommandRequiredElseHelp)
-        .get_matches();
+    let cli_app =
+        clap::App::new(APPLICATION_NAME)
+            .version(crate_version!())
+            // The actual filename of the compiled binary is "cli" but this is renamed to
+            // "firetrack" during packaging.
+            .bin_name(APPLICATION_NAME)
+            .subcommand(
+                SubCommand::with_name("serve")
+                    .about(format!("Serve the {} web application", APPLICATION_NAME).as_str()),
+            )
+            .subcommand(
+                SubCommand::with_name("useradd")
+                    .about("Create a new user account")
+                    .arg(
+                        Arg::with_name("email")
+                            .required(true)
+                            .help("The user's email address"),
+                    )
+                    .arg(
+                        Arg::with_name("password")
+                            .required(true)
+                            .help("The user's password"),
+                    ),
+            )
+            .subcommand(
+                SubCommand::with_name("activation-code")
+                    .about("Commands for managing activation codes")
+                    .subcommand(
+                        SubCommand::with_name("get")
+                            .about("Retrieves an activation code")
+                            .arg(Arg::with_name("email").required(true).help(
+                                "The email address for which to retrieve an activation code",
+                            )),
+                    )
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
+            )
+            .subcommand(
+                SubCommand::with_name("notify")
+                    .about("Send a notification")
+                    .subcommand(
+                        SubCommand::with_name("activate")
+                            .about("Send an activation email")
+                            .arg(
+                                Arg::with_name("email")
+                                    .required(true)
+                                    .help("The email address to activate"),
+                            ),
+                    )
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
+            )
+            .setting(AppSettings::SubcommandRequiredElseHelp)
+            .get_matches();
 
     // Launch the passed in subcommand.
     match cli_app.subcommand() {
@@ -134,6 +148,18 @@ fn main() {
             )
             .unwrap_or_exit();
         }
+        ("activation-code", Some(activation_code)) => match activation_code.subcommand() {
+            ("get", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url());
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+                let activation_code =
+                    db::activation_code::get_activation_code(&connection, &user).unwrap_or_exit();
+                println!("{}", activation_code.code);
+            }
+            ("", None) => {}
+            _ => unreachable!(),
+        },
         ("notify", Some(notify)) => match notify.subcommand() {
             ("activate", Some(arguments)) => {
                 let connection = establish_connection(&config.database_url());
@@ -141,6 +167,7 @@ fn main() {
                 let user = db::user::read(&connection, email).unwrap();
                 notifications::activate(&user, &config);
             }
+            ("", None) => {}
             _ => unreachable!(),
         },
         ("", None) => {}
