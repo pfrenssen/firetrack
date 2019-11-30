@@ -108,13 +108,20 @@ fn main() {
             .subcommand(
                 SubCommand::with_name("activation-code")
                     .about("Commands for managing activation codes")
-                    .subcommand(
+                    .subcommands(vec![
                         SubCommand::with_name("get")
                             .about("Retrieves an activation code")
                             .arg(Arg::with_name("email").required(true).help(
                                 "The email address for which to retrieve an activation code",
                             )),
-                    )
+                        SubCommand::with_name("delete")
+                            .about("Deletes an activation code")
+                            .arg(
+                                Arg::with_name("email").required(true).help(
+                                    "The email address for which to delete the activation code",
+                                ),
+                            ),
+                    ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
@@ -155,6 +162,12 @@ fn main() {
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();
                 println!("{}", activation_code.code);
+            }
+            ("delete", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url());
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+                db::activation_code::delete(&connection, &user).unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),

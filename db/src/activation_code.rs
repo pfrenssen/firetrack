@@ -42,6 +42,8 @@ impl ActivationCode {
 pub enum ActivationCodeErrorKind {
     // A new activation code could not be created due to a database error.
     ActivationCodeCreationFailed(diesel::result::Error),
+    // A new activation code could not be deleted due to a database error.
+    ActivationCodeDeletionFailed(diesel::result::Error),
     // An existing activation code could not be updated due to a database error.
     ActivationCodeUpdateFailed(diesel::result::Error),
     // The expiration time overflowed. Not expected to occur before the end of the year 262143.
@@ -57,6 +59,9 @@ impl fmt::Display for ActivationCodeErrorKind {
         match *self {
             ActivationCodeErrorKind::ActivationCodeCreationFailed(ref err) => {
                 write!(f, "Database error when creating activation code: {}", err)
+            }
+            ActivationCodeErrorKind::ActivationCodeDeletionFailed(ref err) => {
+                write!(f, "Database error when deleting activation code: {}", err)
             }
             ActivationCodeErrorKind::ActivationCodeUpdateFailed(ref err) => {
                 write!(f, "Database error when updating activation code: {}", err)
@@ -115,6 +120,9 @@ pub fn purge() -> Result<(), ActivationCodeErrorKind> {
 
 /// Deletes the activation code for the given user.
 pub fn delete(connection: &PgConnection, user: &User) -> Result<(), ActivationCodeErrorKind> {
+    diesel::delete(dsl::activation_codes.filter(dsl::email.eq(user.email.as_str())))
+        .execute(connection)
+        .map_err(ActivationCodeErrorKind::ActivationCodeDeletionFailed);
     Ok(())
 }
 
