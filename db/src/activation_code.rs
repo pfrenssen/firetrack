@@ -84,13 +84,9 @@ pub fn get(
     connection: &PgConnection,
     user: &User,
 ) -> Result<ActivationCode, ActivationCodeErrorKind> {
-    if user.validated {
-        return Err(ActivationCodeErrorKind::UserAlreadyActivated(
-            user.email.clone(),
-        ));
-    }
-    let email = user.email.as_str();
+    assert_not_validated(user)?;
 
+    let email = user.email.as_str();
     match read(connection, email) {
         Some(c) => {
             if c.is_expired() {
@@ -205,4 +201,14 @@ fn increase_attempt_counter(
     }
 
     Ok(activation_code)
+}
+
+// Asserts that the given user is not validated.
+fn assert_not_validated(user: &User) -> Result<(), ActivationCodeErrorKind> {
+    if user.validated {
+        return Err(ActivationCodeErrorKind::UserAlreadyActivated(
+            user.email.clone(),
+        ));
+    }
+    Ok(())
 }
