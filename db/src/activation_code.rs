@@ -1,7 +1,6 @@
 use super::schema::activation_codes;
 use super::schema::activation_codes::dsl;
 use super::user::User;
-use chrono::NaiveDateTime;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rand::{thread_rng, Rng};
