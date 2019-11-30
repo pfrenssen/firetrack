@@ -76,7 +76,7 @@ impl fmt::Display for ActivationCodeErrorKind {
 
 /// Returns an activation code for the given user.
 /// Todo: rename the `validated` column in the users table to `activated`.
-pub fn get_activation_code(
+pub fn get(
     connection: &PgConnection,
     user: &User,
 ) -> Result<ActivationCode, ActivationCodeErrorKind> {
