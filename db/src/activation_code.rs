@@ -125,10 +125,10 @@ pub fn get(
 /// Todo: increase the attempts on failure.
 pub fn activate_user(
     connection: &PgConnection,
-    user: &User,
+    user: User,
     activation_code: i32,
 ) -> Result<(), ActivationCodeErrorKind> {
-    assert_not_activated(user)?;
+    assert_not_activated(&user)?;
     match read(connection, user.email.as_str()) {
         Some(c) => {
             if c.is_expired() {

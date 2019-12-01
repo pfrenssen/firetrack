@@ -179,7 +179,7 @@ fn main() {
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = arguments.value_of("code").unwrap().parse().unwrap_or_exit();
-                db::activation_code::activate_user(&connection, &user, activation_code)
+                db::activation_code::activate_user(&connection, user, activation_code)
                     .unwrap_or_exit();
             }
             ("", None) => {}

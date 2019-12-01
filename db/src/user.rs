@@ -127,7 +127,11 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKin
 }
 
 /// Activates the given user.
-pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserErrorKind> {
+pub fn activate(connection: &PgConnection, user: User) -> Result<User, UserErrorKind> {
+    // Exit early if the user is already activated.
+    if user.activated {
+        return Ok(user);
+    }
     let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
         .set((users::activated.eq(true),))
         .returning((
