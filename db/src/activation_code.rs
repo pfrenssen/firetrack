@@ -99,12 +99,11 @@ impl fmt::Display for ActivationCodeErrorKind {
 }
 
 /// Returns an activation code for the given user.
-/// Todo: rename the `validated` column in the users table to `activated`.
 pub fn get(
     connection: &PgConnection,
     user: &User,
 ) -> Result<ActivationCode, ActivationCodeErrorKind> {
-    assert_not_validated(user)?;
+    assert_not_activated(user)?;
 
     let email = user.email.as_str();
     match read(connection, email) {
@@ -129,7 +128,7 @@ pub fn activate_user(
     user: &User,
     activation_code: i32,
 ) -> Result<(), ActivationCodeErrorKind> {
-    assert_not_validated(user)?;
+    assert_not_activated(user)?;
     match read(connection, user.email.as_str()) {
         Some(c) => {
             if c.is_expired() {
@@ -253,8 +252,8 @@ fn increase_attempt_counter(
 }
 
 // Asserts that the given user is not validated.
-fn assert_not_validated(user: &User) -> Result<(), ActivationCodeErrorKind> {
-    if user.validated {
+fn assert_not_activated(user: &User) -> Result<(), ActivationCodeErrorKind> {
+    if user.activated {
         return Err(ActivationCodeErrorKind::UserAlreadyActivated(
             user.email.clone(),
         ));

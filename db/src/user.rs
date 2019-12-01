@@ -11,7 +11,7 @@ pub struct User {
     pub email: String,
     pub password: String,
     pub created: chrono::NaiveDateTime,
-    pub validated: bool,
+    pub activated: bool,
 }
 
 // Possible errors being thrown when dealing with users.
@@ -88,13 +88,13 @@ pub fn create(
             users::email.eq(email),
             users::password.eq(hashed_password),
             users::created.eq(chrono::Local::now().naive_local()),
-            users::validated.eq(false),
+            users::activated.eq(false),
         ))
         .returning((
             users::email,
             users::password,
             users::created,
-            users::validated,
+            users::activated,
         ))
         .get_result(connection)
         .map_err(UserError::UserCreationFailed)
@@ -129,12 +129,12 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
 /// Activates the given user.
 pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserError> {
     let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
-        .set((users::validated.eq(true),))
+        .set((users::activated.eq(true),))
         .returning((
             users::email,
             users::password,
             users::created,
-            users::validated,
+            users::activated,
         ))
         .get_result::<User>(connection)
         .map_err(UserError::ActivationFailed)?;
@@ -217,7 +217,7 @@ mod tests {
                 password,
                 config.secret_key()
             ));
-            assert_eq!(user.validated, false);
+            assert_eq!(user.activated, false);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
@@ -270,7 +270,7 @@ mod tests {
                 password,
                 config.secret_key(),
             ));
-            assert_eq!(user.validated, false);
+            assert_eq!(user.activated, false);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();

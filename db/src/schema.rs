@@ -12,10 +12,13 @@ table! {
         email -> Varchar,
         password -> Varchar,
         created -> Timestamp,
-        validated -> Bool,
+        activated -> Bool,
     }
 }
 
 joinable!(activation_codes -> users (email));
 
-allow_tables_to_appear_in_same_query!(activation_codes, users,);
+allow_tables_to_appear_in_same_query!(
+    activation_codes,
+    users,
+);
