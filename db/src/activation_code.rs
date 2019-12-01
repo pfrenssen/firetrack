@@ -43,7 +43,7 @@ pub enum ActivationCodeErrorKind {
     ActivationFailed(UserErrorKind),
     // A new activation code could not be created due to a database error.
     CreationFailed(diesel::result::Error),
-    // A new activation code could not be deleted due to a database error.
+    // An activation code could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
     // The expiration time overflowed. Not expected to occur before the end of the year 262143.
     ExpirationTimeOverflow,
