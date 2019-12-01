@@ -1,6 +1,6 @@
 use super::schema::activation_codes;
 use super::schema::activation_codes::dsl;
-use super::user::User;
+use super::user::{User, UserError};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rand::{thread_rng, Rng};
@@ -39,12 +39,18 @@ impl ActivationCode {
 // Possible errors thrown when handling activation codes.
 #[derive(Debug)]
 pub enum ActivationCodeErrorKind {
+    // A user could not be activated due to a database error.
+    ActivationFailed(UserError),
     // A new activation code could not be created due to a database error.
     CreationFailed(diesel::result::Error),
     // A new activation code could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
     // The expiration time overflowed. Not expected to occur before the end of the year 262143.
     ExpirationTimeOverflow,
+    // The activation code has expired.
+    Expired,
+    // The activation code is invalid.
+    InvalidCode,
     // The maximum number of attempts to retrieve or validate an activation code has been exceeded.
     MaxAttemptsExceeded,
     // An existing activation code could not be updated due to a database error.
@@ -56,15 +62,23 @@ pub enum ActivationCodeErrorKind {
 impl fmt::Display for ActivationCodeErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            ActivationCodeErrorKind::ActivationFailed(ref err) => {
+                write!(f, "Database error when activating user: {}", err)
+            }
             ActivationCodeErrorKind::CreationFailed(ref err) => {
                 write!(f, "Database error when creating activation code: {}", err)
             }
             ActivationCodeErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting activation code: {}", err)
             }
+            ActivationCodeErrorKind::Expired => {
+                write!(f, "The activation code has expired")
             }
             ActivationCodeErrorKind::ExpirationTimeOverflow => {
                 write!(f, "Expiration time overflow")
+            }
+            ActivationCodeErrorKind::InvalidCode => {
+                write!(f, "Invalid activation code")
             }
             ActivationCodeErrorKind::MaxAttemptsExceeded => {
                 write!(f, "The maximum number of allowed attempts to retrieve or validate an activation code has been exceeded. Please wait 30 minutes before requesting a new activation code.")
@@ -105,8 +119,27 @@ pub fn get(
 
 /// Activates the given user if the given activation code is valid.
 /// Todo: increase the attempts on failure.
-pub fn activate_user(user: &User, activation_code: u32) -> Result<(), ActivationCodeErrorKind> {
-    Ok(())
+pub fn activate_user(
+    connection: &PgConnection,
+    user: &User,
+    activation_code: i32,
+) -> Result<(), ActivationCodeErrorKind> {
+    assert_not_validated(user)?;
+    match read(connection, user.email.as_str()) {
+        Some(c) => {
+            if c.is_expired() {
+                return Err(ActivationCodeErrorKind::Expired);
+            }
+            if c.code == activation_code {
+                super::user::activate(connection, user)
+                    .map_err(ActivationCodeErrorKind::ActivationFailed)?;
+                return Ok(());
+            }
+            let c = increase_attempt_counter(connection, c)?;
+            Err(ActivationCodeErrorKind::InvalidCode)
+        }
+        None => Err(ActivationCodeErrorKind::Expired),
+    }
 }
 
 /// Purges all expired activation codes.
