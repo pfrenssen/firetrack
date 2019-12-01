@@ -92,18 +92,35 @@ fn main() {
                     .about(format!("Serve the {} web application", APPLICATION_NAME).as_str()),
             )
             .subcommand(
-                SubCommand::with_name("useradd")
-                    .about("Create a new user account")
-                    .arg(
-                        Arg::with_name("email")
-                            .required(true)
-                            .help("The user's email address"),
-                    )
-                    .arg(
-                        Arg::with_name("password")
-                            .required(true)
-                            .help("The user's password"),
-                    ),
+                SubCommand::with_name("user")
+                    .about("Commands for managing users")
+                    .subcommands(vec![
+                        SubCommand::with_name("add")
+                            .about("Create a new user account")
+                            .arg(
+                                Arg::with_name("email")
+                                    .required(true)
+                                    .help("The user's email address"),
+                            )
+                            .arg(
+                                Arg::with_name("password")
+                                    .required(true)
+                                    .help("The user's password"),
+                            ),
+                        SubCommand::with_name("activate")
+                            .about("Activates a user account")
+                            .arg(
+                                Arg::with_name("email")
+                                    .required(true)
+                                    .help("The user's email address"),
+                            )
+                            .arg(
+                                Arg::with_name("code")
+                                    .required(true)
+                                    .help("The activation code"),
+                            ),
+                    ])
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
                 SubCommand::with_name("activation-code")
@@ -146,16 +163,28 @@ fn main() {
         ("serve", _) => {
             serve(config);
         }
-        ("useradd", Some(arguments)) => {
-            db::user::create(
-                &establish_connection(&config.database_url()),
-                arguments.value_of("email").unwrap(),
-                arguments.value_of("password").unwrap(),
-                &config,
-            )
-            .unwrap_or_exit();
-        }
-        ("activation-code", Some(activation_code)) => match activation_code.subcommand() {
+        ("user", Some(arguments)) => match arguments.subcommand() {
+            ("add", Some(arguments)) => {
+                db::user::create(
+                    &establish_connection(&config.database_url()),
+                    arguments.value_of("email").unwrap(),
+                    arguments.value_of("password").unwrap(),
+                    &config,
+                )
+                .unwrap_or_exit();
+            }
+            ("activate", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url());
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+                let activation_code = arguments.value_of("code").unwrap().parse().unwrap_or_exit();
+                db::activation_code::activate_user(&connection, &user, activation_code)
+                    .unwrap_or_exit();
+            }
+            ("", None) => {}
+            _ => unreachable!(),
+        },
+        ("activation-code", Some(arguments)) => match arguments.subcommand() {
             ("get", Some(arguments)) => {
                 let connection = establish_connection(&config.database_url());
                 let email = arguments.value_of("email").unwrap();

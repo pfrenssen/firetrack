@@ -17,6 +17,8 @@ pub struct User {
 // Possible errors being thrown when dealing with users.
 #[derive(Debug, PartialEq)]
 pub enum UserError {
+    // A user could not be activated due to a database error.
+    ActivationFailed(diesel::result::Error),
     // The passed in email address is not valid.
     InvalidEmail(String),
     // The user password could not be hashed. This is usually due to a requirement not being met,
@@ -36,6 +38,9 @@ pub enum UserError {
 impl fmt::Display for UserError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
+            UserError::ActivationFailed(ref err) => {
+                write!(f, "Database error when activating user: {}", err)
+            }
             UserError::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
             UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
             UserError::UserCreationFailed(ref err) => {
@@ -119,6 +124,21 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
         Err(diesel::result::Error::NotFound) => Err(UserError::UserNotFound(email.to_string())),
         Err(e) => Err(UserError::UserReadFailed(e)),
     }
+}
+
+/// Activates the given user.
+pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserError> {
+    let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
+        .set((users::validated.eq(true),))
+        .returning((
+            users::email,
+            users::password,
+            users::created,
+            users::validated,
+        ))
+        .get_result::<User>(connection)
+        .map_err(UserError::ActivationFailed)?;
+    Ok(user)
 }
 
 #[cfg(test)]
