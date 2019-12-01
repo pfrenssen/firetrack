@@ -189,6 +189,12 @@ fn increase_attempt_counter(
     connection: &PgConnection,
     activation_code: ActivationCode,
 ) -> Result<ActivationCode, ActivationCodeErrorKind> {
+    // If the number of attempts have already exceeded the limit previously, don't bother to
+    // increase the counter but exit early.
+    if activation_code.attempts_exceeded() {
+        return Err(ActivationCodeErrorKind::MaxAttemptsExceeded);
+    }
+
     let activation_code =
         diesel::update(dsl::activation_codes.filter(dsl::email.eq(activation_code.email.as_str())))
             .set((dsl::attempts.eq(activation_code.attempts + 1),))
