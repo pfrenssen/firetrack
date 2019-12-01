@@ -138,6 +138,7 @@ fn main() {
                                     "The email address for which to delete the activation code",
                                 ),
                             ),
+                        SubCommand::with_name("purge").about("Purges expired activation codes"),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -197,6 +198,10 @@ fn main() {
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 db::activation_code::delete(&connection, &user).unwrap_or_exit();
+            }
+            ("purge", _) => {
+                let connection = establish_connection(&config.database_url());
+                db::activation_code::purge(&connection).unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),

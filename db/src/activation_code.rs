@@ -53,6 +53,8 @@ pub enum ActivationCodeErrorKind {
     InvalidCode,
     // The maximum number of attempts to retrieve or validate an activation code has been exceeded.
     MaxAttemptsExceeded,
+    // Expired activation codes could not be purged due to a database error.
+    PurgingFailed(diesel::result::Error),
     // An existing activation code could not be updated due to a database error.
     UpdateFailed(diesel::result::Error),
     // No activation code needs to be generated because the user has already been activated.
@@ -82,6 +84,9 @@ impl fmt::Display for ActivationCodeErrorKind {
             }
             ActivationCodeErrorKind::MaxAttemptsExceeded => {
                 write!(f, "The maximum number of allowed attempts to retrieve or validate an activation code has been exceeded. Please wait 30 minutes before requesting a new activation code.")
+            }
+            ActivationCodeErrorKind::PurgingFailed(ref err) => {
+                write!(f, "Database error when purging expired activation codes: {}", err)
             }
             ActivationCodeErrorKind::UpdateFailed(ref err) => {
                 write!(f, "Database error when updating activation code: {}", err)
@@ -143,7 +148,11 @@ pub fn activate_user(
 }
 
 /// Purges all expired activation codes.
-pub fn purge() -> Result<(), ActivationCodeErrorKind> {
+pub fn purge(connection: &PgConnection) -> Result<(), ActivationCodeErrorKind> {
+    let expiration_time = chrono::Local::now().naive_local();
+    diesel::delete(dsl::activation_codes.filter(dsl::expiration_time.lt(expiration_time)))
+        .execute(connection)
+        .map_err(ActivationCodeErrorKind::PurgingFailed)?;
     Ok(())
 }
 
