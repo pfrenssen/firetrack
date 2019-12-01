@@ -296,6 +296,28 @@ mod tests {
             Ok(())
         });
     }
+
+    #[test]
+    fn test_activate() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // A newly created user should not be activated.
+            create(&connection, email, password, &config).unwrap();
+            let user = read(&connection, email).unwrap();
+            assert_eq!(user.activated, false);
+
+            // Test that the user can be activated, and that the activation status remains the same
+            // when calling the function multiple times.
+            let user = activate(&connection, user).unwrap();
+            assert_eq!(user.activated, true);
+            let user = activate(&connection, user).unwrap();
+            assert_eq!(user.activated, true);
+            Ok(())
+        });
+    }
 }
 
 /// Reusable assertions.
