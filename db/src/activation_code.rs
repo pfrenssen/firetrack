@@ -40,15 +40,15 @@ impl ActivationCode {
 #[derive(Debug)]
 pub enum ActivationCodeErrorKind {
     // A new activation code could not be created due to a database error.
-    ActivationCodeCreationFailed(diesel::result::Error),
+    CreationFailed(diesel::result::Error),
     // A new activation code could not be deleted due to a database error.
-    ActivationCodeDeletionFailed(diesel::result::Error),
-    // An existing activation code could not be updated due to a database error.
-    ActivationCodeUpdateFailed(diesel::result::Error),
+    DeletionFailed(diesel::result::Error),
     // The expiration time overflowed. Not expected to occur before the end of the year 262143.
     ExpirationTimeOverflow,
     // The maximum number of attempts to retrieve or validate an activation code has been exceeded.
     MaxAttemptsExceeded,
+    // An existing activation code could not be updated due to a database error.
+    UpdateFailed(diesel::result::Error),
     // No activation code needs to be generated because the user has already been activated.
     UserAlreadyActivated(String),
 }
@@ -56,20 +56,21 @@ pub enum ActivationCodeErrorKind {
 impl fmt::Display for ActivationCodeErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ActivationCodeErrorKind::ActivationCodeCreationFailed(ref err) => {
+            ActivationCodeErrorKind::CreationFailed(ref err) => {
                 write!(f, "Database error when creating activation code: {}", err)
             }
-            ActivationCodeErrorKind::ActivationCodeDeletionFailed(ref err) => {
+            ActivationCodeErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting activation code: {}", err)
             }
-            ActivationCodeErrorKind::ActivationCodeUpdateFailed(ref err) => {
-                write!(f, "Database error when updating activation code: {}", err)
             }
             ActivationCodeErrorKind::ExpirationTimeOverflow => {
                 write!(f, "Expiration time overflow")
             }
             ActivationCodeErrorKind::MaxAttemptsExceeded => {
                 write!(f, "The maximum number of allowed attempts to retrieve or validate an activation code has been exceeded. Please wait 30 minutes before requesting a new activation code.")
+            }
+            ActivationCodeErrorKind::UpdateFailed(ref err) => {
+                write!(f, "Database error when updating activation code: {}", err)
             }
             ActivationCodeErrorKind::UserAlreadyActivated(ref email) => {
                 write!(f, "The user with email {} is already activated", email)
@@ -117,7 +118,7 @@ pub fn purge() -> Result<(), ActivationCodeErrorKind> {
 pub fn delete(connection: &PgConnection, user: &User) -> Result<(), ActivationCodeErrorKind> {
     diesel::delete(dsl::activation_codes.filter(dsl::email.eq(user.email.as_str())))
         .execute(connection)
-        .map_err(ActivationCodeErrorKind::ActivationCodeDeletionFailed);
+        .map_err(ActivationCodeErrorKind::DeletionFailed);
     Ok(())
 }
 
@@ -178,7 +179,7 @@ fn create(
         ))
         .returning((dsl::email, dsl::code, dsl::expiration_time, dsl::attempts))
         .get_result(connection)
-        .map_err(ActivationCodeErrorKind::ActivationCodeCreationFailed)
+        .map_err(ActivationCodeErrorKind::CreationFailed)
 }
 
 // Increases the attempt counter.
@@ -200,7 +201,7 @@ fn increase_attempt_counter(
             .set((dsl::attempts.eq(activation_code.attempts + 1),))
             .returning((dsl::email, dsl::code, dsl::expiration_time, dsl::attempts))
             .get_result::<ActivationCode>(connection)
-            .map_err(ActivationCodeErrorKind::ActivationCodeUpdateFailed)?;
+            .map_err(ActivationCodeErrorKind::UpdateFailed)?;
 
     if activation_code.attempts_exceeded() {
         return Err(ActivationCodeErrorKind::MaxAttemptsExceeded);
