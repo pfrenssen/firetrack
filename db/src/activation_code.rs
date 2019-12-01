@@ -135,7 +135,7 @@ pub fn activate_user(
                     .map_err(ActivationCodeErrorKind::ActivationFailed)?;
                 return Ok(());
             }
-            let c = increase_attempt_counter(connection, c)?;
+            increase_attempt_counter(connection, c)?;
             Err(ActivationCodeErrorKind::InvalidCode)
         }
         None => Err(ActivationCodeErrorKind::Expired),
@@ -151,7 +151,7 @@ pub fn purge() -> Result<(), ActivationCodeErrorKind> {
 pub fn delete(connection: &PgConnection, user: &User) -> Result<(), ActivationCodeErrorKind> {
     diesel::delete(dsl::activation_codes.filter(dsl::email.eq(user.email.as_str())))
         .execute(connection)
-        .map_err(ActivationCodeErrorKind::DeletionFailed);
+        .map_err(ActivationCodeErrorKind::DeletionFailed)?;
     Ok(())
 }
 
