@@ -16,7 +16,7 @@ pub struct User {
 
 // Possible errors being thrown when dealing with users.
 #[derive(Debug, PartialEq)]
-pub enum UserError {
+pub enum UserErrorKind {
     // A user could not be activated due to a database error.
     ActivationFailed(diesel::result::Error),
     // The passed in email address is not valid.
@@ -35,24 +35,24 @@ pub enum UserError {
     UserWithEmailAlreadyExists(String),
 }
 
-impl fmt::Display for UserError {
+impl fmt::Display for UserErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            UserError::ActivationFailed(ref err) => {
+            UserErrorKind::ActivationFailed(ref err) => {
                 write!(f, "Database error when activating user: {}", err)
             }
-            UserError::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
-            UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
-            UserError::UserCreationFailed(ref err) => {
+            UserErrorKind::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
+            UserErrorKind::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
+            UserErrorKind::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
             }
-            UserError::UserNotFound(ref email) => {
+            UserErrorKind::UserNotFound(ref email) => {
                 write!(f, "The user with email {} does not exist", email)
             }
-            UserError::UserReadFailed(ref err) => {
+            UserErrorKind::UserReadFailed(ref err) => {
                 write!(f, "Database error when reading user: {}", err)
             }
-            UserError::UserWithEmailAlreadyExists(ref email) => {
+            UserErrorKind::UserWithEmailAlreadyExists(ref email) => {
                 write!(f, "A user with email {} already exists", email)
             }
         }
@@ -65,14 +65,14 @@ pub fn create(
     email: &str,
     password: &str,
     config: &AppConfig,
-) -> Result<User, UserError> {
+) -> Result<User, UserErrorKind> {
     if !validate_email(email) {
-        return Err(UserError::InvalidEmail(email.to_string()));
+        return Err(UserErrorKind::InvalidEmail(email.to_string()));
     }
 
     let existing_user = read(connection, email);
     if existing_user.is_ok() {
-        return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
+        return Err(UserErrorKind::UserWithEmailAlreadyExists(email.to_string()));
     }
 
     let hashed_password = hash_password(
@@ -81,7 +81,7 @@ pub fn create(
         config.hasher_memory_size(),
         config.hasher_iterations(),
     )
-    .map_err(UserError::PasswordHashFailed)?;
+    .map_err(UserErrorKind::PasswordHashFailed)?;
 
     diesel::insert_into(users::table)
         .values((
@@ -97,7 +97,7 @@ pub fn create(
             users::activated,
         ))
         .get_result(connection)
-        .map_err(UserError::UserCreationFailed)
+        .map_err(UserErrorKind::UserCreationFailed)
 }
 
 // Performs an Argon2 hash of the password.
@@ -116,18 +116,18 @@ fn hash_password(
 }
 
 /// Retrieves the user with the given email address from the database.
-pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
+pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKind> {
     use super::schema::users::dsl::users;
     let user = users.find(email).first::<User>(connection);
     match user {
         Ok(u) => Ok(u),
-        Err(diesel::result::Error::NotFound) => Err(UserError::UserNotFound(email.to_string())),
-        Err(e) => Err(UserError::UserReadFailed(e)),
+        Err(diesel::result::Error::NotFound) => Err(UserErrorKind::UserNotFound(email.to_string())),
+        Err(e) => Err(UserErrorKind::UserReadFailed(e)),
     }
 }
 
 /// Activates the given user.
-pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserError> {
+pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserErrorKind> {
     let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
         .set((users::activated.eq(true),))
         .returning((
@@ -137,7 +137,7 @@ pub fn activate(connection: &PgConnection, user: &User) -> Result<User, UserErro
             users::activated,
         ))
         .get_result::<User>(connection)
-        .map_err(UserError::ActivationFailed)?;
+        .map_err(UserErrorKind::ActivationFailed)?;
     Ok(user)
 }
 
@@ -233,7 +233,7 @@ mod tests {
                 create(&connection, email, "some_other_password", &config).unwrap_err();
             assert_eq!(
                 same_email_user,
-                UserError::UserWithEmailAlreadyExists(email.to_string())
+                UserErrorKind::UserWithEmailAlreadyExists(email.to_string())
             );
 
             // The email address should be valid.
@@ -242,7 +242,7 @@ mod tests {
                 create(&connection, invalid_email, password, &config).unwrap_err();
             assert_eq!(
                 invalid_email_user,
-                UserError::InvalidEmail(invalid_email.to_string())
+                UserErrorKind::InvalidEmail(invalid_email.to_string())
             );
 
             // The password should not be empty.
@@ -286,7 +286,7 @@ mod tests {
             let non_existing_user = read(&connection, non_existing_email).unwrap_err();
             assert_eq!(
                 non_existing_user,
-                UserError::UserNotFound(non_existing_email.to_string())
+                UserErrorKind::UserNotFound(non_existing_email.to_string())
             );
 
             Ok(())

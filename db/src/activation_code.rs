@@ -1,6 +1,6 @@
 use super::schema::activation_codes;
 use super::schema::activation_codes::dsl;
-use super::user::{User, UserError};
+use super::user::{User, UserErrorKind};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use rand::{thread_rng, Rng};
@@ -40,7 +40,7 @@ impl ActivationCode {
 #[derive(Debug)]
 pub enum ActivationCodeErrorKind {
     // A user could not be activated due to a database error.
-    ActivationFailed(UserError),
+    ActivationFailed(UserErrorKind),
     // A new activation code could not be created due to a database error.
     CreationFailed(diesel::result::Error),
     // A new activation code could not be deleted due to a database error.
