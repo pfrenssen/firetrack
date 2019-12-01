@@ -7,8 +7,8 @@ use rand::{thread_rng, Rng};
 use std::fmt;
 
 // The minimum and maximum values for a random activation code.
-const MIN_VALUE: i32 = 100000;
-const MAX_VALUE: i32 = 999999;
+const MIN_VALUE: i32 = 100_000;
+const MAX_VALUE: i32 = 999_999;
 
 // The maximum number of activations that can be attempted in 30 minutes.
 const MAX_ATTEMPTS: i16 = 5;
