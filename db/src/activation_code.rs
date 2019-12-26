@@ -122,7 +122,6 @@ pub fn get(
 }
 
 /// Activates the given user if the given activation code is valid.
-/// Todo: increase the attempts on failure.
 pub fn activate_user(
     connection: &PgConnection,
     user: User,
@@ -251,7 +250,7 @@ fn increase_attempt_counter(
     Ok(activation_code)
 }
 
-// Asserts that the given user is not validated.
+// Asserts that the given user is not activated.
 fn assert_not_activated(user: &User) -> Result<(), ActivationCodeErrorKind> {
     if user.activated {
         return Err(ActivationCodeErrorKind::UserAlreadyActivated(

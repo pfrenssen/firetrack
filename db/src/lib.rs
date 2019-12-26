@@ -43,7 +43,9 @@ pub fn create_connection_pool(database_url: &str) -> Result<ConnectionPool, Data
 }
 
 // Establishes a non-pooled database connection.
-// Todo: return a `Result<PgConnection, DatabaseError>`.
+// Todo: return a `Result<PgConnection, DatabaseError>`. This is causing tests to fail silently when
+//   the database is not running.
+// See https://github.com/pfrenssen/firetrack/issues/50
 pub fn establish_connection(database_url: &str) -> PgConnection {
     match PgConnection::establish(&database_url) {
         Ok(value) => value,

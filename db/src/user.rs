@@ -1,3 +1,4 @@
+// Todo: Add functions for updating and deleting a user.
 use super::schema::users;
 use app::AppConfig;
 use argonautica::Hasher;
@@ -127,6 +128,9 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKin
 }
 
 /// Activates the given user.
+///
+/// Note that this simply toggles the `activated` flag. In order to check if the user has a valid
+/// activation code, use `db::activation_code::activate_user()`.
 pub fn activate(connection: &PgConnection, user: User) -> Result<User, UserErrorKind> {
     // Exit early if the user is already activated.
     if user.activated {
