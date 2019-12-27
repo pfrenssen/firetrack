@@ -13,7 +13,7 @@ const MAX_VALUE: i32 = 999_999;
 // The maximum number of activations that can be attempted in 30 minutes.
 const MAX_ATTEMPTS: i16 = 5;
 
-#[derive(Associations, Debug, Queryable)]
+#[derive(Associations, Debug, PartialEq, Queryable)]
 #[belongs_to(User, foreign_key = "email")]
 pub struct ActivationCode {
     pub email: String,
@@ -24,20 +24,60 @@ pub struct ActivationCode {
 
 impl ActivationCode {
     /// Returns whether or not the activation code is expired.
-    /// Todo: unit test.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use db::activation_code::ActivationCode;
+    /// #
+    /// let mut activation_code = ActivationCode {
+    ///     email: "test@example.com".to_string(),
+    ///     code: 123456,
+    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     attempts: 0,
+    /// };
+    /// assert_eq!(activation_code.is_expired(), false);
+    /// #
+    /// # activation_code.expiration_time = chrono::Local::now().checked_sub_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// # assert_eq!(activation_code.is_expired(), true);
+    /// # activation_code.expiration_time = chrono::Local::now().checked_add_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// # assert_eq!(activation_code.is_expired(), false);
+    /// ```
     pub fn is_expired(&self) -> bool {
         self.expiration_time.lt(&chrono::Local::now().naive_local())
     }
 
     /// Returns whether or not the maximum number of activation attempts have been exceeded.
-    /// Todo: unit test.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use db::activation_code::ActivationCode;
+    /// #
+    /// let mut activation_code = ActivationCode {
+    ///     email: "test@example.com".to_string(),
+    ///     code: 123456,
+    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     attempts: 0,
+    /// };
+    ///
+    /// for i in 0..5 {
+    ///     activation_code.attempts = i;
+    ///     assert_eq!(activation_code.attempts_exceeded(), false);
+    /// }
+    ///
+    /// for i in 6..10 {
+    ///     activation_code.attempts = i;
+    ///     assert_eq!(activation_code.attempts_exceeded(), true);
+    /// }
+    /// ```
     pub fn attempts_exceeded(&self) -> bool {
         self.attempts.gt(&MAX_ATTEMPTS)
     }
 }
 
 // Possible errors thrown when handling activation codes.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ActivationCodeErrorKind {
     // A user could not be activated due to a database error.
     ActivationFailed(UserErrorKind),
@@ -258,4 +298,131 @@ fn assert_not_activated(user: &User) -> Result<(), ActivationCodeErrorKind> {
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{establish_connection, get_database_url, user};
+    use app::AppConfig;
+    use diesel::result::Error;
+
+    // Tests get().
+    #[test]
+    fn test_get() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create a test user.
+            let user = user::create(&connection, email, password, &config).unwrap();
+
+            // Initially, an activation code should not be present in the database.
+            assert!(read(&connection, email).is_none());
+
+            // Generate an activation code and check that it contains correct values.
+            let activation_code = get(&connection, &user).unwrap();
+            assert_activation_code(&activation_code, email, None, None, 0);
+
+            // Check that a record now exists in the database.
+            assert!(read(&connection, email).is_some());
+
+            // We should be allowed to retrieve the activation code 5 more times, but any more
+            // attempts should return an error.
+            for attempt_count in 1..6 {
+                // Check that the data in the newly retrieved activation code matches the original.
+                let newly_retrieved = get(&connection, &user).unwrap();
+                assert_activation_code(
+                    &newly_retrieved,
+                    &activation_code.email,
+                    Some(activation_code.code),
+                    Some(activation_code.expiration_time),
+                    attempt_count,
+                );
+            }
+
+            for _failed_attempt_count in 0..10 {
+                assert_eq!(
+                    ActivationCodeErrorKind::MaxAttemptsExceeded,
+                    get(&connection, &user).unwrap_err()
+                );
+            }
+
+            // Expire the activation code by updating the expired time.
+            diesel::update(dsl::activation_codes.filter(dsl::email.eq(email)))
+                .set(dsl::expiration_time.eq(chrono::Local::now().naive_local()))
+                .execute(&connection)
+                .unwrap();
+
+            // Check that the activation code is now effectively expired, by reading the data
+            // directly from the database.
+            assert!(read(&connection, email).unwrap().is_expired());
+
+            // When an activation code is expired and is again requested, a new activation code
+            // should be generated and the attempts counter should be reset to 0.
+            let fresh_activation_code = get(&connection, &user).unwrap();
+            assert_activation_code(&fresh_activation_code, email, None, None, 0);
+            assert_ne!(activation_code.code, fresh_activation_code.code);
+
+            // Activate the user and request a new activation code. This should result in an
+            // `UserAlreadyActivated` error.
+            let user = user::activate(&connection, user).unwrap();
+            assert_eq!(
+                ActivationCodeErrorKind::UserAlreadyActivated(user.email.clone()),
+                get(&connection, &user).unwrap_err()
+            );
+
+            Ok(())
+        });
+    }
+
+    // Checks that the given activation code matches the given values.
+    fn assert_activation_code(
+        // The activation code to check.
+        activation_code: &ActivationCode,
+        // The expected email address.
+        email: &str,
+        // The expected activation code. If omitted the code will only be checked to see if it is
+        // between MIN_VALUE and MAX_VALUE.
+        code: Option<i32>,
+        // The expected expiration time. If omitted this will default to 30 minutes in the future.
+        // This will verify that the expiration time is within an interval of the given time and 2
+        // seconds earlier, to account for the elapsed time between the creation of the database
+        // record and the assertion.
+        expiration_time: Option<chrono::NaiveDateTime>,
+        // The expected value of the retry attempts counter.
+        attempts: i16,
+    ) {
+        // Check the email address.
+        assert_eq!(email.to_string(), activation_code.email);
+
+        // Check the activation code.
+        if code.is_none() {
+            assert!(MIN_VALUE <= activation_code.code);
+            assert!(activation_code.code <= MAX_VALUE);
+        } else {
+            assert_eq!(code.unwrap(), activation_code.code);
+        }
+
+        // Check the expiration time. If no expiration time is passed, default to to 30 minutes in
+        // the future.
+        let expiration_time = expiration_time.unwrap_or(
+            chrono::Local::now()
+                .checked_add_signed(time::Duration::minutes(30))
+                .unwrap()
+                .naive_local(),
+        );
+
+        // Check within a time interval of a few seconds, to account for elapsed time before the
+        // assertion is called.
+        let two_seconds_earlier = expiration_time
+            .checked_sub_signed(time::Duration::seconds(2))
+            .unwrap();
+        assert!(activation_code.expiration_time <= expiration_time);
+        assert!(activation_code.expiration_time > two_seconds_earlier);
+
+        // Check the attempts counter.
+        assert_eq!(attempts, activation_code.attempts);
+    }
 }
