@@ -42,12 +42,9 @@ install:
   - php composer.phar install --no-interaction --prefer-source
 
 script:
-  # Compile the project.
-  - cargo build
   # Check coding standards.
   - cargo fmt --all -- --check
   # Run clippy.
-  - cargo clean
   - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
