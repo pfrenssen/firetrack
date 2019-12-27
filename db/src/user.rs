@@ -43,7 +43,9 @@ impl fmt::Display for UserErrorKind {
                 write!(f, "Database error when activating user: {}", err)
             }
             UserErrorKind::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
-            UserErrorKind::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
+            UserErrorKind::PasswordHashFailed(ref err) => {
+                write!(f, "Password hashing error: {}", err)
+            }
             UserErrorKind::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
             }

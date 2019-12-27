@@ -238,7 +238,7 @@ fn increase_attempt_counter(
 
     let activation_code =
         diesel::update(dsl::activation_codes.filter(dsl::email.eq(activation_code.email.as_str())))
-            .set((dsl::attempts.eq(activation_code.attempts + 1),))
+            .set(dsl::attempts.eq(activation_code.attempts + 1))
             .returning((dsl::email, dsl::code, dsl::expiration_time, dsl::attempts))
             .get_result::<ActivationCode>(connection)
             .map_err(ActivationCodeErrorKind::UpdateFailed)?;
