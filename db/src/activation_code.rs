@@ -398,21 +398,24 @@ mod tests {
         assert_eq!(email.to_string(), activation_code.email);
 
         // Check the activation code.
-        if code.is_none() {
-            assert!(MIN_VALUE <= activation_code.code);
-            assert!(activation_code.code <= MAX_VALUE);
-        } else {
-            assert_eq!(code.unwrap(), activation_code.code);
+        match code {
+            Some(c) => {
+                assert_eq!(c, activation_code.code);
+            }
+            None => {
+                assert!(MIN_VALUE <= activation_code.code);
+                assert!(activation_code.code <= MAX_VALUE);
+            }
         }
 
         // Check the expiration time. If no expiration time is passed, default to to 30 minutes in
         // the future.
-        let expiration_time = expiration_time.unwrap_or(
+        let expiration_time = expiration_time.unwrap_or_else(|| {
             chrono::Local::now()
                 .checked_add_signed(time::Duration::minutes(30))
                 .unwrap()
-                .naive_local(),
-        );
+                .naive_local()
+        });
 
         // Check within a time interval of a few seconds, to account for elapsed time before the
         // assertion is called.
