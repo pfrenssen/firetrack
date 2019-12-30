@@ -173,6 +173,9 @@ pub fn activate_user(
             if c.is_expired() {
                 return Err(ActivationCodeErrorKind::Expired);
             }
+            if c.attempts_exceeded() {
+                return Err(ActivationCodeErrorKind::MaxAttemptsExceeded);
+            }
             if c.code == activation_code {
                 let user = super::user::activate(connection, user)
                     .map_err(ActivationCodeErrorKind::ActivationFailed)?;
