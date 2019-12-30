@@ -166,7 +166,7 @@ pub fn activate_user(
     connection: &PgConnection,
     user: User,
     activation_code: i32,
-) -> Result<(), ActivationCodeErrorKind> {
+) -> Result<User, ActivationCodeErrorKind> {
     assert_not_activated(&user)?;
     match read(connection, user.email.as_str()) {
         Some(c) => {
@@ -174,9 +174,9 @@ pub fn activate_user(
                 return Err(ActivationCodeErrorKind::Expired);
             }
             if c.code == activation_code {
-                super::user::activate(connection, user)
+                let user = super::user::activate(connection, user)
                     .map_err(ActivationCodeErrorKind::ActivationFailed)?;
-                return Ok(());
+                return Ok(user);
             }
             increase_attempt_counter(connection, c)?;
             Err(ActivationCodeErrorKind::InvalidCode)
