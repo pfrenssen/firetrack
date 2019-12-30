@@ -464,6 +464,47 @@ mod tests {
         });
     }
 
+    // Tests super::purge().
+    #[test]
+    fn test_purge() {
+        let connection = establish_connection(&get_database_url());
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create some test users and activation codes.
+            for i in 0..10 {
+                let email = format!("test{}@example.com", i);
+                user::create(&connection, email.as_str(), password, &config).unwrap();
+                create(&connection, email.as_str()).unwrap();
+
+                // The first 5 users will have a fresh activation code, while the last 5 have an
+                // expired code.
+                if i >= 5 {
+                    expire_activation_code(&connection, email.as_str());
+                }
+            }
+
+            // Before purging, all activation codes should be present in the database.
+            for i in 0..10 {
+                let email = format!("test{}@example.com", i);
+                assert!(read(&connection, email.as_str()).is_some());
+            }
+
+            // After purging, the last 5 activation codes should no longer be present.
+            assert!(purge(&connection).is_ok());
+            for i in 0..5 {
+                let email = format!("test{}@example.com", i);
+                assert!(read(&connection, email.as_str()).is_some());
+            }
+            for i in 5..10 {
+                let email = format!("test{}@example.com", i);
+                assert!(read(&connection, email.as_str()).is_none());
+            }
+
+            Ok(())
+        });
+    }
+
     // Checks that the given activation code matches the given values.
     fn assert_activation_code(
         // The activation code to check.
