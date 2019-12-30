@@ -356,10 +356,7 @@ mod tests {
             }
 
             // Expire the activation code by updating the expired time.
-            diesel::update(dsl::activation_codes.filter(dsl::email.eq(email)))
-                .set(dsl::expiration_time.eq(chrono::Local::now().naive_local()))
-                .execute(&connection)
-                .unwrap();
+            expire_activation_code(&connection, email);
 
             // Check that the activation code is now effectively expired, by reading the data
             // directly from the database.
@@ -433,5 +430,16 @@ mod tests {
 
         // Check the attempts counter.
         assert_eq!(attempts, activation_code.attempts);
+    }
+
+    // Expire the activation code for the given user by updating the expired time in the database.
+    fn expire_activation_code(
+        connection: &PgConnection,
+        email: &str,
+    ) {
+        diesel::update(dsl::activation_codes.filter(dsl::email.eq(email)))
+            .set(dsl::expiration_time.eq(chrono::Local::now().naive_local()))
+            .execute(connection)
+            .unwrap();
     }
 }
