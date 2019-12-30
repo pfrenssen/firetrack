@@ -184,6 +184,9 @@ pub fn activate_user(
             increase_attempt_counter(connection, c)?;
             Err(ActivationCodeErrorKind::InvalidCode)
         }
+        // In normal usage (registering a user through the web interface) an activation code is
+        // always generated. If none is returned then the code has expired and has been purged from
+        // the database, so return an `Expired` error.
         None => Err(ActivationCodeErrorKind::Expired),
     }
 }
@@ -310,7 +313,7 @@ mod tests {
     use app::AppConfig;
     use diesel::result::Error;
 
-    // Tests get().
+    // Tests super::get().
     #[test]
     fn test_get() {
         let connection = establish_connection(&get_database_url());
