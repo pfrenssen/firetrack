@@ -380,6 +380,84 @@ mod tests {
         });
     }
 
+    // Tests super::activate_user().
+    #[test]
+    fn test_activate_user() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create a test user through the API. This does not cause an activation code to be
+            // generated, as is happening in normal usage (i.e. through the web UI).
+            let user = user::create(&connection, email, password, &config).unwrap();
+            assert!(read(&connection, email).is_none());
+
+            // In normal usage if an activation code is not present in the database for a non-
+            // activated user this means that the activation code has expired and been purged from
+            // the database. Check that calling `activate_user()` returns an `Expired` error.
+            assert_eq!(
+                ActivationCodeErrorKind::Expired,
+                activate_user(&connection, user.clone(), 0).unwrap_err()
+            );
+
+            // Generate an activation code. It should initially have 0 attempts.
+            let activation_code = get(&connection, &user).unwrap();
+            assert_activation_code(&activation_code, email, None, None, 0);
+
+            // Try activating using the wrong code. This should result 5 times in an `InvalidCode`
+            // error, and any subsequent attempts should activate the brute force protection and
+            // result in an `AttemptsExceeded` error, even if the correct code is passed.
+            let wrong_code = activation_code.code + 1;
+
+            for n in 0..5 {
+                assert_eq!(
+                    ActivationCodeErrorKind::InvalidCode,
+                    activate_user(&connection, user.clone(), wrong_code).unwrap_err()
+                );
+            }
+            for n in 5..10 {
+                assert_eq!(
+                    ActivationCodeErrorKind::MaxAttemptsExceeded,
+                    activate_user(&connection, user.clone(), wrong_code).unwrap_err()
+                );
+            }
+
+            // Once the brute force protection has been triggered an error should always be
+            // returned, even when passing the correct activation code.
+            assert_eq!(
+                ActivationCodeErrorKind::MaxAttemptsExceeded,
+                activate_user(&connection, user.clone(), activation_code.code).unwrap_err()
+            );
+
+            // Expire the activation code. It should then return an `Expired` error when trying to
+            // activate, regardless of whether the correct or wrong code is passed.
+            expire_activation_code(&connection, email);
+            assert_eq!(
+                ActivationCodeErrorKind::Expired,
+                activate_user(&connection, user.clone(), activation_code.code).unwrap_err()
+            );
+            assert_eq!(
+                ActivationCodeErrorKind::Expired,
+                activate_user(&connection, user.clone(), wrong_code).unwrap_err()
+            );
+
+            // Get a fresh activation code, and activate the user using the correct code. This is
+            // expected to return the activated user.
+            let fresh_activation_code = get(&connection, &user).unwrap();
+            let activated_user = activate_user(&connection, user.clone(), fresh_activation_code.code).unwrap();
+            assert!(activated_user.activated);
+
+            // Try to re-activate the user. We should now get a `UserAlreadyActivated` error.
+            assert_eq!(
+                ActivationCodeErrorKind::UserAlreadyActivated(activated_user.email.clone()),
+                activate_user(&connection, activated_user.clone(), fresh_activation_code.code).unwrap_err()
+            );
+
+            Ok(())
+        });
+    }
+
     // Checks that the given activation code matches the given values.
     fn assert_activation_code(
         // The activation code to check.

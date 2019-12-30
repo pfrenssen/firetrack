@@ -7,7 +7,7 @@ use diesel::prelude::*;
 use std::fmt;
 use validator::validate_email;
 
-#[derive(Debug, Queryable)]
+#[derive(Clone, Debug, Queryable)]
 pub struct User {
     pub email: String,
     pub password: String,
