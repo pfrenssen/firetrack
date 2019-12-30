@@ -410,13 +410,13 @@ mod tests {
             // result in an `AttemptsExceeded` error, even if the correct code is passed.
             let wrong_code = activation_code.code + 1;
 
-            for n in 0..5 {
+            for _i in 0..5 {
                 assert_eq!(
                     ActivationCodeErrorKind::InvalidCode,
                     activate_user(&connection, user.clone(), wrong_code).unwrap_err()
                 );
             }
-            for n in 5..10 {
+            for _i in 5..10 {
                 assert_eq!(
                     ActivationCodeErrorKind::MaxAttemptsExceeded,
                     activate_user(&connection, user.clone(), wrong_code).unwrap_err()
@@ -445,13 +445,19 @@ mod tests {
             // Get a fresh activation code, and activate the user using the correct code. This is
             // expected to return the activated user.
             let fresh_activation_code = get(&connection, &user).unwrap();
-            let activated_user = activate_user(&connection, user.clone(), fresh_activation_code.code).unwrap();
+            let activated_user =
+                activate_user(&connection, user.clone(), fresh_activation_code.code).unwrap();
             assert!(activated_user.activated);
 
             // Try to re-activate the user. We should now get a `UserAlreadyActivated` error.
             assert_eq!(
                 ActivationCodeErrorKind::UserAlreadyActivated(activated_user.email.clone()),
-                activate_user(&connection, activated_user.clone(), fresh_activation_code.code).unwrap_err()
+                activate_user(
+                    &connection,
+                    activated_user.clone(),
+                    fresh_activation_code.code
+                )
+                .unwrap_err()
             );
 
             Ok(())
@@ -511,10 +517,7 @@ mod tests {
     }
 
     // Expire the activation code for the given user by updating the expired time in the database.
-    fn expire_activation_code(
-        connection: &PgConnection,
-        email: &str,
-    ) {
+    fn expire_activation_code(connection: &PgConnection, email: &str) {
         diesel::update(dsl::activation_codes.filter(dsl::email.eq(email)))
             .set(dsl::expiration_time.eq(chrono::Local::now().naive_local()))
             .execute(connection)
