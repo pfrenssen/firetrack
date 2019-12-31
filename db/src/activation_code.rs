@@ -516,6 +516,63 @@ mod tests {
         });
     }
 
+    // Tests super::delete().
+    #[test]
+    fn test_delete() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Initially we do not expect to have a record for an activation code present in the
+            // database for a user that is created through the API.
+            let user = user::create(&connection, email, password, &config).unwrap();
+            assert!(read(&connection, email).is_none());
+
+            // Generate an activation code. Now there should be a record.
+            assert!(get(&connection, &user).is_ok());
+            assert!(read(&connection, email).is_some());
+
+            // Delete the activation code. This should not result in an error, and the record should
+            // no longer be present.
+            assert!(delete(&connection, &user).is_ok());
+            assert!(read(&connection, email).is_none());
+
+            Ok(())
+        });
+    }
+
+    // Tests super::read().
+    #[test]
+    fn test_read() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // When no activation code is present yet, the `read()` function should return `None`.
+            let user = user::create(&connection, email, password, &config).unwrap();
+            assert!(read(&connection, email).is_none());
+
+            // Generate an activation code and assert that the `read()` function returns it.
+            assert!(get(&connection, &user).is_ok());
+            let activation_code = read(&connection, email).unwrap();
+            assert_activation_code(&activation_code, email, None, None, 0);
+
+            // Expire the activation code. It should still be returned.
+            expire_activation_code(&connection, email);
+            let activation_code = read(&connection, email).unwrap();
+            let expiration_time = chrono::Local::now().naive_local();
+            assert_activation_code(&activation_code, email, None, Some(expiration_time), 0);
+
+            // Delete the activation code. Now the `read()` function should return `None` again.
+            assert!(delete(&connection, &user).is_ok());
+            assert!(read(&connection, email).is_none());
+
+            Ok(())
+        });
+    }
+
     // Checks that the given activation code matches the given values.
     fn assert_activation_code(
         // The activation code to check.
