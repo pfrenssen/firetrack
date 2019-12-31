@@ -376,6 +376,17 @@ mod tests {
                 get(&connection, &user).unwrap_err()
             );
 
+            // Request an activation code for a user that has not been saved in the database. This
+            // should result in an error.
+            let user = User {
+                activated: false,
+                email: "non-existing-user@example.com".to_string(),
+                created: chrono::Local::now().naive_local(),
+                password: "hunter2".to_string(),
+            };
+            // Todo: Check that this returns an `ActivationCodeErrorKind::CreationFailed()`.
+            assert!(get(&connection, &user).is_err());
+
             Ok(())
         });
     }
