@@ -457,18 +457,13 @@ mod tests {
             // expected to return the activated user.
             let fresh_activation_code = get(&connection, &user).unwrap();
             let activated_user =
-                activate_user(&connection, user.clone(), fresh_activation_code.code).unwrap();
+                activate_user(&connection, user, fresh_activation_code.code).unwrap();
             assert!(activated_user.activated);
 
             // Try to re-activate the user. We should now get a `UserAlreadyActivated` error.
             assert_eq!(
                 ActivationCodeErrorKind::UserAlreadyActivated(activated_user.email.clone()),
-                activate_user(
-                    &connection,
-                    activated_user.clone(),
-                    fresh_activation_code.code
-                )
-                .unwrap_err()
+                activate_user(&connection, activated_user, fresh_activation_code.code).unwrap_err()
             );
 
             Ok(())
