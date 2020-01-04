@@ -667,6 +667,27 @@ mod tests {
         });
     }
 
+    // Tests super::assert_not_activated().
+    #[test]
+    fn test_assert_not_activated() {
+        let mut user = User {
+            activated: false,
+            email: "user@example.com".to_string(),
+            created: chrono::Local::now().naive_local(),
+            password: "hunter2".to_string(),
+        };
+        assert_eq!(
+            Ok(()),
+            assert_not_activated(&user)
+        );
+        user.activated = true;
+        assert_eq!(
+            Err(ActivationCodeErrorKind::UserAlreadyActivated(user.email.clone())),
+            assert_not_activated(&user)
+        );
+
+    }
+
     // Checks that the given activation code matches the given values.
     fn assert_activation_code(
         // The activation code to check.
