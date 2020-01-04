@@ -595,13 +595,22 @@ mod tests {
             // Check that the activation codes are different for both users.
             // Todo: there is a 1/900000 chance that both activation codes are equal, so this might
             // cause a random failure.
-            assert_ne!(activation_code_for_user_1.code, activation_code_for_user_2.code);
+            assert_ne!(
+                activation_code_for_user_1.code,
+                activation_code_for_user_2.code
+            );
 
             // There should now be a database record for both activation codes that can be read from
             // the database. The object that is retrieved from the database should be identical to
             // the one returned by `create()`.
-            assert_eq!(activation_code_for_user_1, read(&connection, email1).unwrap());
-            assert_eq!(activation_code_for_user_2, read(&connection, email2).unwrap());
+            assert_eq!(
+                activation_code_for_user_1,
+                read(&connection, email1).unwrap()
+            );
+            assert_eq!(
+                activation_code_for_user_2,
+                read(&connection, email2).unwrap()
+            );
 
             // When a new activation code is created for a user it should overwrite the existing
             // one. It should have a different code than the previous one.
@@ -609,10 +618,16 @@ mod tests {
             // cause a random failure.
             let new_activation_code_for_user_1 = create(&connection, email1).unwrap();
             assert_activation_code(&new_activation_code_for_user_1, email1, None, None, 0);
-            assert_ne!(activation_code_for_user_1.code, new_activation_code_for_user_1.code);
+            assert_ne!(
+                activation_code_for_user_1.code,
+                new_activation_code_for_user_1.code
+            );
             let new_activation_code_for_user_2 = create(&connection, email2).unwrap();
             assert_activation_code(&new_activation_code_for_user_2, email2, None, None, 0);
-            assert_ne!(activation_code_for_user_2.code, new_activation_code_for_user_2.code);
+            assert_ne!(
+                activation_code_for_user_2.code,
+                new_activation_code_for_user_2.code
+            );
 
             Ok(())
         });
@@ -631,8 +646,11 @@ mod tests {
             let user = user::create(&connection, email, password, &config).unwrap();
             let unsaved_activation_code = ActivationCode {
                 email: email.to_string(),
-                code: 123456,
-                expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+                code: 123_456,
+                expiration_time: chrono::Local::now()
+                    .checked_add_signed(time::Duration::minutes(30))
+                    .unwrap()
+                    .naive_local(),
                 attempts: 0,
             };
             assert!(increase_attempt_counter(&connection, unsaved_activation_code).is_err());
@@ -676,16 +694,14 @@ mod tests {
             created: chrono::Local::now().naive_local(),
             password: "hunter2".to_string(),
         };
-        assert_eq!(
-            Ok(()),
-            assert_not_activated(&user)
-        );
+        assert_eq!(Ok(()), assert_not_activated(&user));
         user.activated = true;
         assert_eq!(
-            Err(ActivationCodeErrorKind::UserAlreadyActivated(user.email.clone())),
+            Err(ActivationCodeErrorKind::UserAlreadyActivated(
+                user.email.clone()
+            )),
             assert_not_activated(&user)
         );
-
     }
 
     // Checks that the given activation code matches the given values.
