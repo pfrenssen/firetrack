@@ -13,7 +13,7 @@ const MAX_VALUE: i32 = 999_999;
 // The maximum number of activations that can be attempted in 30 minutes.
 const MAX_ATTEMPTS: i16 = 5;
 
-#[derive(Associations, Debug, PartialEq, Queryable)]
+#[derive(Associations, Clone, Debug, PartialEq, Queryable)]
 #[belongs_to(User, foreign_key = "email")]
 pub struct ActivationCode {
     pub email: String,
@@ -613,6 +613,55 @@ mod tests {
             let new_activation_code_for_user_2 = create(&connection, email2).unwrap();
             assert_activation_code(&new_activation_code_for_user_2, email2, None, None, 0);
             assert_ne!(activation_code_for_user_2.code, new_activation_code_for_user_2.code);
+
+            Ok(())
+        });
+    }
+
+    // Tests super::increase_attempt_counter().
+    #[test]
+    fn test_increase_attempt_counter() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // If we try to increase the attempt counter for an activation code that does not have a
+            // matching database record then we should get an error.
+            let user = user::create(&connection, email, password, &config).unwrap();
+            let unsaved_activation_code = ActivationCode {
+                email: email.to_string(),
+                code: 123456,
+                expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+                attempts: 0,
+            };
+            assert!(increase_attempt_counter(&connection, unsaved_activation_code).is_err());
+
+            // Generate an activation code. We should be able to increase the attempts counter 5
+            // times, but all attempts after that should return an error.
+            let mut activation_code = get(&connection, &user).unwrap();
+            assert_eq!(0, activation_code.attempts);
+
+            for i in 1..6 {
+                activation_code = increase_attempt_counter(&connection, activation_code).unwrap();
+                assert_eq!(i, activation_code.attempts);
+                assert!(!activation_code.attempts_exceeded());
+            }
+
+            for _i in 6..99 {
+                assert_eq!(
+                    ActivationCodeErrorKind::MaxAttemptsExceeded,
+                    increase_attempt_counter(&connection, activation_code.clone()).unwrap_err()
+                );
+            }
+
+            // Tampering with the attempt counter of an activation code that has exceeded the number
+            // of attempts should not be possible.
+            activation_code.attempts = 0;
+            assert_eq!(
+                ActivationCodeErrorKind::MaxAttemptsExceeded,
+                increase_attempt_counter(&connection, activation_code).unwrap_err()
+            );
 
             Ok(())
         });
