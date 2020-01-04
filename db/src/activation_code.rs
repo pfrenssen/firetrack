@@ -210,8 +210,8 @@ pub fn delete(connection: &PgConnection, user: &User) -> Result<(), ActivationCo
 
 // Retrieves the activation code for the user with the given email address.
 //
-// Returns raw data from the database which may be stale. Use get_activation_code() instead, this is
-// guaranteed to return a valid activation code when possible.
+// Returns raw data from the database which may be stale. Use `get()` instead, this is guaranteed to
+// return a valid activation code when possible, and has protection against brute force attacks.
 fn read(connection: &PgConnection, email: &str) -> Option<ActivationCode> {
     let activation_code = dsl::activation_codes
         .find(email)
@@ -231,9 +231,9 @@ fn read(connection: &PgConnection, email: &str) -> Option<ActivationCode> {
 // - expiration_time: a timestamp 30 minutes from now.
 //
 // If an existing record already exists for the given user it will be overwritten. It is recommended
-// to use `get_activation_code()` instead of this function; it will check if an existing non-expired
-// activation code exists and return it if possible. It will create a new activation code only if no
-// previous record exists, or it is expired.
+// to use `get()` instead of this function; it will check if an existing non-expired activation code
+// exists and return it if possible. It will create a new activation code only if no previous record
+// exists, or it is expired.
 fn create(
     connection: &PgConnection,
     email: &str,
