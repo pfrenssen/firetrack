@@ -568,6 +568,56 @@ mod tests {
         });
     }
 
+    // Tests super::create().
+    #[test]
+    fn test_create() {
+        let connection = establish_connection(&get_database_url());
+        let email1 = "test-user-1@example.com";
+        let email2 = "test-user-2@example.com";
+        let password1 = "mypass";
+        let password2 = "abc123";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create two test users.
+            user::create(&connection, email1, password1, &config).unwrap();
+            user::create(&connection, email2, password2, &config).unwrap();
+
+            // Initially there should be no activation codes for the test users.
+            assert!(read(&connection, email1).is_none());
+            assert!(read(&connection, email2).is_none());
+
+            // Create activation codes for the users and check that valid objects are returned.
+            let activation_code_for_user_1 = create(&connection, email1).unwrap();
+            assert_activation_code(&activation_code_for_user_1, email1, None, None, 0);
+            let activation_code_for_user_2 = create(&connection, email2).unwrap();
+            assert_activation_code(&activation_code_for_user_2, email2, None, None, 0);
+
+            // Check that the activation codes are different for both users.
+            // Todo: there is a 1/900000 chance that both activation codes are equal, so this might
+            // cause a random failure.
+            assert_ne!(activation_code_for_user_1.code, activation_code_for_user_2.code);
+
+            // There should now be a database record for both activation codes that can be read from
+            // the database. The object that is retrieved from the database should be identical to
+            // the one returned by `create()`.
+            assert_eq!(activation_code_for_user_1, read(&connection, email1).unwrap());
+            assert_eq!(activation_code_for_user_2, read(&connection, email2).unwrap());
+
+            // When a new activation code is created for a user it should overwrite the existing
+            // one. It should have a different code than the previous one.
+            // Todo: there is a 1/900000 chance that both activation codes are equal, so this might
+            // cause a random failure.
+            let new_activation_code_for_user_1 = create(&connection, email1).unwrap();
+            assert_activation_code(&new_activation_code_for_user_1, email1, None, None, 0);
+            assert_ne!(activation_code_for_user_1.code, new_activation_code_for_user_1.code);
+            let new_activation_code_for_user_2 = create(&connection, email2).unwrap();
+            assert_activation_code(&new_activation_code_for_user_2, email2, None, None, 0);
+            assert_ne!(activation_code_for_user_2.code, new_activation_code_for_user_2.code);
+
+            Ok(())
+        });
+    }
+
     // Checks that the given activation code matches the given values.
     fn assert_activation_code(
         // The activation code to check.
