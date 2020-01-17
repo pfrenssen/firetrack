@@ -15,4 +15,4 @@ validator = "~0.10"
 
 [dev-dependencies]
 dotenv = "^0.15"
-time = "~0.1.42"
+time = "~0.2.3"
