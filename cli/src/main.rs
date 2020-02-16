@@ -210,8 +210,9 @@ fn main() {
             ("activate", Some(arguments)) => {
                 let connection = establish_connection(&config.database_url());
                 let email = arguments.value_of("email").unwrap();
-                let user = db::user::read(&connection, email).unwrap();
-                notifications::activate(&user, &config);
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+                let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();
+                notifications::activate(&user, &activation_code, &config);
             }
             ("", None) => {}
             _ => unreachable!(),

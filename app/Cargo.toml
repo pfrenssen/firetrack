@@ -7,4 +7,4 @@ edition = "2018"
 [dependencies]
 dotenv = "~0.15"
 env_logger = "~0.7"
-mailgun_v3 = "~0.6"
+mailgun_v3 = { git = "https://github.com/pfrenssen/mailgun_v3.git", branch = "configurable-api-endpoint" }
