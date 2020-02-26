@@ -288,7 +288,7 @@ impl AppConfig {
         self.mailgun_domain.as_str()
     }
 
-    /// Returns the number of password hashing iterations to perform.
+    /// Returns the user used for sending notifications.
     ///
     /// # Example
     ///
