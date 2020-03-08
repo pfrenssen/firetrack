@@ -274,6 +274,12 @@ impl AppConfig {
         self.mailgun_api_key.as_str()
     }
 
+    // Todo: this should only be used for testing. Adding #[cfg(test)] doesn't work if the test code
+    // is in another crate, because the method will not be found. Define a newtype in the test?
+    pub fn set_mailgun_api_key(&mut self, mailgun_api_key: String) {
+        self.mailgun_api_key = mailgun_api_key;
+    }
+
     /// Returns the domain used for sending notifications.
     ///
     /// # Example
