@@ -144,10 +144,7 @@ fn test_activate() {
     // valid) _doesn't_ match. Mockito doesn't have negative matching so we handle it this way.
     let _m1 = mockito::mock("POST", uri.as_str())
         // The API key is passed as a base64 encoded basic authentication string.
-        .match_header(
-            "authorization",
-            Matcher::Any,
-        )
+        .match_header("authorization", Matcher::Any)
         .with_status(401)
         .create();
 
@@ -161,7 +158,7 @@ fn test_activate() {
                 "Basic {}",
                 base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
             )
-                .as_str(),
+            .as_str(),
         )
         .create();
 
