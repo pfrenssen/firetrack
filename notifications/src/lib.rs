@@ -6,9 +6,6 @@ use mailgun_v3::{Credentials, EmailAddress, ReqError};
 use reqwest::blocking::RequestBuilder;
 use std::fmt;
 
-#[cfg(test)]
-use mockito;
-
 // Mailgun API endpoint URI, copied from the private mailgun_v3::email::MESSAGES_ENDPOINT constant.
 const MAILGUN_API_ENDPOINT_URI: &str = "messages";
 

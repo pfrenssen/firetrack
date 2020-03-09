@@ -17,7 +17,6 @@ use actix_web::test;
 
 mod user;
 
-use actix_files;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;

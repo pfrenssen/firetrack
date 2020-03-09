@@ -1,4 +1,3 @@
-use dotenv;
 use std::env::var;
 
 pub static APPLICATION_NAME: &str = "firetrack";
