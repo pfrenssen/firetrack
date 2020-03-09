@@ -170,8 +170,6 @@ fn test_activate() {
             )
             .as_str(),
         )
-        // Todo: Try to urlencode using
-        // https://rust-lang-nursery.github.io/rust-cookbook/encoding/strings.html#encode-a-string-as-applicationx-www-form-urlencoded
         .match_body(Matcher::AllOf(vec![
             Matcher::UrlEncoded(
                 "subject".to_string(),
