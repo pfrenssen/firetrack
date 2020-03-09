@@ -204,7 +204,7 @@ fn test_activate() {
     assert!(activate(&user, &activation_code, &config).is_ok());
 
     // Test that an authentication error is returned when passing an invalid API key.
-    let mut bad_config = config.clone();
+    let mut bad_config = config;
     bad_config.set_mailgun_api_key("invalid-api-key".to_string());
     // Todo: Check that this returns a `NotificationErrorKind::ActivationNotificationNotSent`.
     assert!(activate(&user, &activation_code, &bad_config).is_err());
