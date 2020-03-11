@@ -2,8 +2,8 @@ use super::super::*;
 
 use actix_web::{dev::Service, http::StatusCode, test, App};
 
-#[test]
-fn access_homepage() {
+#[actix_rt::test]
+async fn access_homepage() {
     dotenv::dotenv().ok();
     dotenv::from_filename(".env.dist").ok();
     let database_url = env::var("DATABASE_URL").unwrap();
@@ -11,9 +11,10 @@ fn access_homepage() {
     let mut app = test::init_service(
         App::new()
             .configure(|c| configure_application(c, pool, app::AppConfig::from_test_defaults())),
-    );
+    )
+    .await;
     let req = test::TestRequest::get().uri("/").to_request();
-    let response = test::block_on(app.call(req)).unwrap();
+    let response = app.call(req).await.unwrap();
     assert_eq!(
         response.status(),
         StatusCode::OK,
