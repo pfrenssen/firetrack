@@ -50,7 +50,7 @@ impl UserFormInputValid {
 }
 
 // Request handler for the login form.
-pub fn login_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn login_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
 
@@ -61,7 +61,7 @@ pub fn login_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Er
 }
 
 // Request handler for a GET request on the registration form.
-pub fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
     let input = UserFormInput::new("".to_string(), "".to_string());
@@ -70,7 +70,7 @@ pub fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse,
 }
 
 // Submit handler for the registration form.
-pub fn register_submit(
+pub async fn register_submit(
     template: web::Data<tera::Tera>,
     input: web::Form<UserFormInput>,
     pool: web::Data<db::ConnectionPool>,
@@ -125,22 +125,22 @@ mod tests {
     use super::*;
     use crate::firetrack_test::*;
 
-    use actix_web::test::{block_on, TestRequest};
+    use actix_web::test::TestRequest;
 
     // Unit tests for the user login page.
-    #[test]
-    fn test_login() {
+    #[actix_rt::test]
+    async fn test_login() {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
         let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
-        let app_data = request.get_app_data().unwrap();
+        let app_data = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = login_handler(app_data);
-        let response = block_on(controller).unwrap();
+        let controller = login_handler(app_data.clone());
+        let response = controller.await.unwrap();
         let body = get_response_body(&response);
 
         assert_response_ok(&response);
@@ -150,19 +150,19 @@ mod tests {
     }
 
     // Unit tests for the user registration page.
-    #[test]
-    fn test_register() {
+    #[actix_rt::test]
+    async fn test_register() {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
         let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
-        let app_data = request.get_app_data().unwrap();
+        let app_data = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = register_handler(app_data);
-        let response = block_on(controller).unwrap();
+        let controller = register_handler(app_data.clone());
+        let response = controller.await.unwrap();
         let body = get_response_body(&response);
 
         assert_response_ok(&response);

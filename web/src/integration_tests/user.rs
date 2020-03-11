@@ -3,8 +3,8 @@ use actix_web::http::StatusCode;
 use actix_web::{dev::Service, test, App};
 use db::user::asserts::hashed_password_is_valid;
 
-#[test]
-fn register_with_valid_data() {
+#[actix_rt::test]
+async fn register_with_valid_data() {
     dotenv::dotenv().ok();
     dotenv::from_filename(".env.dist").ok();
     let database_url = env::var("DATABASE_URL").unwrap();
@@ -12,7 +12,8 @@ fn register_with_valid_data() {
     let config = app::AppConfig::from_test_defaults();
     let mut app = test::init_service(
         App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
-    );
+    )
+    .await;
 
     // Register with a valid email address and password.
     let email = "test@example.com";
@@ -24,7 +25,7 @@ fn register_with_valid_data() {
         .set_form(&payload)
         .to_request();
 
-    let response = test::block_on(app.call(req)).unwrap();
+    let response = app.call(req).await.unwrap();
     assert_response_ok(&response.response());
 
     let body = get_response_body(&response.response());
@@ -56,7 +57,7 @@ fn register_with_valid_data() {
         .set_form(&payload)
         .to_request();
 
-    let response = test::block_on(app.call(req)).unwrap();
+    let response = app.call(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR,);
 
     let body = get_response_body(&response.response());

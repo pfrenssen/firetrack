@@ -74,7 +74,8 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
     }
 }
 
-fn main() {
+#[actix_rt::main]
+async fn main() {
     // Use custom log levels. This can be configured in the .env files.
     initialize_logger();
 
@@ -162,7 +163,7 @@ fn main() {
     // Launch the passed in subcommand.
     match cli_app.subcommand() {
         ("serve", _) => {
-            serve(config);
+            serve(config).await.unwrap_or_exit();
         }
         ("user", Some(arguments)) => match arguments.subcommand() {
             ("add", Some(arguments)) => {
