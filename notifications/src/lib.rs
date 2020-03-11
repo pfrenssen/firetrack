@@ -256,7 +256,7 @@ mod tests {
 
         let activation_code = ActivationCode {
             expiration_time: chrono::Local::now()
-                .checked_sub_signed(time::Duration::minutes(1))
+                .checked_sub_signed(chrono::Duration::minutes(1))
                 .unwrap()
                 .naive_local(),
             ..get_activation_code()
@@ -303,7 +303,7 @@ mod tests {
             email: "testuser@example.com".to_string(),
             code: 123_456,
             expiration_time: chrono::Local::now()
-                .checked_add_signed(time::Duration::minutes(30))
+                .checked_add_signed(chrono::Duration::minutes(30))
                 .unwrap()
                 .naive_local(),
             attempts: 0,
