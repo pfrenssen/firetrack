@@ -13,7 +13,7 @@ const MAILGUN_API_ENDPOINT_URI: &str = "messages";
 #[cfg(not(test))]
 const MAILGUN_API_ENDPOINT_DOMAIN: &str = "https://api.mailgun.net/v3";
 
-// Possible errors thrown when handling notifications.
+// Errors that might occur when handling notifications.
 #[derive(Debug)]
 pub enum NotificationErrorKind {
     // The activation notification could not be sent due to a Mailgun error.
@@ -32,6 +32,7 @@ impl fmt::Display for NotificationErrorKind {
     }
 }
 
+// Sends a activation mail containing the given activation code to the given user.
 pub fn activate(
     user: &User,
     activation_code: &ActivationCode,
@@ -59,6 +60,7 @@ pub fn activate(
     Ok(())
 }
 
+// Returns a reqwest request builder for a POST request to the Mailgun API endpoint.
 fn get_request_builder(config: &AppConfig) -> RequestBuilder {
     let url = get_mailgun_url(config);
     let client = reqwest::blocking::Client::new();
