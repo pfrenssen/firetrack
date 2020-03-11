@@ -74,6 +74,39 @@ impl ActivationCode {
     pub fn attempts_exceeded(&self) -> bool {
         self.attempts.gt(&MAX_ATTEMPTS)
     }
+
+    /// Checks whether the activation code is valid. Will return an error if the activation code is
+    /// expired or has exceeded the maximum number of activation attempts.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use db::activation_code::{ActivationCode, ActivationCodeErrorKind};
+    /// #
+    /// let mut activation_code = ActivationCode {
+    ///     email: "test@example.com".to_string(),
+    ///     code: 123456,
+    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     attempts: 0,
+    /// };
+    ///
+    /// assert_eq!(Ok(()), activation_code.validate());
+    ///
+    /// activation_code.attempts = 6;
+    /// assert_eq!(Err(ActivationCodeErrorKind::MaxAttemptsExceeded), activation_code.validate());
+    ///
+    /// activation_code.expiration_time = chrono::Local::now().checked_sub_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// assert_eq!(Err(ActivationCodeErrorKind::Expired), activation_code.validate());
+    /// ```
+    pub fn validate(&self) -> Result<(), ActivationCodeErrorKind> {
+        if self.is_expired() {
+            return Err(ActivationCodeErrorKind::Expired);
+        }
+        if self.attempts_exceeded() {
+            return Err(ActivationCodeErrorKind::MaxAttemptsExceeded);
+        }
+        Ok(())
+    }
 }
 
 // Possible errors thrown when handling activation codes.

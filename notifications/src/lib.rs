@@ -1,8 +1,8 @@
 use app::AppConfig;
-use db::activation_code::ActivationCode;
+use db::activation_code::{ActivationCode, ActivationCodeErrorKind};
 use db::user::User;
 use mailgun_v3::email::{send_with_request_builder, Message, MessageBody};
-use mailgun_v3::{Credentials, EmailAddress, ReqError};
+use mailgun_v3::{Credentials, EmailAddress};
 use reqwest::blocking::RequestBuilder;
 use std::fmt;
 
@@ -14,19 +14,34 @@ const MAILGUN_API_ENDPOINT_URI: &str = "messages";
 const MAILGUN_API_ENDPOINT_DOMAIN: &str = "https://api.mailgun.net/v3";
 
 // Errors that might occur when handling notifications.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum NotificationErrorKind {
-    // The activation notification could not be sent due to a Mailgun error.
-    ActivationNotificationNotSent(ReqError),
+    // The activation notification could not be delivered due to a Mailgun error.
+    ActivationNotificationNotDelivered(String),
+    // The activation notification could not be sent because the notification code is not valid.
+    InvalidActivationCode(ActivationCodeErrorKind),
+    // The passed activation code did not match the passed user.
+    WrongActivationCodeUser(String, String),
 }
 
 impl fmt::Display for NotificationErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            NotificationErrorKind::ActivationNotificationNotSent(ref err) => write!(
+            NotificationErrorKind::ActivationNotificationNotDelivered(ref err) => write!(
                 f,
-                "Mailgun error when sending activation notification: {}",
+                "Mailgun error when attempting to deliver activation notification: {}",
                 err
+            ),
+            NotificationErrorKind::InvalidActivationCode(ref err) => write!(
+                f,
+                "Activation mail could not be delivered due to an invalid activation code: {}",
+                err
+            ),
+            NotificationErrorKind::WrongActivationCodeUser(ref user_email, ref activation_email) => write!(
+                f,
+                "Activation mail could not be delivered because the activation code is for {} but the passed user is {}",
+                activation_email,
+                user_email
             ),
         }
     }
@@ -38,6 +53,19 @@ pub fn activate(
     activation_code: &ActivationCode,
     config: &AppConfig,
 ) -> Result<(), NotificationErrorKind> {
+    // Sanity check: ensure that the activation code is valid.
+    activation_code
+        .validate()
+        .map_err(NotificationErrorKind::InvalidActivationCode)?;
+
+    // Sanity check: the user and the activation code should match.
+    if user.email != activation_code.email {
+        return Err(NotificationErrorKind::WrongActivationCodeUser(
+            user.email.clone(),
+            activation_code.email.clone(),
+        ));
+    }
+
     let sender = EmailAddress::name_address(
         // Todo: Make sender name configurable.
         "Firetrack team",
@@ -55,8 +83,9 @@ pub fn activate(
 
     let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_domain());
     let request_builder = get_request_builder(&config);
-    send_with_request_builder(request_builder, &credentials, &sender, message)
-        .map_err(NotificationErrorKind::ActivationNotificationNotSent)?;
+    send_with_request_builder(request_builder, &credentials, &sender, message).map_err(|err| {
+        NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
+    })?;
     Ok(())
 }
 
@@ -100,109 +129,184 @@ fn get_mailgun_url(config: &AppConfig) -> String {
     url
 }
 
-#[test]
-fn test_activate() {
-    use mockito::Matcher;
-    use serde_json::json;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    // Initialize test config.
-    let config = AppConfig::from_test_defaults();
+    #[test]
+    // Tests sending activation notifications.
+    fn test_activate() {
+        use mockito::Matcher;
+        use serde_json::json;
 
-    // Create a test user.
-    let user = User {
-        activated: false,
-        email: "testuser@example.com".to_string(),
-        created: chrono::Local::now().naive_local(),
-        password: "123456".to_string(),
-    };
+        // Initialize test config.
+        let config = AppConfig::from_test_defaults();
 
-    // Create a test activation code.
-    let activation_code = ActivationCode {
-        email: "testuser@example.com".to_string(),
-        code: 123_456,
-        expiration_time: chrono::Local::now()
-            .checked_add_signed(time::Duration::minutes(30))
-            .unwrap()
-            .naive_local(),
-        attempts: 0,
-    };
+        // Create a test user.
+        let user = get_user();
 
-    // A mocked response that is returned by the Mailgun API for a valid notification request.
-    let valid_response = json!({
-        "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_domain()),
-        "message": "Queued. Thank you."
-    });
+        // Create a test activation code.
+        let activation_code = get_activation_code();
 
-    let uri = get_mailgun_uri(&config);
+        // A mocked response that is returned by the Mailgun API for a valid notification request.
+        let valid_response = json!({
+            "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_domain()),
+            "message": "Queued. Thank you."
+        });
 
-    // Set up mocked responses. Note that these are matched in reverse order, so the first mocked
-    // response is returned only when none of the others match.
+        let uri = get_mailgun_uri(&config);
 
-    // Return a 401 unauthorized if an invalid API key is passed. Note that this matches only
-    // because the next response (which has precedence over this one and checks that the API key is
-    // valid) _doesn't_ match. Mockito doesn't have negative matching so we handle it this way.
-    let _m1 = mockito::mock("POST", uri.as_str())
-        // The API key is passed as a base64 encoded basic authentication string.
-        .match_header("authorization", Matcher::Any)
-        .with_status(401)
-        .create();
+        // Set up mocked responses. Note that these are matched in reverse order, so the first mocked
+        // response is returned only when none of the others match.
 
-    // Unused response which matches on a valid API key, this allows the previously defined response
-    // to match on invalid API keys.
-    let _m2 = mockito::mock("POST", uri.as_str())
-        // The API key is passed as a base64 encoded basic authentication string.
-        .match_header(
-            "authorization",
-            format!(
-                "Basic {}",
-                base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
-            )
-            .as_str(),
-        )
-        .create();
+        // Return a 401 unauthorized if an invalid API key is passed. Note that this matches only
+        // because the next response (which has precedence over this one and checks that the API key is
+        // valid) _doesn't_ match. Mockito doesn't have negative matching so we handle it this way.
+        let _m1 = mockito::mock("POST", uri.as_str())
+            // The API key is passed as a base64 encoded basic authentication string.
+            .match_header("authorization", Matcher::Any)
+            .with_status(401)
+            .create();
 
-    // Return a valid response if a request is received that contains all of the required data.
-    let _m3 = mockito::mock("POST", uri.as_str())
-        // The API key is passed as a base64 encoded basic authentication string.
-        .match_header(
-            "authorization",
-            format!(
-                "Basic {}",
-                base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
-            )
-            .as_str(),
-        )
-        .match_body(Matcher::AllOf(vec![
-            Matcher::UrlEncoded(
-                "subject".to_string(),
-                format!("Activation+code+for+{}", app::APPLICATION_NAME),
-            ),
-            Matcher::UrlEncoded(
-                "from".to_string(),
+        // Unused response which matches on a valid API key, this allows the previously defined response
+        // to match on invalid API keys.
+        let _m2 = mockito::mock("POST", uri.as_str())
+            // The API key is passed as a base64 encoded basic authentication string.
+            .match_header(
+                "authorization",
                 format!(
-                    "Firetrack+team+<{}@{}>",
-                    config.mailgun_user(),
-                    config.mailgun_domain()
+                    "Basic {}",
+                    base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
+                )
+                .as_str(),
+            )
+            .create();
+
+        // Return a valid response if a request is received that contains all of the required data.
+        let _m3 = mockito::mock("POST", uri.as_str())
+            // The API key is passed as a base64 encoded basic authentication string.
+            .match_header(
+                "authorization",
+                format!(
+                    "Basic {}",
+                    base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
+                )
+                .as_str(),
+            )
+            .match_body(Matcher::AllOf(vec![
+                Matcher::UrlEncoded(
+                    "subject".to_string(),
+                    format!("Activation+code+for+{}", app::APPLICATION_NAME),
                 ),
-            ),
-            Matcher::UrlEncoded(
-                "text".to_string(),
-                format!("Activation+code:+{}", activation_code.code),
-            ),
-            Matcher::UrlEncoded("to".to_string(), user.email.clone()),
-        ]))
-        .with_status(200)
-        .with_header("content-type", "application/json")
-        .with_body(valid_response.to_string())
-        .create();
+                Matcher::UrlEncoded(
+                    "from".to_string(),
+                    format!(
+                        "Firetrack+team+<{}@{}>",
+                        config.mailgun_user(),
+                        config.mailgun_domain()
+                    ),
+                ),
+                Matcher::UrlEncoded(
+                    "text".to_string(),
+                    format!("Activation+code:+{}", activation_code.code),
+                ),
+                Matcher::UrlEncoded("to".to_string(), user.email.clone()),
+            ]))
+            .with_status(200)
+            .with_header("content-type", "application/json")
+            .with_body(valid_response.to_string())
+            .create();
 
-    // Test that a valid request for sending an activation email is made to the Mailgun API when
-    // valid parameters are passed.
-    assert!(activate(&user, &activation_code, &config).is_ok());
+        // Test that a valid request for sending an activation email is made to the Mailgun API when
+        // valid parameters are passed.
+        assert!(activate(&user, &activation_code, &config).is_ok());
 
-    // Test that an authentication error is returned when passing an invalid API key.
-    let mut bad_config = config;
-    bad_config.set_mailgun_api_key("invalid-api-key".to_string());
-    // Todo: Check that this returns a `NotificationErrorKind::ActivationNotificationNotSent`.
-    assert!(activate(&user, &activation_code, &bad_config).is_err());
+        // Test that an authentication error is returned when passing an invalid API key.
+        let mut bad_config = config;
+        bad_config.set_mailgun_api_key("invalid-api-key".to_string());
+        // Todo: Check that this returns a `NotificationErrorKind::ActivationNotificationNotSent`.
+        assert!(activate(&user, &activation_code, &bad_config).is_err());
+    }
+
+    #[test]
+    // Checks that an error is returned when trying to activate a user with an activation code for a
+    // different user.
+    fn test_activate_wrong_user() {
+        let user = get_user();
+
+        let activation_code = ActivationCode {
+            email: "some_other_user@example.com".to_string(),
+            ..get_activation_code()
+        };
+
+        assert_eq!(
+            NotificationErrorKind::WrongActivationCodeUser(
+                user.email.clone(),
+                activation_code.email.clone()
+            ),
+            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+        );
+    }
+
+    #[test]
+    // Checks that an error is returned when trying to activate a user with an expired activation
+    // code.
+    fn test_activate_expired() {
+        let user = get_user();
+
+        let activation_code = ActivationCode {
+            expiration_time: chrono::Local::now()
+                .checked_sub_signed(time::Duration::minutes(1))
+                .unwrap()
+                .naive_local(),
+            ..get_activation_code()
+        };
+
+        assert_eq!(
+            NotificationErrorKind::InvalidActivationCode(ActivationCodeErrorKind::Expired),
+            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+        );
+    }
+
+    #[test]
+    // Checks that an error is returned when trying to activate a user which has exceeded the
+    // maximum number of attempts.
+    fn test_activate_max_attempts_exceeded() {
+        let user = get_user();
+
+        let activation_code = ActivationCode {
+            attempts: 6,
+            ..get_activation_code()
+        };
+
+        assert_eq!(
+            NotificationErrorKind::InvalidActivationCode(
+                ActivationCodeErrorKind::MaxAttemptsExceeded
+            ),
+            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+        );
+    }
+
+    // Returns a test user.
+    fn get_user() -> User {
+        User {
+            activated: false,
+            email: "testuser@example.com".to_string(),
+            created: chrono::Local::now().naive_local(),
+            password: "123456".to_string(),
+        }
+    }
+
+    // Returns a test activation code.
+    fn get_activation_code() -> ActivationCode {
+        ActivationCode {
+            email: "testuser@example.com".to_string(),
+            code: 123_456,
+            expiration_time: chrono::Local::now()
+                .checked_add_signed(time::Duration::minutes(30))
+                .unwrap()
+                .naive_local(),
+            attempts: 0,
+        }
+    }
 }
