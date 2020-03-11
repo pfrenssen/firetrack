@@ -23,4 +23,3 @@ validator = "~0.10"
 
 [dev-dependencies]
 chrono = "~0.4"
-time = "~0.1.42"

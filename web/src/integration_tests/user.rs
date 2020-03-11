@@ -44,7 +44,7 @@ async fn register_with_valid_data() {
 
     let now = chrono::Local::now().naive_local();
     let two_seconds_ago = chrono::Local::now()
-        .checked_add_signed(time::Duration::seconds(-2))
+        .checked_add_signed(chrono::Duration::seconds(-2))
         .unwrap()
         .naive_local();
     assert!(user.created < now);

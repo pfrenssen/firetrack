@@ -33,14 +33,14 @@ impl ActivationCode {
     /// let mut activation_code = ActivationCode {
     ///     email: "test@example.com".to_string(),
     ///     code: 123456,
-    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
     /// };
     /// assert_eq!(activation_code.is_expired(), false);
     /// #
-    /// # activation_code.expiration_time = chrono::Local::now().checked_sub_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// # activation_code.expiration_time = chrono::Local::now().checked_sub_signed(chrono::Duration::seconds(1)).unwrap().naive_local();
     /// # assert_eq!(activation_code.is_expired(), true);
-    /// # activation_code.expiration_time = chrono::Local::now().checked_add_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// # activation_code.expiration_time = chrono::Local::now().checked_add_signed(chrono::Duration::seconds(1)).unwrap().naive_local();
     /// # assert_eq!(activation_code.is_expired(), false);
     /// ```
     pub fn is_expired(&self) -> bool {
@@ -57,7 +57,7 @@ impl ActivationCode {
     /// let mut activation_code = ActivationCode {
     ///     email: "test@example.com".to_string(),
     ///     code: 123456,
-    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
     /// };
     ///
@@ -86,7 +86,7 @@ impl ActivationCode {
     /// let mut activation_code = ActivationCode {
     ///     email: "test@example.com".to_string(),
     ///     code: 123456,
-    ///     expiration_time: chrono::Local::now().checked_add_signed(time::Duration::minutes(30)).unwrap().naive_local(),
+    ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
     /// };
     ///
@@ -95,7 +95,7 @@ impl ActivationCode {
     /// activation_code.attempts = 6;
     /// assert_eq!(Err(ActivationCodeErrorKind::MaxAttemptsExceeded), activation_code.validate());
     ///
-    /// activation_code.expiration_time = chrono::Local::now().checked_sub_signed(time::Duration::seconds(1)).unwrap().naive_local();
+    /// activation_code.expiration_time = chrono::Local::now().checked_sub_signed(chrono::Duration::seconds(1)).unwrap().naive_local();
     /// assert_eq!(Err(ActivationCodeErrorKind::Expired), activation_code.validate());
     /// ```
     pub fn validate(&self) -> Result<(), ActivationCodeErrorKind> {
@@ -274,7 +274,7 @@ fn create(
     // Create a new activation code.
     let random_code = thread_rng().gen_range(MIN_VALUE, MAX_VALUE);
     let expiration_time =
-        match chrono::Local::now().checked_add_signed(time::Duration::minutes(30)) {
+        match chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)) {
             Some(t) => t,
             None => return Err(ActivationCodeErrorKind::ExpirationTimeOverflow),
         }
@@ -681,7 +681,7 @@ mod tests {
                 email: email.to_string(),
                 code: 123_456,
                 expiration_time: chrono::Local::now()
-                    .checked_add_signed(time::Duration::minutes(30))
+                    .checked_add_signed(chrono::Duration::minutes(30))
                     .unwrap()
                     .naive_local(),
                 attempts: 0,
@@ -772,7 +772,7 @@ mod tests {
         // the future.
         let expiration_time = expiration_time.unwrap_or_else(|| {
             chrono::Local::now()
-                .checked_add_signed(time::Duration::minutes(30))
+                .checked_add_signed(chrono::Duration::minutes(30))
                 .unwrap()
                 .naive_local()
         });
@@ -780,7 +780,7 @@ mod tests {
         // Check within a time interval of a few seconds, to account for elapsed time before the
         // assertion is called.
         let two_seconds_earlier = expiration_time
-            .checked_sub_signed(time::Duration::seconds(2))
+            .checked_sub_signed(chrono::Duration::seconds(2))
             .unwrap();
         assert!(activation_code.expiration_time <= expiration_time);
         assert!(activation_code.expiration_time > two_seconds_earlier);

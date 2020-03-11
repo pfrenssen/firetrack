@@ -692,7 +692,6 @@ dependencies = [
  "log",
  "r2d2",
  "rand 0.7.3",
- "time",
  "validator",
 ]
 
@@ -1532,7 +1531,6 @@ dependencies = [
  "mockito",
  "reqwest",
  "serde_json",
- "time",
 ]
 
 [[package]]
@@ -2791,7 +2789,6 @@ dependencies = [
  "serde",
  "serde_derive",
  "tera",
- "time",
  "validator",
 ]
 
