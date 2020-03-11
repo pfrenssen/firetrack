@@ -2,8 +2,6 @@
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate tera;
 
 #[cfg(test)]
 mod firetrack_test;
@@ -180,5 +178,5 @@ fn compile_templates() -> tera::Tera {
     } else {
         "web/templates/**/*"
     };
-    compile_templates!(path)
+    tera::Tera::new(path).unwrap()
 }
