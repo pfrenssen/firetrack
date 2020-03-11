@@ -1,3 +1,4 @@
+// Todo: Add functions for updating and deleting a user.
 use super::schema::users;
 use app::AppConfig;
 use argonautica::Hasher;
@@ -6,17 +7,19 @@ use diesel::prelude::*;
 use std::fmt;
 use validator::validate_email;
 
-#[derive(Debug, Queryable)]
+#[derive(Clone, Debug, Queryable)]
 pub struct User {
     pub email: String,
     pub password: String,
     pub created: chrono::NaiveDateTime,
-    pub validated: bool,
+    pub activated: bool,
 }
 
 // Possible errors being thrown when dealing with users.
 #[derive(Debug, PartialEq)]
-pub enum UserError {
+pub enum UserErrorKind {
+    // A user could not be activated due to a database error.
+    ActivationFailed(diesel::result::Error),
     // The passed in email address is not valid.
     InvalidEmail(String),
     // The user password could not be hashed. This is usually due to a requirement not being met,
@@ -33,21 +36,26 @@ pub enum UserError {
     UserWithEmailAlreadyExists(String),
 }
 
-impl fmt::Display for UserError {
+impl fmt::Display for UserErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            UserError::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
-            UserError::PasswordHashFailed(ref err) => write!(f, "Password hashing error: {}", err),
-            UserError::UserCreationFailed(ref err) => {
+            UserErrorKind::ActivationFailed(ref err) => {
+                write!(f, "Database error when activating user: {}", err)
+            }
+            UserErrorKind::InvalidEmail(ref email) => write!(f, "Invalid email adress: {}", email),
+            UserErrorKind::PasswordHashFailed(ref err) => {
+                write!(f, "Password hashing error: {}", err)
+            }
+            UserErrorKind::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
             }
-            UserError::UserNotFound(ref email) => {
+            UserErrorKind::UserNotFound(ref email) => {
                 write!(f, "The user with email {} does not exist", email)
             }
-            UserError::UserReadFailed(ref err) => {
+            UserErrorKind::UserReadFailed(ref err) => {
                 write!(f, "Database error when reading user: {}", err)
             }
-            UserError::UserWithEmailAlreadyExists(ref email) => {
+            UserErrorKind::UserWithEmailAlreadyExists(ref email) => {
                 write!(f, "A user with email {} already exists", email)
             }
         }
@@ -60,14 +68,14 @@ pub fn create(
     email: &str,
     password: &str,
     config: &AppConfig,
-) -> Result<User, UserError> {
+) -> Result<User, UserErrorKind> {
     if !validate_email(email) {
-        return Err(UserError::InvalidEmail(email.to_string()));
+        return Err(UserErrorKind::InvalidEmail(email.to_string()));
     }
 
     let existing_user = read(connection, email);
     if existing_user.is_ok() {
-        return Err(UserError::UserWithEmailAlreadyExists(email.to_string()));
+        return Err(UserErrorKind::UserWithEmailAlreadyExists(email.to_string()));
     }
 
     let hashed_password = hash_password(
@@ -76,23 +84,23 @@ pub fn create(
         config.hasher_memory_size(),
         config.hasher_iterations(),
     )
-    .map_err(UserError::PasswordHashFailed)?;
+    .map_err(UserErrorKind::PasswordHashFailed)?;
 
     diesel::insert_into(users::table)
         .values((
             users::email.eq(email),
             users::password.eq(hashed_password),
             users::created.eq(chrono::Local::now().naive_local()),
-            users::validated.eq(false),
+            users::activated.eq(false),
         ))
         .returning((
             users::email,
             users::password,
             users::created,
-            users::validated,
+            users::activated,
         ))
         .get_result(connection)
-        .map_err(UserError::UserCreationFailed)
+        .map_err(UserErrorKind::UserCreationFailed)
 }
 
 // Performs an Argon2 hash of the password.
@@ -111,14 +119,36 @@ fn hash_password(
 }
 
 /// Retrieves the user with the given email address from the database.
-pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserError> {
+pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKind> {
     use super::schema::users::dsl::users;
     let user = users.find(email).first::<User>(connection);
     match user {
         Ok(u) => Ok(u),
-        Err(diesel::result::Error::NotFound) => Err(UserError::UserNotFound(email.to_string())),
-        Err(e) => Err(UserError::UserReadFailed(e)),
+        Err(diesel::result::Error::NotFound) => Err(UserErrorKind::UserNotFound(email.to_string())),
+        Err(e) => Err(UserErrorKind::UserReadFailed(e)),
     }
+}
+
+/// Activates the given user.
+///
+/// Note that this simply toggles the `activated` flag. In order to check if the user has a valid
+/// activation code, use `db::activation_code::activate_user()`.
+pub fn activate(connection: &PgConnection, user: User) -> Result<User, UserErrorKind> {
+    // Exit early if the user is already activated.
+    if user.activated {
+        return Ok(user);
+    }
+    let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
+        .set((users::activated.eq(true),))
+        .returning((
+            users::email,
+            users::password,
+            users::created,
+            users::activated,
+        ))
+        .get_result::<User>(connection)
+        .map_err(UserErrorKind::ActivationFailed)?;
+    Ok(user)
 }
 
 #[cfg(test)]
@@ -197,12 +227,12 @@ mod tests {
                 password,
                 config.secret_key()
             ));
-            assert_eq!(user.validated, false);
+            assert_eq!(user.activated, false);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
             let two_seconds_ago = chrono::Local::now()
-                .checked_add_signed(time::Duration::seconds(-2))
+                .checked_sub_signed(time::Duration::seconds(2))
                 .unwrap()
                 .naive_local();
             assert!(user.created < now);
@@ -213,7 +243,7 @@ mod tests {
                 create(&connection, email, "some_other_password", &config).unwrap_err();
             assert_eq!(
                 same_email_user,
-                UserError::UserWithEmailAlreadyExists(email.to_string())
+                UserErrorKind::UserWithEmailAlreadyExists(email.to_string())
             );
 
             // The email address should be valid.
@@ -222,7 +252,7 @@ mod tests {
                 create(&connection, invalid_email, password, &config).unwrap_err();
             assert_eq!(
                 invalid_email_user,
-                UserError::InvalidEmail(invalid_email.to_string())
+                UserErrorKind::InvalidEmail(invalid_email.to_string())
             );
 
             // The password should not be empty.
@@ -250,12 +280,12 @@ mod tests {
                 password,
                 config.secret_key(),
             ));
-            assert_eq!(user.validated, false);
+            assert_eq!(user.activated, false);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
             let two_seconds_ago = chrono::Local::now()
-                .checked_add_signed(time::Duration::seconds(-2))
+                .checked_sub_signed(time::Duration::seconds(2))
                 .unwrap()
                 .naive_local();
             assert!(user.created < now);
@@ -266,9 +296,31 @@ mod tests {
             let non_existing_user = read(&connection, non_existing_email).unwrap_err();
             assert_eq!(
                 non_existing_user,
-                UserError::UserNotFound(non_existing_email.to_string())
+                UserErrorKind::UserNotFound(non_existing_email.to_string())
             );
 
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_activate() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // A newly created user should not be activated.
+            create(&connection, email, password, &config).unwrap();
+            let user = read(&connection, email).unwrap();
+            assert_eq!(user.activated, false);
+
+            // Test that the user can be activated, and that the activation status remains the same
+            // when calling the function multiple times.
+            let user = activate(&connection, user).unwrap();
+            assert_eq!(user.activated, true);
+            let user = activate(&connection, user).unwrap();
+            assert_eq!(user.activated, true);
             Ok(())
         });
     }

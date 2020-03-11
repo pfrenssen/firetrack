@@ -9,6 +9,7 @@ Requirements
 
 * [Rust 2018 edition toolchain](https://www.rust-lang.org/tools/install)
 * [PostgreSQL](https://www.postgresql.org/)
+* [Diesel CLI](https://github.com/diesel-rs/diesel/tree/master/diesel_cli)
 
 
 Installation
@@ -18,7 +19,7 @@ Installation
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack
 $ cargo build --release
-$ sudo ln -s ./target/release/firetrack /usr/local/bin/
+$ sudo ln -s `pwd`/target/release/cli /usr/local/bin/firetrack
 ```
 
 
@@ -37,6 +38,39 @@ DATABASE_URL=postgres://myuser:mypass@localhost/mydatabasename
 
 # The secret key used in password hashing.
 SECRET_KEY=mysecret123
+
+# The API key for Mailgun.
+MAILGUN_API_KEY=0123456789abcdef0123456789abcdef-01234567-89abcdef
+
+# The domain for sending mails.
+MAILGUN_DOMAIN=sandbox0123456789abcdef0123456789abcdef.mailgun.org
+```
+
+
+Database setup
+--------------
+
+Create a new, empty, PostgreSQL database to host the application data, using the
+credentials from the `DATABASE_URL` option above. Then populate the database
+tables using the Diesel CLI:
+
+```
+# Navigate to the `db` crate.
+$ cd db/
+
+# Set up the database tables using the Diesel command line interface.
+$ diesel database setup
+```
+
+
+Run tests
+---------
+
+Now Firetrack should be ready to go. In order to see that everything works as
+expected, try running the test suite from the project root folder:
+
+```
+$ cargo test
 ```
 
 

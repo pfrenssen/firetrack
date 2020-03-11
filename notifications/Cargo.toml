@@ -1,0 +1,18 @@
+[package]
+name = "notifications"
+version = "0.1.0-dev"
+authors = ["Pieter Frenssen <pieter@frenssen.be>"]
+edition = "2018"
+
+[dependencies]
+app = { path = "../app" }
+db = { path = "../db" }
+mailgun_v3 = "~0.8"
+reqwest = { version = "~0.10", features = ["json", "blocking"] }
+
+[dev-dependencies]
+base64 = "~0.11"
+chrono = "~0.4"
+mockito = "^0.23.1"
+serde_json = "^1.0.24"
+time = "^0.1.42"
