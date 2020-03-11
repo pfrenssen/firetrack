@@ -85,7 +85,7 @@ impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
 }
 
 // Starts the web server on the host address and port as configured in the application.
-pub fn serve(config: AppConfig) {
+pub async fn serve(config: AppConfig) -> std::io::Result<()> {
     let pool = db::create_connection_pool(&config.database_url()).unwrap();
     let cloned_config = config.clone();
 
@@ -99,9 +99,7 @@ pub fn serve(config: AppConfig) {
     // Start the web server.
     let addr = format!("{}:{}", config.host(), config.port());
     match HttpServer::new(app).bind(addr) {
-        Ok(server) => {
-            server.run().unwrap();
-        }
+        Ok(server) => server.run().await,
         Err(e) => {
             error!(
                 "Failed to start web server on {}:{}",
@@ -115,7 +113,7 @@ pub fn serve(config: AppConfig) {
 }
 
 // Controller for the homepage.
-fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+async fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Home");
     let content = template
@@ -125,19 +123,19 @@ fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
 }
 
 // Unit tests for the homepage.
-#[test]
-fn test_index() {
+#[actix_rt::test]
+async fn test_index() {
     dotenv::dotenv().ok();
 
     // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
     let tera = compile_templates();
     let request = test::TestRequest::get().data(tera).to_http_request();
-    let app_data = request.get_app_data().unwrap();
+    let app_data = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
     // Pass the Data struct containing the Tera templates to the index() function. This mimics how
     // actix-web passes the data to the controller.
-    let controller = index(app_data);
-    let response = test::block_on(controller).unwrap();
+    let controller = index(app_data.clone());
+    let response = controller.await.unwrap();
     let body = get_response_body(&response);
 
     assert_response_ok(&response);
