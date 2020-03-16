@@ -2864,6 +2864,7 @@ dependencies = [
  "dotenv",
  "libxml",
  "log",
+ "notifications",
  "r2d2",
  "serde",
  "serde_derive",

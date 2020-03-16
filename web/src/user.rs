@@ -94,13 +94,28 @@ pub async fn register_submit(
         return render_register(template, input.into_inner(), validation_state);
     }
 
+    // Create the user account.
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
-    db::user::create(&connection, &input.email, &input.password, &config)
+    let user = db::user::create(&connection, &input.email, &input.password, &config)
         .map_err(error::ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Ok()
-        .content_type("text/plain")
-        .body("Your account has been created successfully."))
+    // Send an activation email.
+    let activation_code =
+        db::activation_code::get(&connection, &user).map_err(error::ErrorInternalServerError)?;
+    notifications::activate(&user, &activation_code, &config)
+        .map_err(error::ErrorInternalServerError)?;
+
+    let mut context = tera::Context::new();
+    context.insert("title", &"Activate account");
+
+    let content = template
+        .render("user/activate.html", &context)
+        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(content))
+
+    //Ok(HttpResponse::Ok()
+    //    .content_type("text/plain")
+    //    .body("Your account has been created successfully."))
 }
 
 // Renders the registration form, including validation errors.
@@ -116,6 +131,70 @@ fn render_register(
 
     let content = template
         .render("user/register.html", &context)
+        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+    Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// The form fields of the activation form.
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct ActivationFormInput {
+    email: String,
+    activation_code: i32,
+}
+
+impl ActivationFormInput {
+    pub fn new(email: String, activation_code: i32) -> ActivationFormInput {
+        ActivationFormInput {
+            email,
+            activation_code,
+        }
+    }
+}
+
+// Whether the form fields of the activation form are valid.
+#[derive(Serialize, Deserialize)]
+struct ActivationFormInputValid {
+    form_is_validated: bool,
+    activation_code: bool,
+}
+
+impl ActivationFormInputValid {
+    // Instantiate a form validation struct.
+    #[cfg(test)]
+    pub fn new(form_is_validated: bool, activation_code: bool) -> ActivationFormInputValid {
+        ActivationFormInputValid {
+            form_is_validated,
+            activation_code,
+        }
+    }
+
+    // Instantiate a form validation struct with default values.
+    pub fn default() -> ActivationFormInputValid {
+        ActivationFormInputValid {
+            form_is_validated: false,
+            activation_code: true,
+        }
+    }
+
+    // Returns whether the form is validated and found valid.
+    pub fn is_valid(&self) -> bool {
+        self.form_is_validated && self.activation_code
+    }
+}
+
+// Renders the activation form.
+fn render_activate(
+    template: web::Data<tera::Tera>,
+    input: ActivationFormInput,
+    validation_state: ActivationFormInputValid,
+) -> Result<HttpResponse, Error> {
+    let mut context = tera::Context::new();
+    context.insert("title", &"Sign up");
+    context.insert("input", &input);
+    context.insert("valid", &validation_state);
+
+    let content = template
+        .render("user/activate.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
