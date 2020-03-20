@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 app = { path = "../app" }
 db = { path = "../db" }
-mailgun_v3 = { git = "https://github.com/pfrenssen/mailgun_v3.git", branch = "async-await" }
+mailgun_v3 = "~0.9"
 reqwest = { version = "~0.10", features = ["json", "blocking"] }
 
 [dev-dependencies]
