@@ -71,7 +71,7 @@ pub async fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpRes
 
 // Submit handler for the registration form.
 pub async fn register_submit(
-    template: web::Data<tera::Tera>,
+    tera: web::Data<tera::Tera>,
     input: web::Form<UserFormInput>,
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
@@ -91,7 +91,7 @@ pub async fn register_submit(
 
     // If validation failed, show the form again with validation errors highlighted.
     if !validation_state.is_valid() {
-        return render_register(template, input.into_inner(), validation_state);
+        return render_register(tera, input.into_inner(), validation_state);
     }
 
     // Create the user account.
@@ -103,19 +103,13 @@ pub async fn register_submit(
     let activation_code =
         db::activation_code::get(&connection, &user).map_err(error::ErrorInternalServerError)?;
     notifications::activate(&user, &activation_code, &config)
+        .await
         .map_err(error::ErrorInternalServerError)?;
 
-    let mut context = tera::Context::new();
-    context.insert("title", &"Activate account");
-
-    let content = template
-        .render("user/activate.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
-    Ok(HttpResponse::Ok().content_type("text/html").body(content))
-
-    //Ok(HttpResponse::Ok()
-    //    .content_type("text/plain")
-    //    .body("Your account has been created successfully."))
+    // Show the activation form.
+    let input = ActivationFormInput::new(user.email, "".to_string());
+    let validation_state = ActivationFormInputValid::default();
+    render_activate(tera, input, validation_state)
 }
 
 // Renders the registration form, including validation errors.
@@ -139,11 +133,11 @@ fn render_register(
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ActivationFormInput {
     email: String,
-    activation_code: i32,
+    activation_code: String,
 }
 
 impl ActivationFormInput {
-    pub fn new(email: String, activation_code: i32) -> ActivationFormInput {
+    pub fn new(email: String, activation_code: String) -> ActivationFormInput {
         ActivationFormInput {
             email,
             activation_code,
@@ -189,7 +183,7 @@ fn render_activate(
     validation_state: ActivationFormInputValid,
 ) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
-    context.insert("title", &"Sign up");
+    context.insert("title", &"Activate account");
     context.insert("input", &input);
     context.insert("valid", &validation_state);
 

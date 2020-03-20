@@ -1,9 +1,9 @@
 use app::AppConfig;
 use db::activation_code::{ActivationCode, ActivationCodeErrorKind};
 use db::user::User;
-use mailgun_v3::email::{send_with_request_builder, Message, MessageBody};
+use mailgun_v3::email::{async_impl::send_with_request_builder, Message, MessageBody};
 use mailgun_v3::{Credentials, EmailAddress};
-use reqwest::blocking::RequestBuilder;
+use reqwest::RequestBuilder;
 use std::fmt;
 
 // Mailgun API endpoint URI, copied from the private mailgun_v3::email::MESSAGES_ENDPOINT constant.
@@ -48,7 +48,7 @@ impl fmt::Display for NotificationErrorKind {
 }
 
 // Sends a activation mail containing the given activation code to the given user.
-pub fn activate(
+pub async fn activate(
     user: &User,
     activation_code: &ActivationCode,
     config: &AppConfig,
@@ -83,16 +83,18 @@ pub fn activate(
 
     let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_domain());
     let request_builder = get_request_builder(&config);
-    send_with_request_builder(request_builder, &credentials, &sender, message).map_err(|err| {
-        NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
-    })?;
+    send_with_request_builder(request_builder, &credentials, &sender, message)
+        .await
+        .map_err(|err| {
+            NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
+        })?;
     Ok(())
 }
 
 // Returns a reqwest request builder for a POST request to the Mailgun API endpoint.
 fn get_request_builder(config: &AppConfig) -> RequestBuilder {
     let url = get_mailgun_url(config);
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
     client.post(&url)
 }
 
@@ -133,9 +135,9 @@ fn get_mailgun_url(config: &AppConfig) -> String {
 mod tests {
     use super::*;
 
-    #[test]
+    #[actix_rt::test]
     // Tests sending activation notifications.
-    fn test_activate() {
+    async fn test_activate() {
         use mockito::Matcher;
         use serde_json::json;
 
@@ -219,19 +221,21 @@ mod tests {
 
         // Test that a valid request for sending an activation email is made to the Mailgun API when
         // valid parameters are passed.
-        assert!(activate(&user, &activation_code, &config).is_ok());
+        assert!(activate(&user, &activation_code, &config).await.is_ok());
 
         // Test that an authentication error is returned when passing an invalid API key.
         let mut bad_config = config;
         bad_config.set_mailgun_api_key("invalid-api-key".to_string());
         // Todo: Check that this returns a `NotificationErrorKind::ActivationNotificationNotSent`.
-        assert!(activate(&user, &activation_code, &bad_config).is_err());
+        assert!(activate(&user, &activation_code, &bad_config)
+            .await
+            .is_err());
     }
 
-    #[test]
+    #[actix_rt::test]
     // Checks that an error is returned when trying to activate a user with an activation code for a
     // different user.
-    fn test_activate_wrong_user() {
+    async fn test_activate_wrong_user() {
         let user = get_user();
 
         let activation_code = ActivationCode {
@@ -244,14 +248,16 @@ mod tests {
                 user.email.clone(),
                 activation_code.email.clone()
             ),
-            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+            activate(&user, &activation_code, &AppConfig::from_test_defaults())
+                .await
+                .unwrap_err()
         );
     }
 
-    #[test]
+    #[actix_rt::test]
     // Checks that an error is returned when trying to activate a user with an expired activation
     // code.
-    fn test_activate_expired() {
+    async fn test_activate_expired() {
         let user = get_user();
 
         let activation_code = ActivationCode {
@@ -264,14 +270,16 @@ mod tests {
 
         assert_eq!(
             NotificationErrorKind::InvalidActivationCode(ActivationCodeErrorKind::Expired),
-            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+            activate(&user, &activation_code, &AppConfig::from_test_defaults())
+                .await
+                .unwrap_err()
         );
     }
 
-    #[test]
+    #[actix_rt::test]
     // Checks that an error is returned when trying to activate a user which has exceeded the
     // maximum number of attempts.
-    fn test_activate_max_attempts_exceeded() {
+    async fn test_activate_max_attempts_exceeded() {
         let user = get_user();
 
         let activation_code = ActivationCode {
@@ -283,7 +291,9 @@ mod tests {
             NotificationErrorKind::InvalidActivationCode(
                 ActivationCodeErrorKind::MaxAttemptsExceeded
             ),
-            activate(&user, &activation_code, &AppConfig::from_test_defaults()).unwrap_err()
+            activate(&user, &activation_code, &AppConfig::from_test_defaults())
+                .await
+                .unwrap_err()
         );
     }
 

@@ -7,7 +7,6 @@ edition = "2018"
 [dependencies]
 actix-files = "~0.2"
 actix-http = "^1.0.1"
-actix-rt = "~1.0"
 actix-web = "~2.0"
 app = { path = "../app" }
 db = { path = "../db" }
@@ -24,3 +23,4 @@ validator = "~0.10"
 
 [dev-dependencies]
 chrono = "~0.4"
+actix-rt = "~1.0"

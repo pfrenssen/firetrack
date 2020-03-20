@@ -213,7 +213,9 @@ async fn main() {
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();
-                notifications::activate(&user, &activation_code, &config).unwrap_or_exit();
+                notifications::activate(&user, &activation_code, &config)
+                    .await
+                    .unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
