@@ -50,23 +50,23 @@ impl UserFormInputValid {
 }
 
 // Request handler for the login form.
-pub async fn login_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn login_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
 
-    let content = template
+    let content = tera
         .render("user/login.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
 // Request handler for a GET request on the registration form.
-pub async fn register_handler(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
     let input = UserFormInput::new("".to_string(), "".to_string());
     let validation_state = UserFormInputValid::default();
-    render_register(template, input, validation_state)
+    render_register(tera, input, validation_state)
 }
 
 // Submit handler for the registration form.
@@ -114,7 +114,7 @@ pub async fn register_submit(
 
 // Renders the registration form, including validation errors.
 fn render_register(
-    template: web::Data<tera::Tera>,
+    tera: web::Data<tera::Tera>,
     input: UserFormInput,
     validation_state: UserFormInputValid,
 ) -> Result<HttpResponse, Error> {
@@ -123,7 +123,7 @@ fn render_register(
     context.insert("input", &input);
     context.insert("valid", &validation_state);
 
-    let content = template
+    let content = tera
         .render("user/register.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
@@ -178,7 +178,7 @@ impl ActivationFormInputValid {
 
 // Renders the activation form.
 fn render_activate(
-    template: web::Data<tera::Tera>,
+    tera: web::Data<tera::Tera>,
     input: ActivationFormInput,
     validation_state: ActivationFormInputValid,
 ) -> Result<HttpResponse, Error> {
@@ -187,7 +187,7 @@ fn render_activate(
     context.insert("input", &input);
     context.insert("valid", &validation_state);
 
-    let content = template
+    let content = tera
         .render("user/activate.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
