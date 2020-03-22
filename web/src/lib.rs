@@ -15,6 +15,7 @@ use actix_web::test;
 
 mod user;
 
+use actix_session::CookieSession;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;
@@ -134,10 +135,12 @@ pub fn configure_application(
             .data(tera)
             .data(pool)
             .data(app_config)
+            .wrap(CookieSession::signed(&[0; 32]).secure(false))
             .service(actix_files::Files::new("/css", "static/css"))
             .service(actix_files::Files::new("/images", "static/images"))
             .service(actix_files::Files::new("/js", "static/js"))
             .route("/", web::get().to(index))
+            .route("/user/activate", web::get().to(user::activate_handler))
             .route("/user/login", web::get().to(user::login_handler))
             .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),

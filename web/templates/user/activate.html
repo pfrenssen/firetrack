@@ -1,29 +1,27 @@
 {% extends "base.html" %}
 {% import "user/user_macros.html" as macros %}
+{% import "js/js_macros.html" as js_macros %}
 
 {% block content %}
 <h1>{{ title }}</h1>
 <form class="form-activate" method="post" enctype="application/x-www-form-urlencoded" action="/user/activate" novalidate>
-    {{ macros::form_elements(input=input, validation=valid) }}
+    {% if validation.form_is_validated %}
+        {% if validation.activation_code %}
+            {% set activation_code_validation = " is-valid" %}
+        {% else %}
+            {% set activation_code_validation = " is-invalid" %}
+        {% endif %}
+    {% else %}
+        {% set activation_code_validation = "" %}
+    {% endif %}
+    <div class="form-label-group">
+        <label for="activation_code">Enter your activation code</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]{6}" name="activation_code" id="activation_code" class="form-control{{ activation_code_validation }}" value="{{ input.activation_code }}" required autofocus="">
+        <div class="invalid-feedback">The activation code is not valid.</div>
+        <small id="activationCodeHelp" class="form-text text-muted">The activation code was sent to your email.</small>
+    </div>
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Activate</button>
 </form>
-<script>
-// Example starter JavaScript for disabling form submissions if there are invalid fields
-(function() {
-  'use strict';
-  window.addEventListener('load', function() {
-    // Fetch all the forms we want to apply custom Bootstrap validation styles to
-    var forms = document.getElementsByClassName('form-register');
-    // Loop over them and prevent submission
-    var validation = Array.prototype.filter.call(forms, function(form) {
-      form.addEventListener('submit', function(event) {
-        if (form.checkValidity() === false) {
-          event.preventDefault();
-          event.stopPropagation();
-        }
-        form.classList.add('was-validated');
-      }, false);
-    });
-  }, false);
-})();
-</script>
+{{ js_macros::disable_invalid_form_submission(selector="form-activate") }}
 {% endblock content %}

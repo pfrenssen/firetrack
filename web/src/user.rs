@@ -1,3 +1,4 @@
+use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
 use validator::validate_email;
@@ -71,6 +72,7 @@ pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpRespons
 
 // Submit handler for the registration form.
 pub async fn register_submit(
+    session: Session,
     tera: web::Data<tera::Tera>,
     input: web::Form<UserFormInput>,
     pool: web::Data<db::ConnectionPool>,
@@ -106,10 +108,12 @@ pub async fn register_submit(
         .await
         .map_err(error::ErrorInternalServerError)?;
 
-    // Show the activation form.
-    let input = ActivationFormInput::new(user.email, "".to_string());
-    let validation_state = ActivationFormInputValid::default();
-    render_activate(tera, input, validation_state)
+    // Pass the email address to the activation form by setting it on the session.
+    session.set("email", user.email.as_str());
+
+    Ok(HttpResponse::Found()
+        .header("location", "/user/activate")
+        .finish())
 }
 
 // Renders the registration form, including validation errors.
@@ -174,6 +178,29 @@ impl ActivationFormInputValid {
     pub fn is_valid(&self) -> bool {
         self.form_is_validated && self.activation_code
     }
+}
+
+// Request handler for the activation form. This returns the initial GET request for the activation
+// form. The form fields are empty and there are no validation errors.
+pub async fn activate_handler(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+    pool: web::Data<db::ConnectionPool>,
+) -> Result<HttpResponse, Error> {
+    let unauthorized_message = "Please log in before activating your account.";
+    // The email address is passed in the session by the registration / login form. Return an error
+    // if it is not set or does not correspond with an existing, non-activated user.
+    if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
+        let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+        if let Ok(user) = db::user::read(&connection, email.as_str()) {
+            if !user.activated {
+                let input = ActivationFormInput::new(user.email, "".to_string());
+                let validation_state = ActivationFormInputValid::default();
+                return render_activate(tera, input, validation_state);
+            }
+        }
+    }
+    return Err(error::ErrorUnauthorized(unauthorized_message));
 }
 
 // Renders the activation form.
