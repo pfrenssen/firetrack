@@ -26,14 +26,17 @@ pub struct AppConfig {
     // The number of password hashing iterations to perform.
     hasher_iterations: u32,
 
+    // The Mailgun API endpoint.
+    mailgun_api_endpoint: String,
+
     // The API key for Mailgun.
     mailgun_api_key: String,
 
-    // The domain used for sending notifications.
-    mailgun_domain: String,
+    // The domain to use for sending notifications.
+    mailgun_user_domain: String,
 
     // The username used for sending notifications.
-    mailgun_user: String,
+    mailgun_user_name: String,
 }
 
 impl AppConfig {
@@ -55,9 +58,10 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
+    /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
-    /// # let mailgun_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
-    /// # let mailgun_user = "postmaster";
+    /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
+    /// # let mailgun_user_name = "postmaster";
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
@@ -70,9 +74,10 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
+    /// # assert_eq!(config.mailgun_api_endpoint(), mailgun_api_endpoint);
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
-    /// # assert_eq!(config.mailgun_domain(), mailgun_domain);
-    /// # assert_eq!(config.mailgun_user(), mailgun_user);
+    /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
+    /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
     /// ```
     pub fn from_test_defaults() -> AppConfig {
         import_env_vars();
@@ -88,9 +93,10 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
+            mailgun_api_endpoint: "https://api.mailgun.net/v3".to_string(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
-            mailgun_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
-            mailgun_user: "postmaster".to_string(),
+            mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
+            mailgun_user_name: "postmaster".to_string(),
         }
     }
 
@@ -108,18 +114,20 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
     /// # let hasher_iterations = 4096;
+    /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
-    /// # let mailgun_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
-    /// # let mailgun_user = "postmaster";
+    /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
+    /// # let mailgun_user_name = "postmaster";
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
     /// # env::set_var("SECRET_KEY", secret_key);
     /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
     /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
+    /// # env::set_var("MAILGUN_API_ENDPOINT", mailgun_api_endpoint.to_string());
     /// # env::set_var("MAILGUN_API_KEY", mailgun_api_key.to_string());
-    /// # env::set_var("MAILGUN_DOMAIN", mailgun_domain.to_string());
-    /// # env::set_var("MAILGUN_USER", mailgun_user.to_string());
+    /// # env::set_var("MAILGUN_USER_DOMAIN", mailgun_user_domain.to_string());
+    /// # env::set_var("MAILGUN_USER_NAME", mailgun_user_name.to_string());
     ///
     /// let config = AppConfig::from_environment();
     ///
@@ -129,9 +137,10 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
+    /// # assert_eq!(config.mailgun_api_endpoint(), mailgun_api_endpoint);
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
-    /// # assert_eq!(config.mailgun_domain(), mailgun_domain);
-    /// # assert_eq!(config.mailgun_user(), mailgun_user);
+    /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
+    /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
     /// ```
     pub fn from_environment() -> AppConfig {
         import_env_vars();
@@ -158,12 +167,14 @@ impl AppConfig {
                 .expect("HASHER_ITERATIONS environment variable is not set.")
                 .parse()
                 .expect("HASHER_ITERATIONS environment variable should be an integer value."),
+            mailgun_api_endpoint: var("MAILGUN_API_ENDPOINT")
+                .expect("MAILGUN_API_ENDPOINT environment variable is not set."),
             mailgun_api_key: var("MAILGUN_API_KEY")
                 .expect("MAILGUN_API_KEY environment variable is not set."),
-            mailgun_domain: var("MAILGUN_DOMAIN")
-                .expect("MAILGUN_DOMAIN environment variable is not set."),
-            mailgun_user: var("MAILGUN_USER")
-                .expect("MAILGUN_USER environment variable is not set."),
+            mailgun_user_domain: var("MAILGUN_USER_DOMAIN")
+                .expect("MAILGUN_USER_DOMAIN environment variable is not set."),
+            mailgun_user_name: var("MAILGUN_USER_NAME")
+                .expect("MAILGUN_USER_NAME environment variable is not set."),
         }
     }
 
@@ -259,6 +270,20 @@ impl AppConfig {
         self.hasher_iterations
     }
 
+    /// Returns the Mailgun API endpoint.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.mailgun_api_endpoint(), "https://api.mailgun.net/v3");
+    /// ```
+    pub fn mailgun_api_endpoint(&self) -> &str {
+        self.mailgun_api_endpoint.as_str()
+    }
+
     /// Returns the Mailgun API key.
     ///
     /// # Example
@@ -287,10 +312,10 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.mailgun_domain(), "sandbox0123456789abcdef0123456789abcdef.mailgun.org");
+    /// assert_eq!(config.mailgun_user_domain(), "sandbox0123456789abcdef0123456789abcdef.mailgun.org");
     /// ```
-    pub fn mailgun_domain(&self) -> &str {
-        self.mailgun_domain.as_str()
+    pub fn mailgun_user_domain(&self) -> &str {
+        self.mailgun_user_domain.as_str()
     }
 
     /// Returns the user used for sending notifications.
@@ -301,10 +326,10 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.mailgun_user(), "postmaster");
+    /// assert_eq!(config.mailgun_user_name(), "postmaster");
     /// ```
-    pub fn mailgun_user(&self) -> &str {
-        self.mailgun_user.as_str()
+    pub fn mailgun_user_name(&self) -> &str {
+        self.mailgun_user_name.as_str()
     }
 }
 
