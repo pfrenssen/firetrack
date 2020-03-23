@@ -9,10 +9,6 @@ use std::fmt;
 // Mailgun API endpoint URI, copied from the private mailgun_v3::email::MESSAGES_ENDPOINT constant.
 const MAILGUN_API_ENDPOINT_URI: &str = "messages";
 
-// Mailgun API endpoint domain, copied from the private mailgun_v3::MAILGUN_API constant.
-#[cfg(not(test))]
-const MAILGUN_API_ENDPOINT_DOMAIN: &str = "https://api.mailgun.net/v3";
-
 // Errors that might occur when handling notifications.
 #[derive(Debug, PartialEq)]
 pub enum NotificationErrorKind {
@@ -69,7 +65,12 @@ pub fn activate(
     let sender = EmailAddress::name_address(
         // Todo: Make sender name configurable.
         "Firetrack team",
-        format!("{}@{}", config.mailgun_user(), config.mailgun_domain()).as_str(),
+        format!(
+            "{}@{}",
+            config.mailgun_user_name(),
+            config.mailgun_user_domain()
+        )
+        .as_str(),
     );
     let recipient = EmailAddress::address(user.email.as_str());
     let body_text = format!("Activation code: {}", activation_code.code);
@@ -81,7 +82,7 @@ pub fn activate(
         ..Default::default()
     };
 
-    let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_domain());
+    let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_user_domain());
     let request_builder = get_request_builder(&config);
     send_with_request_builder(request_builder, &credentials, &sender, message).map_err(|err| {
         NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
@@ -98,10 +99,9 @@ fn get_request_builder(config: &AppConfig) -> RequestBuilder {
 
 // Returns the domain of the Mailgun API endpoint. In release builds this will return the Mailgun
 // production endpoint, while in test builds it will return the domain of a mock server.
-fn get_mailgun_domain() -> String {
-    // Todo: Put in AppConfig?
+fn get_mailgun_domain(_config: &AppConfig) -> String {
     #[cfg(not(test))]
-    let domain = MAILGUN_API_ENDPOINT_DOMAIN.to_string();
+    let domain = _config.mailgun_api_endpoint().to_string();
 
     #[cfg(test)]
     let domain = mockito::server_url();
@@ -110,14 +110,18 @@ fn get_mailgun_domain() -> String {
 
 // Returns the URI of the Mailgun API endpoint.
 fn get_mailgun_uri(config: &AppConfig) -> String {
-    let uri = format!("/{}/{}", config.mailgun_domain(), MAILGUN_API_ENDPOINT_URI);
+    let uri = format!(
+        "/{}/{}",
+        config.mailgun_user_domain(),
+        MAILGUN_API_ENDPOINT_URI
+    );
     uri
 }
 
 // Returns the URL of the Mailgun API endpoint. In release builds this will return the Mailgun
 // production URL, while in test builds it will return the URL of a mock endpoint.
 fn get_mailgun_url(config: &AppConfig) -> String {
-    let mut domain = get_mailgun_domain();
+    let mut domain = get_mailgun_domain(config);
     let uri = get_mailgun_uri(config);
 
     // Strip trailing slash from the domain, since the URI already starts with a slash.
@@ -150,7 +154,7 @@ mod tests {
 
         // A mocked response that is returned by the Mailgun API for a valid notification request.
         let valid_response = json!({
-            "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_domain()),
+            "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_user_domain()),
             "message": "Queued. Thank you."
         });
 
@@ -202,8 +206,8 @@ mod tests {
                     "from".to_string(),
                     format!(
                         "Firetrack+team+<{}@{}>",
-                        config.mailgun_user(),
-                        config.mailgun_domain()
+                        config.mailgun_user_name(),
+                        config.mailgun_user_domain()
                     ),
                 ),
                 Matcher::UrlEncoded(
