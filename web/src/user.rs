@@ -200,7 +200,7 @@ pub async fn activate_handler(
             }
         }
     }
-    return Err(error::ErrorUnauthorized(unauthorized_message));
+    Err(error::ErrorUnauthorized(unauthorized_message))
 }
 
 // Renders the activation form.
