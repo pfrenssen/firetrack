@@ -109,7 +109,7 @@ pub async fn register_submit(
         .map_err(error::ErrorInternalServerError)?;
 
     // Pass the email address to the activation form by setting it on the session.
-    session.set("email", user.email.as_str()).map_err(error::ErrorInternalServerError);
+    session.set("email", user.email.as_str()).map_err(error::ErrorInternalServerError)?;
 
     Ok(HttpResponse::Found()
         .header("location", "/user/activate")
