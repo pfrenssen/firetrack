@@ -53,6 +53,9 @@ pub async fn activate(
     activation_code: &ActivationCode,
     config: &AppConfig,
 ) -> Result<(), NotificationErrorKind> {
+    // Todo: We are hitting the Mailgun API in our integration tests, disable this for now.
+    return Ok(());
+
     // Sanity check: ensure that the activation code is valid.
     activation_code
         .validate()
