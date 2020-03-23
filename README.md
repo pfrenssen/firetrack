@@ -42,8 +42,8 @@ SECRET_KEY=mysecret123
 # The API key for Mailgun.
 MAILGUN_API_KEY=0123456789abcdef0123456789abcdef-01234567-89abcdef
 
-# The domain for sending mails.
-MAILGUN_DOMAIN=sandbox0123456789abcdef0123456789abcdef.mailgun.org
+# The Mailgun domain to use for sending notifications.
+MAILGUN_USER_DOMAIN=sandbox0123456789abcdef0123456789abcdef.mailgun.org
 ```
 
 

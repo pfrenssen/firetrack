@@ -69,7 +69,12 @@ pub fn activate(
     let sender = EmailAddress::name_address(
         // Todo: Make sender name configurable.
         "Firetrack team",
-        format!("{}@{}", config.mailgun_user(), config.mailgun_domain()).as_str(),
+        format!(
+            "{}@{}",
+            config.mailgun_user_name(),
+            config.mailgun_user_domain()
+        )
+        .as_str(),
     );
     let recipient = EmailAddress::address(user.email.as_str());
     let body_text = format!("Activation code: {}", activation_code.code);
@@ -81,7 +86,7 @@ pub fn activate(
         ..Default::default()
     };
 
-    let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_domain());
+    let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_user_domain());
     let request_builder = get_request_builder(&config);
     send_with_request_builder(request_builder, &credentials, &sender, message).map_err(|err| {
         NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
@@ -110,7 +115,11 @@ fn get_mailgun_domain() -> String {
 
 // Returns the URI of the Mailgun API endpoint.
 fn get_mailgun_uri(config: &AppConfig) -> String {
-    let uri = format!("/{}/{}", config.mailgun_domain(), MAILGUN_API_ENDPOINT_URI);
+    let uri = format!(
+        "/{}/{}",
+        config.mailgun_user_domain(),
+        MAILGUN_API_ENDPOINT_URI
+    );
     uri
 }
 
@@ -150,7 +159,7 @@ mod tests {
 
         // A mocked response that is returned by the Mailgun API for a valid notification request.
         let valid_response = json!({
-            "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_domain()),
+            "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_user_domain()),
             "message": "Queued. Thank you."
         });
 
@@ -202,8 +211,8 @@ mod tests {
                     "from".to_string(),
                     format!(
                         "Firetrack+team+<{}@{}>",
-                        config.mailgun_user(),
-                        config.mailgun_domain()
+                        config.mailgun_user_name(),
+                        config.mailgun_user_domain()
                     ),
                 ),
                 Matcher::UrlEncoded(
