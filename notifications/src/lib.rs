@@ -9,10 +9,6 @@ use std::fmt;
 // Mailgun API endpoint URI, copied from the private mailgun_v3::email::MESSAGES_ENDPOINT constant.
 const MAILGUN_API_ENDPOINT_URI: &str = "messages";
 
-// Mailgun API endpoint domain, copied from the private mailgun_v3::MAILGUN_API constant.
-#[cfg(not(test))]
-const MAILGUN_API_ENDPOINT_DOMAIN: &str = "https://api.mailgun.net/v3";
-
 // Errors that might occur when handling notifications.
 #[derive(Debug, PartialEq)]
 pub enum NotificationErrorKind {
@@ -103,10 +99,9 @@ fn get_request_builder(config: &AppConfig) -> RequestBuilder {
 
 // Returns the domain of the Mailgun API endpoint. In release builds this will return the Mailgun
 // production endpoint, while in test builds it will return the domain of a mock server.
-fn get_mailgun_domain() -> String {
-    // Todo: Put in AppConfig?
+fn get_mailgun_domain(_config: &AppConfig) -> String {
     #[cfg(not(test))]
-    let domain = MAILGUN_API_ENDPOINT_DOMAIN.to_string();
+    let domain = _config.mailgun_api_endpoint().to_string();
 
     #[cfg(test)]
     let domain = mockito::server_url();
@@ -126,7 +121,7 @@ fn get_mailgun_uri(config: &AppConfig) -> String {
 // Returns the URL of the Mailgun API endpoint. In release builds this will return the Mailgun
 // production URL, while in test builds it will return the URL of a mock endpoint.
 fn get_mailgun_url(config: &AppConfig) -> String {
-    let mut domain = get_mailgun_domain();
+    let mut domain = get_mailgun_domain(config);
     let uri = get_mailgun_uri(config);
 
     // Strip trailing slash from the domain, since the URI already starts with a slash.
