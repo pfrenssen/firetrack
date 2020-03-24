@@ -111,7 +111,9 @@ pub async fn register_submit(
     // Pass the email address to the activation form by setting it on the session.
     session.set("email", user.email.as_str()).map_err(error::ErrorInternalServerError)?;
 
-    Ok(HttpResponse::Found()
+    // Redirect to the activation form, using HTTP 303 redirect which will execute the redirection
+    // as a GET request.
+    Ok(HttpResponse::SeeOther()
         .header("location", "/user/activate")
         .finish())
 }
