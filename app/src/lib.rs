@@ -58,7 +58,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
-    /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
+    /// # let mailgun_api_endpoint = mockito::server_url();
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
     /// # let mailgun_user_name = "postmaster";
@@ -93,7 +93,7 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
-            mailgun_api_endpoint: "https://api.mailgun.net/v3".to_string(),
+            mailgun_api_endpoint: mockito::server_url(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
             mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
             mailgun_user_name: "postmaster".to_string(),
@@ -278,7 +278,7 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.mailgun_api_endpoint(), "https://api.mailgun.net/v3");
+    /// assert_eq!(config.mailgun_api_endpoint(), mockito::server_url());
     /// ```
     pub fn mailgun_api_endpoint(&self) -> &str {
         self.mailgun_api_endpoint.as_str()

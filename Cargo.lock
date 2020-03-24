@@ -325,6 +325,7 @@ dependencies = [
  "dotenv",
  "env_logger 0.7.1",
  "mailgun_v3",
+ "mockito",
 ]
 
 [[package]]
@@ -2911,10 +2912,12 @@ dependencies = [
  "dotenv",
  "libxml",
  "log",
+ "mockito",
  "notifications",
  "r2d2",
  "serde",
  "serde_derive",
+ "serde_json",
  "tera",
  "validator",
 ]
