@@ -3,6 +3,7 @@ use super::*;
 use actix_http::body::{Body, ResponseBody};
 use actix_web::http::StatusCode;
 use libxml::{parser::Parser, xpath::Context};
+use serde_json::json;
 use std::str;
 
 // Checks that the page returns a 200 OK response.
@@ -114,4 +115,21 @@ fn assert_xpath_result_count(xml: &str, expression: &str, expected_count: usize)
     let context = Context::new(&doc).unwrap();
     let result = context.evaluate(expression).unwrap();
     assert_eq!(expected_count, result.get_number_of_nodes());
+}
+
+// Sets up a Mailgun mock server that will respond positively to every request on its endpoint.
+pub fn mailgun_mock(config: &AppConfig) -> mockito::Mock {
+    // A mocked response that is returned by the Mailgun API for a valid notification request.
+    let valid_response = json!({
+        "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_user_domain()),
+        "message": "Queued. Thank you."
+    });
+
+    // Return a valid response for any request to the endpoint.
+    let uri = notifications::get_mailgun_uri(&config);
+    mockito::mock("POST", uri.as_str())
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(valid_response.to_string())
+        .create()
 }
