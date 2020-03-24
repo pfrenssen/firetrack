@@ -49,9 +49,6 @@ pub async fn activate(
     activation_code: &ActivationCode,
     config: &AppConfig,
 ) -> Result<(), NotificationErrorKind> {
-    // Todo: We are hitting the Mailgun API in our integration tests, disable this for now.
-    return Ok(());
-
     // Sanity check: ensure that the activation code is valid.
     activation_code
         .validate()
@@ -114,7 +111,7 @@ fn get_mailgun_domain(_config: &AppConfig) -> String {
 }
 
 // Returns the URI of the Mailgun API endpoint.
-fn get_mailgun_uri(config: &AppConfig) -> String {
+pub fn get_mailgun_uri(config: &AppConfig) -> String {
     let uri = format!(
         "/{}/{}",
         config.mailgun_user_domain(),

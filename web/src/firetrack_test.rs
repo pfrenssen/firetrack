@@ -14,6 +14,24 @@ pub fn assert_response_ok(response: &HttpResponse) {
     );
 }
 
+// Checks that the page returns a 303 See Other response.
+pub fn assert_response_see_other(response: &HttpResponse, location: &String) {
+    assert_eq!(
+        response.status(),
+        StatusCode::SEE_OTHER,
+        "The HTTP response object has status 303 See Other."
+    );
+    assert!(
+        response.head().headers().get("location").is_some(),
+        "The location header is set."
+    );
+    assert_eq!(
+        response.head().headers().get("location").unwrap(),
+        location,
+        "The response is redirecting to the expected location."
+    );
+}
+
 // Checks that the header title matches the given string.
 pub fn assert_header_title(body: &str, title: &str) {
     let header_title = format!("Firetrack - {}", title);
