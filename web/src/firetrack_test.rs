@@ -15,7 +15,7 @@ pub fn assert_response_ok(response: &HttpResponse) {
 }
 
 // Checks that the page returns a 303 See Other response.
-pub fn assert_response_see_other(response: &HttpResponse, location: &String) {
+pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
     assert_eq!(
         response.status(),
         StatusCode::SEE_OTHER,

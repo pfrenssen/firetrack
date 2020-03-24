@@ -42,7 +42,7 @@ async fn register_with_valid_data() {
         .to_request();
 
     let response = app.call(req).await.unwrap();
-    assert_response_see_other(&response.response(), &"/user/activate".to_string());
+    assert_response_see_other(&response.response(), "/user/activate");
 
     // Check that a user with the given username and password exists in the database.
     let user = db::user::read(&pool.get().unwrap(), email).unwrap();
