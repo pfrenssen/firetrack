@@ -284,7 +284,7 @@ fn render_activate(
     let mut context = tera::Context::new();
     context.insert("title", &"Activate account");
     context.insert("input", &input);
-    context.insert("valid", &validation_state);
+    context.insert("validation", &validation_state);
 
     let content = tera
         .render("user/activate.html", &context)

@@ -18,4 +18,7 @@ table! {
 
 joinable!(activation_codes -> users (email));
 
-allow_tables_to_appear_in_same_query!(activation_codes, users,);
+allow_tables_to_appear_in_same_query!(
+    activation_codes,
+    users,
+);
