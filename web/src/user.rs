@@ -1,6 +1,7 @@
 use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
+use db::activation_code::ActivationCodeErrorKind;
 use validator::validate_email;
 
 // The form fields of the user form.
@@ -140,16 +141,12 @@ fn render_register(
 // The form fields of the activation form.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct ActivationFormInput {
-    email: String,
     activation_code: String,
 }
 
 impl ActivationFormInput {
-    pub fn new(email: String, activation_code: String) -> ActivationFormInput {
-        ActivationFormInput {
-            email,
-            activation_code,
-        }
+    pub fn new(activation_code: String) -> ActivationFormInput {
+        ActivationFormInput { activation_code }
     }
 }
 
@@ -158,29 +155,26 @@ impl ActivationFormInput {
 struct ActivationFormInputValid {
     form_is_validated: bool,
     activation_code: bool,
+    message: String,
 }
 
 impl ActivationFormInputValid {
-    // Instantiate a form validation struct.
-    #[cfg(test)]
-    pub fn new(form_is_validated: bool, activation_code: bool) -> ActivationFormInputValid {
-        ActivationFormInputValid {
-            form_is_validated,
-            activation_code,
-        }
-    }
-
     // Instantiate a form validation struct with default values.
     pub fn default() -> ActivationFormInputValid {
         ActivationFormInputValid {
             form_is_validated: false,
             activation_code: true,
+            message: "".to_string(),
         }
     }
 
-    // Returns whether the form is validated and found valid.
-    pub fn is_valid(&self) -> bool {
-        self.form_is_validated && self.activation_code
+    // Instantiate a form validation struct with a validation error.
+    pub fn invalid(message: &str) -> ActivationFormInputValid {
+        ActivationFormInputValid {
+            form_is_validated: true,
+            activation_code: false,
+            message: message.to_string(),
+        }
     }
 }
 
@@ -191,20 +185,94 @@ pub async fn activate_handler(
     tera: web::Data<tera::Tera>,
     pool: web::Data<db::ConnectionPool>,
 ) -> Result<HttpResponse, Error> {
-    let unauthorized_message = "Please log in before activating your account.";
     // The email address is passed in the session by the registration / login form. Return an error
     // if it is not set or does not correspond with an existing, non-activated user.
     if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
         let connection = pool.get().map_err(error::ErrorInternalServerError)?;
         if let Ok(user) = db::user::read(&connection, email.as_str()) {
             if !user.activated {
-                let input = ActivationFormInput::new(user.email, "".to_string());
+                let input = ActivationFormInput::new("".to_string());
                 let validation_state = ActivationFormInputValid::default();
                 return render_activate(tera, input, validation_state);
             }
         }
     }
-    Err(error::ErrorUnauthorized(unauthorized_message))
+    Err(error::ErrorUnauthorized(
+        "Please log in before activating your account.",
+    ))
+}
+
+// Submit handler for the activation form.
+pub async fn activate_submit(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+    input: web::Form<ActivationFormInput>,
+    pool: web::Data<db::ConnectionPool>,
+) -> Result<HttpResponse, Error> {
+    let activation_code = input.activation_code.clone();
+
+    // Convenience functions for easily returning error messages.
+    let validation_error = |message| {
+        render_activate(
+            tera,
+            input.into_inner(),
+            ActivationFormInputValid::invalid(message),
+        )
+    };
+    let authorization_failed = || {
+        Err(error::ErrorUnauthorized(
+            "Please log in before activating your account.",
+        ))
+    };
+
+    // Check if the activation code is a 6 digit number.
+    if !regex::Regex::new(r"^\d{6}$")
+        .map_err(error::ErrorInternalServerError)?
+        .is_match(activation_code.as_str())
+    {
+        return validation_error("Please enter a 6-digit number");
+    }
+
+    // Convert the user input to an integer. We know that the input is a 6 digit number, so we can
+    // assume that the conversion will succeed, and return a 500 in the case that somehow doesn't.
+    let activation_code: i32 = activation_code
+        .parse()
+        .map_err(error::ErrorInternalServerError)?;
+
+    // Load the user from the email that is stored in the session.
+    if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
+        let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+        if let Ok(user) = db::user::read(&connection, email.as_str()) {
+            match db::activation_code::activate_user(&connection, user, activation_code) {
+                Err(ActivationCodeErrorKind::Expired) => {
+                    return validation_error("The expiration code has expired. Please re-send the activation email and try again.");
+                }
+                Err(ActivationCodeErrorKind::UserAlreadyActivated(_)) => {
+                    // In order to not disclose which email addresses are registered we treat this
+                    // the same as a non-existing user trying to access the form.
+                    return authorization_failed();
+                }
+                Err(ActivationCodeErrorKind::MaxAttemptsExceeded) => {
+                    return validation_error("You have exceeded the maximum number of activation attempts. Please try again later.");
+                }
+                Err(ActivationCodeErrorKind::InvalidCode) => {
+                    return validation_error("Incorrect activation code. Please try again.");
+                }
+                Err(e) => {
+                    return Err(error::ErrorInternalServerError(e));
+                }
+                Ok(_) => {
+                    return Ok(HttpResponse::Ok()
+                        .content_type("text/html")
+                        .body("Your account has been activated. You can now log in."));
+                }
+            }
+        }
+    }
+
+    // No user passed in the session, or the passed user doesn't exist. Do not authorize the usage
+    // of this form.
+    authorization_failed()
 }
 
 // Renders the activation form.

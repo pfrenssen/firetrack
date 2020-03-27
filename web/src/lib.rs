@@ -141,6 +141,7 @@ pub fn configure_application(
             .service(actix_files::Files::new("/js", "static/js"))
             .route("/", web::get().to(index))
             .route("/user/activate", web::get().to(user::activate_handler))
+            .route("/user/activate", web::post().to(user::activate_submit))
             .route("/user/login", web::get().to(user::login_handler))
             .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),

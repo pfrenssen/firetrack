@@ -2915,6 +2915,7 @@ dependencies = [
  "mockito",
  "notifications",
  "r2d2",
+ "regex",
  "serde",
  "serde_derive",
  "serde_json",
