@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use app::AppConfig;
 use db::activation_code::{ActivationCode, ActivationCodeErrorKind};
 use db::user::User;
@@ -87,6 +90,10 @@ pub async fn activate(
     send_with_request_builder(request_builder, &credentials, &sender, message)
         .await
         .map_err(|err| {
+            error!(
+                "Mailgun error when attempting to deliver activation notification: {:?}",
+                err
+            );
             NotificationErrorKind::ActivationNotificationNotDelivered(err.to_string())
         })?;
     Ok(())
