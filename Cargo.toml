@@ -4,5 +4,6 @@ members = [
     "app",
     "cli",
     "db",
+    "mailgun_mock",
     "web",
 ]

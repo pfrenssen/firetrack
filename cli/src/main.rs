@@ -157,6 +157,9 @@ async fn main() {
                     )
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
+            .subcommand(
+                SubCommand::with_name("mailgun-mock-server").about("Start the Mailgun mock server"),
+            )
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .get_matches();
 
@@ -220,6 +223,9 @@ async fn main() {
             ("", None) => {}
             _ => unreachable!(),
         },
+        ("mailgun-mock-server", _) => {
+            mailgun_mock::serve(config).await.unwrap_or_exit();
+        }
         ("", None) => {}
         _ => unreachable!(),
     }

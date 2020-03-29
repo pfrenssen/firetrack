@@ -30,6 +30,7 @@ async fn register_with_valid_data() {
         .set_form(&payload)
         .to_request();
 
+    // We should get redirected to the activation form.
     let response = app.call(req).await.unwrap();
     assert_response_see_other(&response.response(), "/user/activate");
 

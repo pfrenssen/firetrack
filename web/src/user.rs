@@ -344,6 +344,7 @@ mod tests {
         assert_header_title(&body, "Sign up");
         assert_page_title(&body, "Sign up");
         assert_navbar(&body);
+
         // Check that the email and password fields and submit button are present.
         assert_form_input(&body, "email", "email", "email", "Email address");
         assert_form_input(&body, "password", "password", "password", "Password");

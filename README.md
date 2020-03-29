@@ -63,15 +63,33 @@ $ diesel database setup
 ```
 
 
-Run tests
----------
+Running tests
+-------------
 
 Now Firetrack should be ready to go. In order to see that everything works as
-expected, try running the test suite from the project root folder:
+expected, try running the test suites. The main tests can be run from the
+project root folder:
 
 ```
 $ cargo test
 ```
+
+To run the BDD test suite, we need to set up the test environment before running
+the tests:
+
+```
+# Install dependencies for the BDD test framework.
+$ composer install
+
+# Start the Mailgun mock server.
+$ cargo run -- mailgun-mock-server &> /dev/null &
+
+# Start the Firetrack server, using the mock server for Mailgun. This will
+# prevent the real Mailgun API from sending out notifications during the test.
+$ MAILGUN_API_ENDPOINT=http://localhost:8089 cargo run -- serve &> /dev/null &
+
+# Execute the BDD user scenarios.
+$ ./vendor/bin/behat
 
 
 Usage
