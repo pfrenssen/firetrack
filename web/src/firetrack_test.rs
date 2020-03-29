@@ -71,6 +71,27 @@ pub fn assert_navbar(body: &str) {
     }
 }
 
+// Checks that the form input element with the given attributes is present in the body.
+pub fn assert_form_input(body: &str, id: &str, name: &str, input_type: &str, label: &str) {
+    // Check for the label.
+    let xpath = format!("//body//label[@for='{}' and text()='{}']", id, label);
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+
+    // Check the input element.
+    let xpath = format!(
+        "//body//input[@id='{}' and @name='{}' and @type='{}']",
+        id, name, input_type
+    );
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+}
+
+// Checks that the form submit button with the given label is present.
+pub fn assert_form_submit(body: &str, label: &str) {
+    // Check the input element.
+    let xpath = format!("//body//button[@type='submit' and text()='{}']", label);
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+}
+
 // Given an HttpResponse, returns the response body as a string.
 pub fn get_response_body(response: &HttpResponse) -> String {
     // Get the response body.

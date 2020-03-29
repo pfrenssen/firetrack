@@ -153,8 +153,11 @@ impl ActivationFormInput {
 // Whether the form fields of the activation form are valid.
 #[derive(Serialize, Deserialize)]
 struct ActivationFormInputValid {
+    // Whether or not the form input has been validated.
     form_is_validated: bool,
+    // Whether or not the activation code is valid.
     activation_code: bool,
+    // The validation message to show to the user.
     message: String,
 }
 
@@ -299,9 +302,9 @@ mod tests {
 
     use actix_web::test::TestRequest;
 
-    // Unit tests for the user login page.
+    // Unit tests for the user login form handler.
     #[actix_rt::test]
-    async fn test_login() {
+    async fn test_login_handler() {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
@@ -321,9 +324,9 @@ mod tests {
         assert_navbar(&body);
     }
 
-    // Unit tests for the user registration page.
+    // Unit tests for the user registration form handler.
     #[actix_rt::test]
-    async fn test_register() {
+    async fn test_register_handler() {
         dotenv::dotenv().ok();
 
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
@@ -341,6 +344,10 @@ mod tests {
         assert_header_title(&body, "Sign up");
         assert_page_title(&body, "Sign up");
         assert_navbar(&body);
+        // Check that the email and password fields and submit button are present.
+        assert_form_input(&body, "email", "email", "email", "Email address");
+        assert_form_input(&body, "password", "password", "password", "Password");
+        assert_form_submit(&body, "Sign up");
     }
 
     // Tests UserFormInputValid::is_valid().
