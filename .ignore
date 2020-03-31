@@ -1,0 +1,7 @@
+# Ignore all non-rust files.
+/behat.yml
+/composer.json
+/composer.lock
+/features/
+/README.md
+/scripts/
