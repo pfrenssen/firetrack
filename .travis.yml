@@ -48,12 +48,12 @@ script:
   - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
-  # Start the webserver and wait for it to come online.
-  - cargo run -- serve &> actix.log &
-  - until curl -s localhost:8088; do true; done &> /dev/null
   # Start the Mailgun mock server and wait for it to come online.
   - cargo run -- mailgun-mock-server &> /dev/null &
   - until curl -s localhost:8089; do true; done &> /dev/null
+  # Start the webserver and wait for it to come online.
+  - MAILGUN_API_ENDPOINT=http://localhost:8089 cargo run -- serve &> actix.log &
+  - until curl -s localhost:8088; do true; done &> /dev/null
   # Run BDD test suite.
   - ./vendor/bin/behat
   # Show server log.
