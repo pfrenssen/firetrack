@@ -27,7 +27,13 @@ class BootstrapContext extends RawMinkContext
         // the invalid feedback appear, so we can match on the text value.
         $xpath = '//*[contains(concat(" ", @class, " "), " invalid-feedback ") and ../*[contains(concat(" ", @class, " "), " form-control ")] and ../*[contains(concat(" ", @class, " "), " is-invalid ")] and text() = "' . $message . '"]';
         if (empty($this->getSession()->getPage()->find('xpath', $xpath))) {
-            throw new ExpectationException(sprintf("The form validation message '%s' was not found on the page %s.", $message, $this->getSession()->getCurrentUrl()));
+            throw new ExpectationException(
+                sprintf(
+                    "The form validation message '%s' was not found on the page %s.",
+                    $message,
+                    $this->getSession()->getCurrentUrl()
+                )
+            );
         }
     }
 
@@ -45,8 +51,65 @@ class BootstrapContext extends RawMinkContext
     {
         try {
             $this->assertFormValidationMessage($message);
-            throw new ExpectationException(sprintf("The form validation message '%s' was found on the page %s but was not expected to be.", $message, $this->getSession()->getCurrentUrl()));
-        } catch (ExpectationException $e) {}
+            throw new ExpectationException(
+                sprintf(
+                    "The form validation message '%s' was found on the page %s but was not expected to be.",
+                    $message,
+                    $this->getSession()->getCurrentUrl()
+                )
+            );
+        } catch (ExpectationException $e) {
+        }
+    }
+
+    /**
+     * Checks that the expected number of form validation messages are present.
+     *
+     * @param int|null $count
+     *   The number of form validation messages that are expected to be present.
+     *
+     * @Then I should see :count form validation message(s)
+     * @Then I should not see any form validation messages
+     */
+    public function assertErrorMessagesCount(?int $count = 0): void
+    {
+        $actual_count = count(
+            $this->getSession()->getPage()->findAll('css', '.form-control.is-invalid ~ .invalid-feedback')
+        );
+        if ($count !== $actual_count) {
+            throw new ExpectationException(
+                sprintf(
+                    'Expected %u form validation message(s) on the page %s but found %u messages.',
+                    $count,
+                    $this->getSession()->getCurrentUrl(),
+                    $actual_count
+                )
+            );
+        }
+    }
+
+    /**
+     * Checks that the expected number of fields with validation errors are present.
+     *
+     * @param int|null $count
+     *   The number of fields with validation errors that are expected to be present.
+     *
+     * @Then I should see :count field(s) with validation errors
+     * @Then I should not see any fields with validation errors
+     */
+    public function assertFieldsWithValidationErrorCount(?int $count = 0): void
+    {
+        $actual_count = count($this->getSession()->getPage()->findAll('css', '.form-control.is-invalid'));
+        if ($count !== $actual_count) {
+            throw new ExpectationException(
+                sprintf(
+                    'Expected %u field(s) with validation errors on the page %s but found %u fields.',
+                    $count,
+                    $this->getSession()->getCurrentUrl(),
+                    $actual_count
+                )
+            );
+        }
     }
 
 }

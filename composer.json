@@ -9,7 +9,9 @@
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "require": {},
+    "require": {
+        "php": ">=7.4.0"
+    },
     "require-dev": {
         "behat/behat": "^3.5@dev",
         "behat/mink-goutte-driver": "^1.2@dev",

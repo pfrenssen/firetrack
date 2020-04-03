@@ -2,9 +2,11 @@ default:
   suites:
     default:
       contexts:
+        - ActivationCodeContext
         - BootstrapContext
         - FeatureContext
         - HtmlContext
+        - UserProfileContext
         - Behat\MinkExtension\Context\MinkContext
       filters:
         tags: '~@wip'
