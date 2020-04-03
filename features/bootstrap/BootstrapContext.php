@@ -1,6 +1,9 @@
 <?php
 
+declare(strict_types = 1);
+
 use Behat\MinkExtension\Context\RawMinkContext;
+use Firetrack\Tests\Exception\ExpectationException;
 
 /**
  * Step definitions for interacting with Bootstrap components.
@@ -11,43 +14,39 @@ class BootstrapContext extends RawMinkContext
     /**
      * Checks that the given invalid feedback message is present on the page.
      *
-     * @param string $feedback
+     * @param string $message
      *   The feedback message.
-     *
-     * @throws Exception
-     *   Thrown when the feedback message is not found.
      *
      * @see https://getbootstrap.com/docs/4.0/components/forms/#server-side
      *
-     * @Then I should see the invalid feedback message :feedback
+     * @Then I should see the form validation message :message
      */
-    public function assertInvalidFeedback(string $feedback): void
+    public function assertFormValidationMessage(string $message): void
     {
-        $xpath = '//*[*[contains(concat(" ", @class, " "), " form-control ") and contains(concat(" ", @class, " "), " is-invalid ")]]/*[contains(concat(" ", @class, " "), " invalid-feedback ") and text() = "' . $feedback . '"]';
+        // XPath equivalent of the Bootstrap CSS selector (`.form-control.is-invalid ~ .invalid-feedback`) that makes
+        // the invalid feedback appear, so we can match on the text value.
+        $xpath = '//*[contains(concat(" ", @class, " "), " invalid-feedback ") and ../*[contains(concat(" ", @class, " "), " form-control ")] and ../*[contains(concat(" ", @class, " "), " is-invalid ")] and text() = "' . $message . '"]';
         if (empty($this->getSession()->getPage()->find('xpath', $xpath))) {
-            throw new Exception(sprintf("The invalid feedback message '%s' was not found on the page %s.", $feedback, $this->getSession()->getCurrentUrl()));
+            throw new ExpectationException(sprintf("The form validation message '%s' was not found on the page %s.", $message, $this->getSession()->getCurrentUrl()));
         }
     }
 
     /**
      * Checks that the given invalid feedback message is not present on the page.
      *
-     * @param string $feedback
+     * @param string $message
      *   The feedback message.
-     *
-     * @throws Exception
-     *   Thrown when the feedback message is found.
      *
      * @see https://getbootstrap.com/docs/4.0/components/forms/#server-side
      *
-     * @Then I should not see the invalid feedback message :feedback
+     * @Then I should not see the form validation message :message
      */
-    public function assertNoInvalidFeedback(string $feedback): void
+    public function assertNoFormValidationMessage(string $message): void
     {
-        $xpath = '//*[*[contains(concat(" ", @class, " "), " form-control ") and contains(concat(" ", @class, " "), " is-invalid ")]]/*[contains(concat(" ", @class, " "), " invalid-feedback ") and text() = "' . $feedback . '"]';
-        if (!empty($this->getSession()->getPage()->find('xpath', $xpath))) {
-            throw new Exception(sprintf("The invalid feedback message '%s' was found on the page %s but was not expected to be.", $feedback, $this->getSession()->getCurrentUrl()));
-        }
+        try {
+            $this->assertFormValidationMessage($message);
+            throw new ExpectationException(sprintf("The form validation message '%s' was found on the page %s but was not expected to be.", $message, $this->getSession()->getCurrentUrl()));
+        } catch (ExpectationException $e) {}
     }
 
 }
