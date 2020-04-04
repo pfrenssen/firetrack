@@ -12,7 +12,7 @@ class BootstrapContext extends RawMinkContext
 {
 
     /**
-     * Checks that the given invalid feedback message is present on the page.
+     * Checks that the given form validation error message is present on the page.
      *
      * @param string $message
      *   The feedback message.
@@ -38,7 +38,7 @@ class BootstrapContext extends RawMinkContext
     }
 
     /**
-     * Checks that the given invalid feedback message is not present on the page.
+     * Checks that the given form validation error message is not present on the page.
      *
      * @param string $message
      *   The feedback message.
@@ -63,10 +63,10 @@ class BootstrapContext extends RawMinkContext
     }
 
     /**
-     * Checks that the expected number of form validation messages are present.
+     * Checks that the expected number of form validation error messages are present.
      *
      * @param int|null $count
-     *   The number of form validation messages that are expected to be present.
+     *   The number of form validation error messages that are expected to be present.
      *
      * @Then I should see :count form validation message(s)
      * @Then I should not see any form validation messages

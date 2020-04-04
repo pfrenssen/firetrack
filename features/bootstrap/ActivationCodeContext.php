@@ -62,7 +62,7 @@ class ActivationCodeContext extends RawMinkContext
      * Returns the first activation message that was sent to the given email address.
      *
      * @param string $email
-     *   The email address for which to return the message.
+     *   The email address to which the message was sent.
      *
      * @return EmailMessage|null
      *   The message, or NULL if no message was found.
@@ -78,16 +78,16 @@ class ActivationCodeContext extends RawMinkContext
     }
 
     /**
-     * Returns the activation code from the given activation mail.
+     * Returns the activation code contained in the given activation mail.
      *
      * @param EmailMessage $message
-     *   The message.
+     *   The activation message.
      *
      * @return string
      *   The activation code.
      *
      * @throws \InvalidArgumentException
-     *   Thrown when the passed in message is not an activation mail.
+     *   Thrown when the passed in message is not an activation message.
      */
     protected function getActivationCode(EmailMessage $message): string
     {
@@ -105,6 +105,7 @@ class ActivationCodeContext extends RawMinkContext
      * Returns the messages which were sent to the given email address.
      *
      * @param string $email
+     *   The email address to which the messages were sent.
      *
      * @return EmailMessage[]
      */
@@ -119,7 +120,7 @@ class ActivationCodeContext extends RawMinkContext
     }
 
     /**
-     * Returns the list of email messages that have been sent through Mailgun.
+     * Returns the list of email messages that have been sent via Mailgun.
      *
      * @return EmailMessage[]
      */
@@ -134,7 +135,7 @@ class ActivationCodeContext extends RawMinkContext
     }
 
     /**
-     * Returns the contents of the Mailgun mock server log as an array of lines.
+     * Returns the Mailgun mock server log as an array of lines.
      *
      * @return string[]
      */

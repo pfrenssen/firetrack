@@ -32,7 +32,7 @@ class EmailMessage
     }
 
     /**
-     * Creates a new EmailMessage from a log entry from the Mailgun mock server.
+     * Creates a new EmailMessage from a Mailgun mock server log entry.
      *
      * @param string $logEntry
      *   A URL encoded string representing the content of the email message.

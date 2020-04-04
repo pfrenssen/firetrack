@@ -1,4 +1,4 @@
-# Ignore all non-rust files.
+# Ignore file for `cargo watch`. Ignores all non-rust files.
 /behat.yml
 /composer.json
 /composer.lock

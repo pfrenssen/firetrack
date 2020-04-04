@@ -19,7 +19,7 @@ pub async fn serve(config: AppConfig) -> Result<(), Box<dyn std::error::Error + 
 }
 
 // Mocks the `messages` command on the Mailgun API. Will always return a valid response, and will
-// log request body to a file for use in tests.
+// log the request body to a file for use in tests.
 async fn messages(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     // Retrieve the full body stream, decode it and write it to the log file.
     let full_body = hyper::body::to_bytes(req.into_body()).await?;
