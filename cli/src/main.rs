@@ -108,6 +108,13 @@ async fn main() {
                                     .required(true)
                                     .help("The user's password"),
                             ),
+                        SubCommand::with_name("delete")
+                            .about("Delete a user account")
+                            .arg(
+                                Arg::with_name("email")
+                                    .required(true)
+                                    .help("The email address of the user to delete"),
+                            ),
                         SubCommand::with_name("activate")
                             .about("Activates a user account")
                             .arg(
@@ -172,6 +179,13 @@ async fn main() {
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
                     &config,
+                )
+                .unwrap_or_exit();
+            }
+            ("delete", Some(arguments)) => {
+                db::user::delete(
+                    &establish_connection(&config.database_url()),
+                    arguments.value_of("email").unwrap(),
                 )
                 .unwrap_or_exit();
             }
