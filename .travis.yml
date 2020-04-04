@@ -28,8 +28,10 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring composer
   - php --version
-  - rustup component add clippy
-  - rustup component add rustfmt
+  # Rustup components may not be available for the current nightly, fall back to
+  # installing from source.
+  - rustup component add clippy || cargo install --git https://github.com/rust-lang/rust-clippy/ --force clippy
+  - rustup component add rustfmt || cargo install --git https://github.com/rust-lang/rustfmt/ --force rustfmt
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
