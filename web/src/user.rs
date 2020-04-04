@@ -310,11 +310,11 @@ mod tests {
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
         let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
-        let app_data = request.app_data::<web::Data<tera::Tera>>().unwrap();
+        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = login_handler(app_data.clone());
+        let controller = login_handler(app_data_tera.clone());
         let response = controller.await.unwrap();
         let body = get_response_body(&response);
 
@@ -332,11 +332,11 @@ mod tests {
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
         let tera = crate::compile_templates();
         let request = TestRequest::get().data(tera).to_http_request();
-        let app_data = request.app_data::<web::Data<tera::Tera>>().unwrap();
+        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
         // Pass the Data struct containing the Tera templates to the controller. This mimics how
         // actix-web passes the data to the controller.
-        let controller = register_handler(app_data.clone());
+        let controller = register_handler(app_data_tera.clone());
         let response = controller.await.unwrap();
         let body = get_response_body(&response);
 
