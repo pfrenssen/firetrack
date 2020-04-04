@@ -18,7 +18,7 @@ Feature: Account registration
     And I press "Sign up"
     Then I should be on "/user/register"
     And I should see the heading "Sign up"
-    And I should see the form validation message "Please enter a valid email address."
+    And I should see the form validation error "Please enter a valid email address."
 
     Examples:
       | email                       | password |
@@ -41,4 +41,4 @@ Feature: Account registration
     And I press "Sign up"
     Then I should be on "/user/register"
     And I should see the heading "Sign up"
-    And I should see the form validation message "Please enter a password."
+    And I should see the form validation error "Please enter a password."

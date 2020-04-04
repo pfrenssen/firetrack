@@ -19,7 +19,7 @@ class BootstrapContext extends RawMinkContext
      *
      * @see https://getbootstrap.com/docs/4.0/components/forms/#server-side
      *
-     * @Then I should see the form validation message :message
+     * @Then I should see the form validation error :message
      */
     public function assertFormValidationMessage(string $message): void
     {
@@ -45,7 +45,7 @@ class BootstrapContext extends RawMinkContext
      *
      * @see https://getbootstrap.com/docs/4.0/components/forms/#server-side
      *
-     * @Then I should not see the form validation message :message
+     * @Then I should not see the form validation error :message
      */
     public function assertNoFormValidationMessage(string $message): void
     {
@@ -68,8 +68,8 @@ class BootstrapContext extends RawMinkContext
      * @param int|null $count
      *   The number of form validation error messages that are expected to be present.
      *
-     * @Then I should see :count form validation message(s)
-     * @Then I should not see any form validation messages
+     * @Then I should see :count form validation error message(s)
+     * @Then I should not see any form validation error messages
      */
     public function assertErrorMessagesCount(?int $count = 0): void
     {
