@@ -27,6 +27,8 @@ pub enum UserErrorKind {
     PasswordHashFailed(argonautica::Error),
     // A new user could not be created due to a database error.
     UserCreationFailed(diesel::result::Error),
+    // A user could not be deleted due to a database error.
+    UserDeletionFailed(diesel::result::Error),
     // The user with the given email address does not exist.
     UserNotFound(String),
     // A user could not be read due to a database error.
@@ -48,6 +50,9 @@ impl fmt::Display for UserErrorKind {
             }
             UserErrorKind::UserCreationFailed(ref err) => {
                 write!(f, "Database error when creating user: {}", err)
+            }
+            UserErrorKind::UserDeletionFailed(ref err) => {
+                write!(f, "Database error when deleting user: {}", err)
             }
             UserErrorKind::UserNotFound(ref email) => {
                 write!(f, "The user with email {} does not exist", email)
@@ -73,8 +78,7 @@ pub fn create(
         return Err(UserErrorKind::InvalidEmail(email.to_string()));
     }
 
-    let existing_user = read(connection, email);
-    if existing_user.is_ok() {
+    if user_exists(connection, email).is_ok() {
         return Err(UserErrorKind::UserWithEmailAlreadyExists(email.to_string()));
     }
 
@@ -101,6 +105,30 @@ pub fn create(
         ))
         .get_result(connection)
         .map_err(UserErrorKind::UserCreationFailed)
+}
+
+/// Deletes the user with the given email.
+pub fn delete(connection: &PgConnection, email: &str) -> Result<(), UserErrorKind> {
+    user_exists(connection, email)?;
+
+    diesel::delete(users::table.filter(users::email.eq(email)))
+        .execute(connection)
+        .map_err(UserErrorKind::UserDeletionFailed)?;
+    Ok(())
+}
+
+// Checks that the user with the given email exists.
+fn user_exists(connection: &PgConnection, email: &str) -> Result<(), UserErrorKind> {
+    let count: i64 = users::table
+        .filter(users::email.eq(email))
+        .count()
+        .first(connection)
+        .map_err(UserErrorKind::UserReadFailed)?;
+
+    match count {
+        0 => Err(UserErrorKind::UserNotFound(email.to_string())),
+        _ => Ok(()),
+    }
 }
 
 // Performs an Argon2 hash of the password.
@@ -258,6 +286,34 @@ mod tests {
             // The password should not be empty.
             let empty_password_user = create(&connection, "test2@example.com", "", &config);
             assert!(empty_password_user.is_err());
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn test_delete() {
+        let connection = establish_connection(&get_database_url());
+        let email = "test@example.com";
+        let password = "mypass";
+        let config = AppConfig::from_test_defaults();
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create a test user.
+            create(&connection, email, password, &config).unwrap();
+            assert!(user_exists(&connection, email).is_ok());
+
+            // Delete the user.
+            let result = delete(&connection, email);
+            assert!(result.is_ok());
+            assert!(user_exists(&connection, email).is_err());
+
+            // Deleting a non-existing user should result in a UserNotFound error.
+            let non_existing_email = "non-existing@example.com";
+            let delete_non_existing_user = delete(&connection, non_existing_email).unwrap_err();
+            assert_eq!(
+                delete_non_existing_user,
+                UserErrorKind::UserNotFound(non_existing_email.to_string())
+            );
 
             Ok(())
         });
