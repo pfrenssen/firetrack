@@ -34,6 +34,9 @@ async fn messages(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     if let Err(e) = writeln!(file, "{}", body_content) {
         error!("Couldn't write to {}: {}", filename, e);
     }
+    if let Err(e) = file.flush() {
+        error!("Couldn't flush buffer when writing to {}: {}", filename, e);
+    }
 
     // Return a valid response.
     let response = json!({
