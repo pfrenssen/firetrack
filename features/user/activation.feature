@@ -21,7 +21,7 @@ Feature: Account activation
     # And I should be on "/user/login"
 
     # Clean up the user created through the UI.
-    # Then I delete the user "enitan.okeke@example.com"
+    Then I delete the user "enitan.okeke@example.com"
 
   Scenario: Accessing the activation form without authenticating returns an access denied error
     Given I go to "/user/activate"
@@ -76,4 +76,4 @@ Feature: Account activation
     Then I should see the form validation error "You have exceeded the maximum number of activation attempts. Please try again later."
 
     # Clean up the user created through the UI.
-    # Then I delete the user "lamija.falk@example.com"
+    Then I delete the user "lamija.falk@example.com"

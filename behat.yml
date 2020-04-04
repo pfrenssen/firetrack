@@ -6,7 +6,7 @@ default:
         - BootstrapContext
         - FeatureContext
         - HtmlContext
-        - UserProfileContext
+        - UserContext
         - Behat\MinkExtension\Context\MinkContext
       filters:
         tags: '~@wip'
