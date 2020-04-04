@@ -142,7 +142,7 @@ class ActivationCodeContext extends RawMinkContext
     {
         // @todo Make the path to the log file configurable in behat.yml.
         $filename = getcwd() . '/mailgun-mock-server.log';
-        return file($filename);
+        return file($filename, FILE_IGNORE_NEW_LINES);
     }
 
     /**
