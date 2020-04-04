@@ -6,5 +6,4 @@ namespace Firetrack\Tests\Exception;
 
 class ExpectationException extends \RuntimeException
 {
-
 }
