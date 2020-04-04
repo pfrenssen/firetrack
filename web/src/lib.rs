@@ -173,7 +173,7 @@ mod tests {
         // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
         let tera = compile_templates();
         let request = test::TestRequest::get().data(tera).to_http_request();
-        let app_data_tera:web = request.app_data::<web::Data<tera::Tera>>().unwrap();
+        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
 
         // Pass the Data struct containing the Tera templates to the index() function. This mimics how
         // actix-web passes the data to the controller.

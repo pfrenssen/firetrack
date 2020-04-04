@@ -12,7 +12,7 @@ Feature: Account registration
 
   Scenario Outline: Register with invalid email
     Given I am on "/user/register"
-    Then I should not see the form validation message "Please enter a valid email address."
+    Then I should not see the form validation error "Please enter a valid email address."
     When I fill in "Email address" with "<email>"
     And I fill in "Password" with "<password>"
     And I press "Sign up"
@@ -36,7 +36,7 @@ Feature: Account registration
 
   Scenario: Register without providing a password
     Given I am on "/user/register"
-    Then I should not see the form validation message "Please enter a password."
+    Then I should not see the form validation error "Please enter a password."
     When I fill in "Email address" with "test@example.com"
     And I press "Sign up"
     Then I should be on "/user/register"
