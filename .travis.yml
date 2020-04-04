@@ -24,7 +24,7 @@ cache: cargo
 
 before_install:
   # Install clippy and rustfmt.
-  - rustup toolchain install $TRAVIS_RUST_VERSION --component=clippy --component=rustfmt
+  - rustup toolchain install $TRAVIS_RUST_VERSION --profile=default
   # Use a PPA to get a more recent version of PHP in Xenial.
   - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
