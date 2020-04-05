@@ -1,0 +1,12 @@
+[package]
+name = "mailgun_mock"
+version = "0.1.0-dev"
+authors = ["Pieter Frenssen <pieter@frenssen.be>"]
+edition = "2018"
+
+[dependencies]
+app = { path = "../app" }
+hyper = "~0.13"
+log = "~0.4"
+serde_json = "^1.0.24"
+urlencoding = "~1.0"

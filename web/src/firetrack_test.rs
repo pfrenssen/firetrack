@@ -3,6 +3,7 @@ use super::*;
 use actix_http::body::{Body, ResponseBody};
 use actix_web::http::StatusCode;
 use libxml::{parser::Parser, xpath::Context};
+use serde_json::json;
 use std::str;
 
 // Checks that the page returns a 200 OK response.
@@ -11,6 +12,24 @@ pub fn assert_response_ok(response: &HttpResponse) {
         response.status(),
         StatusCode::OK,
         "The HTTP response object has status 200 OK."
+    );
+}
+
+// Checks that the page returns a 303 See Other response.
+pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
+    assert_eq!(
+        response.status(),
+        StatusCode::SEE_OTHER,
+        "The HTTP response object has status 303 See Other."
+    );
+    assert!(
+        response.head().headers().get("location").is_some(),
+        "The location header is set."
+    );
+    assert_eq!(
+        response.head().headers().get("location").unwrap(),
+        location,
+        "The response is redirecting to the expected location."
     );
 }
 
@@ -50,6 +69,27 @@ pub fn assert_navbar(body: &str) {
     for expression in &expressions {
         assert_xpath_result_count(body, expression, 1);
     }
+}
+
+// Checks that the form input element with the given attributes is present in the body.
+pub fn assert_form_input(body: &str, id: &str, name: &str, input_type: &str, label: &str) {
+    // Check for the label.
+    let xpath = format!("//body//label[@for='{}' and text()='{}']", id, label);
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+
+    // Check the input element.
+    let xpath = format!(
+        "//body//input[@id='{}' and @name='{}' and @type='{}']",
+        id, name, input_type
+    );
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+}
+
+// Checks that the form submit button with the given label is present.
+pub fn assert_form_submit(body: &str, label: &str) {
+    // Check the input element.
+    let xpath = format!("//body//button[@type='submit' and text()='{}']", label);
+    assert_xpath_result_count(body, xpath.as_str(), 1);
 }
 
 // Given an HttpResponse, returns the response body as a string.
@@ -96,4 +136,21 @@ fn assert_xpath_result_count(xml: &str, expression: &str, expected_count: usize)
     let context = Context::new(&doc).unwrap();
     let result = context.evaluate(expression).unwrap();
     assert_eq!(expected_count, result.get_number_of_nodes());
+}
+
+// Sets up a Mailgun mock server that will respond positively to every request on its endpoint.
+pub fn mailgun_mock(config: &AppConfig) -> mockito::Mock {
+    // A mocked response that is returned by the Mailgun API for a valid notification request.
+    let valid_response = json!({
+        "id": format!("<0123456789abcdef.0123456789abcdef@{}>", config.mailgun_user_domain()),
+        "message": "Queued. Thank you."
+    });
+
+    // Return a valid response for any request to the endpoint.
+    let uri = notifications::get_mailgun_uri(&config);
+    mockito::mock("POST", uri.as_str())
+        .with_status(200)
+        .with_header("content-type", "application/json")
+        .with_body(valid_response.to_string())
+        .create()
 }

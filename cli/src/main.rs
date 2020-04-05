@@ -164,6 +164,9 @@ async fn main() {
                     )
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
+            .subcommand(
+                SubCommand::with_name("mailgun-mock-server").about("Start the Mailgun mock server"),
+            )
             .setting(AppSettings::SubcommandRequiredElseHelp)
             .get_matches();
 
@@ -227,11 +230,16 @@ async fn main() {
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();
-                notifications::activate(&user, &activation_code, &config).unwrap_or_exit();
+                notifications::activate(&user, &activation_code, &config)
+                    .await
+                    .unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
         },
+        ("mailgun-mock-server", _) => {
+            mailgun_mock::serve(config).await.unwrap_or_exit();
+        }
         ("", None) => {}
         _ => unreachable!(),
     }

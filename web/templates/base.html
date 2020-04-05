@@ -32,6 +32,16 @@
     </nav>
 
     <div class="container">
+        <h1>{{ title }}</h1>
+        {% if alerts %}
+            <div class="alerts">
+                {% for alert in alerts %}
+                    <div class="alert alert-{{ alert.alert_type }}" role="alert">
+                        {{ alert.message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% block content %}
         {% endblock content %}
     </div>

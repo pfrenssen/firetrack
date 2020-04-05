@@ -37,6 +37,9 @@ pub struct AppConfig {
 
     // The username used for sending notifications.
     mailgun_user_name: String,
+
+    // The port to use for the Mailgun mock server.
+    mailgun_mock_server_port: u16,
 }
 
 impl AppConfig {
@@ -58,13 +61,15 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
-    /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
+    /// # let mailgun_api_endpoint = mockito::server_url();
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
     /// # let mailgun_user_name = "postmaster";
+    /// # let mailgun_mock_server_port = 8889;
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
+    /// # env::set_var("MAILGUN_MOCK_SERVER_PORT", mailgun_mock_server_port.to_string());
     ///
     /// let config = AppConfig::from_test_defaults();
     ///
@@ -78,6 +83,7 @@ impl AppConfig {
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
     /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
     /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
+    /// # assert_eq!(config.mailgun_mock_server_port(), mailgun_mock_server_port);
     /// ```
     pub fn from_test_defaults() -> AppConfig {
         import_env_vars();
@@ -93,10 +99,16 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
-            mailgun_api_endpoint: "https://api.mailgun.net/v3".to_string(),
+            mailgun_api_endpoint: mockito::server_url(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
             mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
             mailgun_user_name: "postmaster".to_string(),
+            mailgun_mock_server_port: var("MAILGUN_MOCK_SERVER_PORT")
+                .expect("MAILGUN_MOCK_SERVER_PORT environment variable is not set.")
+                .parse()
+                .expect(
+                    "MAILGUN_MOCK_SERVER_PORT environment variable should be an integer value.",
+                ),
         }
     }
 
@@ -118,6 +130,7 @@ impl AppConfig {
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
     /// # let mailgun_user_name = "postmaster";
+    /// # let mailgun_mock_server_port = 8889;
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
@@ -128,6 +141,7 @@ impl AppConfig {
     /// # env::set_var("MAILGUN_API_KEY", mailgun_api_key.to_string());
     /// # env::set_var("MAILGUN_USER_DOMAIN", mailgun_user_domain.to_string());
     /// # env::set_var("MAILGUN_USER_NAME", mailgun_user_name.to_string());
+    /// # env::set_var("MAILGUN_MOCK_SERVER_PORT", mailgun_mock_server_port.to_string());
     ///
     /// let config = AppConfig::from_environment();
     ///
@@ -141,6 +155,7 @@ impl AppConfig {
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
     /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
     /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
+    /// # assert_eq!(config.mailgun_mock_server_port(), mailgun_mock_server_port);
     /// ```
     pub fn from_environment() -> AppConfig {
         import_env_vars();
@@ -175,6 +190,12 @@ impl AppConfig {
                 .expect("MAILGUN_USER_DOMAIN environment variable is not set."),
             mailgun_user_name: var("MAILGUN_USER_NAME")
                 .expect("MAILGUN_USER_NAME environment variable is not set."),
+            mailgun_mock_server_port: var("MAILGUN_MOCK_SERVER_PORT")
+                .expect("MAILGUN_MOCK_SERVER_PORT environment variable is not set.")
+                .parse()
+                .expect(
+                    "MAILGUN_MOCK_SERVER_PORT environment variable should be an integer value.",
+                ),
         }
     }
 
@@ -278,7 +299,7 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.mailgun_api_endpoint(), "https://api.mailgun.net/v3");
+    /// assert_eq!(config.mailgun_api_endpoint(), mockito::server_url());
     /// ```
     pub fn mailgun_api_endpoint(&self) -> &str {
         self.mailgun_api_endpoint.as_str()
@@ -330,6 +351,20 @@ impl AppConfig {
     /// ```
     pub fn mailgun_user_name(&self) -> &str {
         self.mailgun_user_name.as_str()
+    }
+
+    /// Returns the port for the Mailgun mock server.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.mailgun_mock_server_port(), 8089);
+    /// ```
+    pub fn mailgun_mock_server_port(&self) -> u16 {
+        self.mailgun_mock_server_port
     }
 }
 

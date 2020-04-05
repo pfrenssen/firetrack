@@ -23,13 +23,16 @@ matrix:
 cache: cargo
 
 before_install:
+  # Travis CI uses the minimal profile for the Rust toolchain. Replace it with
+  # the default profile which includes clippy and rustfmt.
+  - rustup toolchain uninstall $TRAVIS_RUST_VERSION
+  - rustup toolchain install $TRAVIS_RUST_VERSION --profile=default
   # Use a PPA to get a more recent version of PHP in Xenial.
   - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
   - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring composer
   - php --version
-  - rustup component add clippy
-  - rustup component add rustfmt
+  # Install Diesel.
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
@@ -48,13 +51,17 @@ script:
   - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
+  # Start the Mailgun mock server and wait for it to come online.
+  - cargo run -- mailgun-mock-server &> mailgun.log &
+  - until curl -s localhost:8089; do true; done &> /dev/null
   # Start the webserver and wait for it to come online.
-  - cargo run -- serve &> actix.log &
+  - MAILGUN_API_ENDPOINT=http://localhost:8089 cargo run -- serve &> actix.log &
   - until curl -s localhost:8088; do true; done &> /dev/null
   # Run BDD test suite.
-  - ./vendor/bin/behat
-  # Show server log.
+  - ./vendor/bin/behat --no-interaction
+  # Show server logs.
   - cat actix.log
+  - cat mailgun.log
   # Show how much data is cached.
   - du -hs /home/travis/.cargo
   - du -hs /home/travis/build/pfrenssen/firetrack/target

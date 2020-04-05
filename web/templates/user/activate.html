@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import "user/user_macros.html" as macros %}
+{% import "js/js_macros.html" as js_macros %}
+
+{% block content %}
+<form class="form-activate" method="post" enctype="application/x-www-form-urlencoded" action="/user/activate" novalidate>
+    {% if validation.form_is_validated %}
+        {% if validation.activation_code %}
+            {% set activation_code_validation = " is-valid" %}
+        {% else %}
+            {% set activation_code_validation = " is-invalid" %}
+        {% endif %}
+    {% else %}
+        {% set activation_code_validation = "" %}
+    {% endif %}
+    {% if validation.message %}
+        {% set message = validation.message %}
+    {% else %}
+        {% set message = "The activation code is not valid." %}
+    {% endif %}
+    <div class="form-label-group">
+        <label for="activation_code">Enter your activation code</label>
+        <input type="text" inputmode="numeric" pattern="[0-9]{6}" name="activation_code" id="activation_code" class="form-control{{ activation_code_validation }}" value="" required autofocus="">
+        <div class="invalid-feedback">{{ message }}</div>
+        <small id="activationCodeHelp" class="form-text text-muted">Please enter the activation code which was sent to your email.</small>
+    </div>
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Activate</button>
+</form>
+{{ js_macros::disable_invalid_form_submission(selector="form-activate") }}
+{% endblock content %}
