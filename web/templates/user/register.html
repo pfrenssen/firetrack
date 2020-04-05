@@ -3,7 +3,6 @@
 {% import "js/js_macros.html" as js_macros %}
 
 {% block content %}
-<h1>{{ title }}</h1>
 <form class="form-register" method="post" enctype="application/x-www-form-urlencoded" action="/user/register" novalidate>
     {{ macros::form_elements(input=input, validation=valid) }}
 </form>

@@ -17,8 +17,8 @@ Feature: Account activation
 
     When I fill in "Enter your activation code" with the code that has been sent to "enitan.okeke@example.com"
     And I press "Activate"
-    Then I should see "Your account has been activated. You can now log in."
-    # And I should be on "/user/login"
+    Then I should be on "/user/login"
+    And I should see "Your account has been activated. You can now log in."
 
     # Clean up the user created through the UI.
     Then I delete the user "enitan.okeke@example.com"
@@ -67,10 +67,12 @@ Feature: Account activation
     And I press "Activate"
     Then I should see the form validation error "Incorrect activation code. Please try again."
 
+    # After too many invalid attempts the user will be blocked for some time, to stifle brute force attacks.
     When I fill in "Enter your activation code" with "012345"
     And I press "Activate"
     Then I should see the form validation error "You have exceeded the maximum number of activation attempts. Please try again later."
 
+    # When the user is blocked, entering the correct code does not activate the account.
     When I fill in "Enter your activation code" with the code that has been sent to "lamija.falk@example.com"
     And I press "Activate"
     Then I should see the form validation error "You have exceeded the maximum number of activation attempts. Please try again later."

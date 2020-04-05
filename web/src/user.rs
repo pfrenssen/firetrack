@@ -52,9 +52,31 @@ impl UserFormInputValid {
 }
 
 // Request handler for the login form.
-pub async fn login_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn login_handler(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+) -> Result<HttpResponse, Error> {
+    use super::bootstrap_components::{Alert, AlertType};
+
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
+
+    // If the user is coming from the activation form, show a success message.
+    if session
+        .get::<bool>("account_activated")
+        .unwrap_or_else(|_| None)
+        .is_some()
+    {
+        let alert = Alert {
+            alert_type: AlertType::Success,
+            message: "Your account has been activated. You can now log in.".to_string(),
+        };
+        context.insert("alerts", &vec![alert]);
+
+        // Remove the values from the session so this message won't show up again.
+        session.remove("account_activated");
+        session.remove("email");
+    }
 
     let content = tera
         .render("user/login.html", &context)
@@ -265,9 +287,14 @@ pub async fn activate_submit(
                     return Err(error::ErrorInternalServerError(e));
                 }
                 Ok(_) => {
-                    return Ok(HttpResponse::Ok()
-                        .content_type("text/html")
-                        .body("Your account has been activated. You can now log in."));
+                    // Activation succeeded. Set a flag on the session and redirect to the login
+                    // page using a HTTP 303 redirect which will issue a GET request.
+                    session
+                        .set("account_activated", true)
+                        .map_err(error::ErrorInternalServerError)?;
+                    return Ok(HttpResponse::SeeOther()
+                        .header("location", "/user/login")
+                        .finish());
                 }
             }
         }
@@ -301,28 +328,6 @@ mod tests {
     use crate::firetrack_test::*;
 
     use actix_web::test::TestRequest;
-
-    // Unit tests for the user login form handler.
-    #[actix_rt::test]
-    async fn test_login_handler() {
-        dotenv::dotenv().ok();
-
-        // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-        let tera = crate::compile_templates();
-        let request = TestRequest::get().data(tera).to_http_request();
-        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
-
-        // Pass the Data struct containing the Tera templates to the controller. This mimics how
-        // actix-web passes the data to the controller.
-        let controller = login_handler(app_data_tera.clone());
-        let response = controller.await.unwrap();
-        let body = get_response_body(&response);
-
-        assert_response_ok(&response);
-        assert_header_title(&body, "Log in");
-        assert_page_title(&body, "Log in");
-        assert_navbar(&body);
-    }
 
     // Unit tests for the user registration form handler.
     #[actix_rt::test]

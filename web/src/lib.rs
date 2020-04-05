@@ -13,6 +13,7 @@ use crate::firetrack_test::*;
 #[cfg(test)]
 use actix_web::test;
 
+mod bootstrap_components;
 mod user;
 
 use actix_session::CookieSession;

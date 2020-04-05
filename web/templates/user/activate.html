@@ -3,7 +3,6 @@
 {% import "js/js_macros.html" as js_macros %}
 
 {% block content %}
-<h1>{{ title }}</h1>
 <form class="form-activate" method="post" enctype="application/x-www-form-urlencoded" action="/user/activate" novalidate>
     {% if validation.form_is_validated %}
         {% if validation.activation_code %}

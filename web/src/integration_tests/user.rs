@@ -12,9 +12,8 @@ async fn register_with_valid_data() {
 
     let _mock = mailgun_mock(&config);
 
-    // Todo: get db url from config.
-    let database_url = env::var("DATABASE_URL").unwrap();
-    let pool = db::create_test_connection_pool(database_url.as_str()).unwrap();
+    let database_url = config.database_url();
+    let pool = db::create_test_connection_pool(database_url).unwrap();
     let mut app = test::init_service(
         App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
     )
@@ -68,4 +67,29 @@ async fn register_with_valid_data() {
         body.as_str(),
         "A user with email test@example.com already exists"
     );
+}
+
+// Integration tests for the user login form handler.
+#[actix_rt::test]
+async fn test_login_handler() {
+    dotenv::dotenv().ok();
+    dotenv::from_filename(".env.dist").ok();
+
+    let config = app::AppConfig::from_test_defaults();
+    let database_url = config.database_url();
+    let pool = db::create_test_connection_pool(database_url).unwrap();
+    let mut app = test::init_service(
+        App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
+    )
+    .await;
+
+    let req = test::TestRequest::get().uri("/user/login").to_request();
+
+    let response = app.call(req).await.unwrap();
+    let body = get_response_body(&response.response());
+
+    assert_response_ok(&response.response());
+    assert_header_title(&body, "Log in");
+    assert_page_title(&body, "Log in");
+    assert_navbar(&body);
 }
