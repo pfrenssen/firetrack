@@ -23,6 +23,8 @@ matrix:
 cache:
   - cargo
   - yarn
+  directories:
+    - $HOME/.cache/composer/files
 
 addons:
   apt:
@@ -78,6 +80,7 @@ script:
   - du -hs /home/travis/build/pfrenssen/firetrack/target
   - du -hs /home/travis/.rustup
   - du -hs /home/travis/.cache/sccache
+  - du -hs $HOME/.cache/composer/files
 
 before_cache:
   - rm -rf /home/travis/.cargo/registry
