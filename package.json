@@ -1,0 +1,12 @@
+{
+  "name": "firetrack",
+  "version": "0.1.0",
+  "main": "index.js",
+  "repository": "git@github.com:pfrenssen/firetrack.git",
+  "author": "Pieter Frenssen <pieter@frenssen.be>",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@popperjs/core": "^2.2.1",
+    "jquery": "^3.4.1"
+  }
+}
