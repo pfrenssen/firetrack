@@ -23,7 +23,7 @@ matrix:
 cache:
   - cargo
   - yarn
-  directories:
+  - directories:
     - $HOME/.cache/composer/files
 
 addons:
