@@ -137,9 +137,13 @@ pub fn configure_application(
             .data(pool)
             .data(app_config)
             .wrap(CookieSession::signed(&[0; 32]).secure(false))
-            .service(actix_files::Files::new("/css", "static/css"))
-            .service(actix_files::Files::new("/images", "static/images"))
-            .service(actix_files::Files::new("/js", "static/js"))
+            .service(actix_files::Files::new("/css", "web/static/css/"))
+            .service(actix_files::Files::new("/images", "web/static/images/"))
+            .service(actix_files::Files::new("/js", "web/static/js/"))
+            .service(actix_files::Files::new(
+                "/third-party",
+                "web/static/third-party/",
+            ))
             .route("/", web::get().to(index))
             .route("/user/activate", web::get().to(user::activate_handler))
             .route("/user/activate", web::post().to(user::activate_submit))

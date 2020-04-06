@@ -1,6 +1,6 @@
 {
     "name": "pfrenssen/firetrack",
-    "license": "GPL",
+    "license": "GPL-3.0-or-later",
     "authors": [
         {
             "name": "Pieter Frenssen",
@@ -10,7 +10,8 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": ">=7.4.0"
+        "php": ">=7.4.0",
+        "twbs/bootstrap": "^4.4"
     },
     "require-dev": {
         "behat/behat": "^3.5",

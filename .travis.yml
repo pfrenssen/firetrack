@@ -20,7 +20,19 @@ matrix:
   allow_failures:
     - rust: nightly
 
-cache: cargo
+cache:
+  - cargo
+  - yarn
+  - directories:
+    - $HOME/.cache/composer/files
+
+addons:
+  apt:
+    sources:
+      - sourceline: 'deb https://dl.yarnpkg.com/debian/ stable main'
+        key_url: 'https://dl.yarnpkg.com/debian/pubkey.gpg'
+    packages:
+      - yarn
 
 before_install:
   # Travis CI uses the minimal profile for the Rust toolchain. Replace it with
@@ -30,19 +42,20 @@ before_install:
   # Use a PPA to get a more recent version of PHP in Xenial.
   - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
-  - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring composer
+  - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring
   - php --version
+  # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
+  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  - php composer-setup.php
+  - php composer.phar --version
   # Install Diesel.
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
 
 install:
-  # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
-  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  - php composer-setup.php
-  - php composer.phar --version
-  - php composer.phar install --no-interaction --prefer-source
+  - yarn install
+  - php composer.phar install --no-interaction
 
 script:
   # Check coding standards.
@@ -67,6 +80,7 @@ script:
   - du -hs /home/travis/build/pfrenssen/firetrack/target
   - du -hs /home/travis/.rustup
   - du -hs /home/travis/.cache/sccache
+  - du -hs $HOME/.cache/composer/files
 
 before_cache:
   - rm -rf /home/travis/.cargo/registry
