@@ -140,7 +140,10 @@ pub fn configure_application(
             .service(actix_files::Files::new("/css", "web/static/css/"))
             .service(actix_files::Files::new("/images", "web/static/images/"))
             .service(actix_files::Files::new("/js", "web/static/js/"))
-            .service(actix_files::Files::new("/third-party", "web/static/third-party/"))
+            .service(actix_files::Files::new(
+                "/third-party",
+                "web/static/third-party/",
+            ))
             .route("/", web::get().to(index))
             .route("/user/activate", web::get().to(user::activate_handler))
             .route("/user/activate", web::post().to(user::activate_submit))
