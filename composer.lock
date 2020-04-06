@@ -701,16 +701,16 @@
         },
         {
             "name": "lovers-of-behat/screenshot-extension",
-            "version": "0.1.0",
+            "version": "0.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/LoversOfBehat/ScreenshotExtension.git",
-                "reference": "a45165670901fd506bb955e935e9a4ff81fca9b5"
+                "reference": "2e201ca937eabccc022340db4ad895d18a6523d1"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/LoversOfBehat/ScreenshotExtension/zipball/a45165670901fd506bb955e935e9a4ff81fca9b5",
-                "reference": "a45165670901fd506bb955e935e9a4ff81fca9b5",
+                "url": "https://api.github.com/repos/LoversOfBehat/ScreenshotExtension/zipball/2e201ca937eabccc022340db4ad895d18a6523d1",
+                "reference": "2e201ca937eabccc022340db4ad895d18a6523d1",
                 "shasum": ""
             },
             "require": {
@@ -741,7 +741,7 @@
                 }
             ],
             "description": "Behat extension to take screenshots of failed steps",
-            "time": "2019-09-08T19:41:35+00:00"
+            "time": "2020-04-04T21:08:44+00:00"
         },
         {
             "name": "psr/container",
