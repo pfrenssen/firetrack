@@ -40,7 +40,7 @@ before_install:
   # Use a PPA to get a more recent version of PHP in Xenial.
   - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
-  - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring composer
+  - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring
   - php --version
   # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
   - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
