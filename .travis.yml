@@ -20,7 +20,17 @@ matrix:
   allow_failures:
     - rust: nightly
 
-cache: cargo
+cache:
+  - cargo
+  - yarn
+
+addons:
+  apt:
+    sources:
+      - sourceline: 'deb https://dl.yarnpkg.com/debian/ stable main'
+        key_url: 'https://dl.yarnpkg.com/debian/pubkey.gpg'
+    packages:
+      - yarn
 
 before_install:
   # Travis CI uses the minimal profile for the Rust toolchain. Replace it with
@@ -32,16 +42,17 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring composer
   - php --version
+  # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
+  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+  - php composer-setup.php
+  - php composer.phar --version
   # Install Diesel.
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
 
 install:
-  # The version of Composer shipping with Xenial doesn't work with PHP 7.3.
-  - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  - php composer-setup.php
-  - php composer.phar --version
+  - yarn install
   - php composer.phar install --no-interaction --prefer-source
 
 script:
