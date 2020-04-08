@@ -6,30 +6,30 @@ use validator::validate_email;
 
 // The form fields of the user form.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct UserFormInput {
+pub struct UserForm {
     email: String,
     password: String,
 }
 
-impl UserFormInput {
-    pub fn new(email: String, password: String) -> UserFormInput {
-        UserFormInput { email, password }
+impl UserForm {
+    pub fn new(email: String, password: String) -> UserForm {
+        UserForm { email, password }
     }
 }
 
 // Whether the form fields of the user form are valid.
 #[derive(Serialize, Deserialize)]
-struct UserFormInputValid {
+struct UserFormValidation {
     form_is_validated: bool,
     email: bool,
     password: bool,
 }
 
-impl UserFormInputValid {
+impl UserFormValidation {
     // Instantiate a form validation struct.
     #[cfg(test)]
-    pub fn new(form_is_validated: bool, email: bool, password: bool) -> UserFormInputValid {
-        UserFormInputValid {
+    pub fn new(form_is_validated: bool, email: bool, password: bool) -> UserFormValidation {
+        UserFormValidation {
             form_is_validated,
             email,
             password,
@@ -37,8 +37,8 @@ impl UserFormInputValid {
     }
 
     // Instantiate a form validation struct with default values.
-    pub fn default() -> UserFormInputValid {
-        UserFormInputValid {
+    pub fn default() -> UserFormValidation {
+        UserFormValidation {
             form_is_validated: false,
             email: true,
             password: true,
@@ -88,8 +88,8 @@ pub async fn login_handler(
 pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
-    let input = UserFormInput::new("".to_string(), "".to_string());
-    let validation_state = UserFormInputValid::default();
+    let input = UserForm::new("".to_string(), "".to_string());
+    let validation_state = UserFormValidation::default();
     render_register(tera, input, validation_state)
 }
 
@@ -97,12 +97,12 @@ pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpRespons
 pub async fn register_submit(
     session: Session,
     tera: web::Data<tera::Tera>,
-    input: web::Form<UserFormInput>,
+    input: web::Form<UserForm>,
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
     // Validate the form input.
-    let mut validation_state = UserFormInputValid::default();
+    let mut validation_state = UserFormValidation::default();
 
     if !validate_email(&input.email) {
         validation_state.email = false;
@@ -146,8 +146,8 @@ pub async fn register_submit(
 // Renders the registration form, including validation errors.
 fn render_register(
     tera: web::Data<tera::Tera>,
-    input: UserFormInput,
-    validation_state: UserFormInputValid,
+    input: UserForm,
+    validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Sign up");
@@ -361,16 +361,16 @@ mod tests {
     fn test_user_form_input_valid_is_valid() {
         let test_cases = [
             // Unvalidated forms are never valid.
-            (UserFormInputValid::new(false, false, false), false),
-            (UserFormInputValid::new(false, false, true), false),
-            (UserFormInputValid::new(false, true, false), false),
-            (UserFormInputValid::new(false, true, true), false),
+            (UserFormValidation::new(false, false, false), false),
+            (UserFormValidation::new(false, false, true), false),
+            (UserFormValidation::new(false, true, false), false),
+            (UserFormValidation::new(false, true, true), false),
             // Validated forms where one of the fields do not validate are invalid.
-            (UserFormInputValid::new(true, false, false), false),
-            (UserFormInputValid::new(true, false, true), false),
-            (UserFormInputValid::new(true, true, false), false),
+            (UserFormValidation::new(true, false, false), false),
+            (UserFormValidation::new(true, false, true), false),
+            (UserFormValidation::new(true, true, false), false),
             // A validated form with valid fields is valid.
-            (UserFormInputValid::new(true, true, true), true),
+            (UserFormValidation::new(true, true, true), true),
         ];
 
         for test_case in &test_cases {

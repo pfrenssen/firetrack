@@ -22,7 +22,7 @@ async fn register_with_valid_data() {
     // Register with a valid email address and password.
     let email = "test@example.com";
     let password = "mypass";
-    let payload = user::UserFormInput::new(email.to_string(), password.to_string());
+    let payload = user::UserForm::new(email.to_string(), password.to_string());
 
     let req = test::TestRequest::post()
         .uri("/user/register")
