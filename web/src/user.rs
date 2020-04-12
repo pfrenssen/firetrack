@@ -1,7 +1,9 @@
+use super::bootstrap_components::{Alert, AlertType};
 use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
 use db::activation_code::ActivationCodeErrorKind;
+use diesel::PgConnection;
 use validator::validate_email;
 
 // The form fields of the user form.
@@ -45,6 +47,39 @@ impl UserFormValidation {
         }
     }
 
+    // Validates the user form when registering.
+    pub fn validate_registration(input: &UserForm) -> UserFormValidation {
+        let mut validation_state = UserFormValidation::default();
+
+        if !validate_email(&input.email) {
+            validation_state.email = false;
+        }
+
+        if input.password.is_empty() {
+            validation_state.password = false;
+        }
+
+        validation_state.form_is_validated = true;
+        validation_state
+    }
+
+    // Validates the user form when logging in.
+    pub fn validate_login(
+        connection: &PgConnection,
+        config: &AppConfig,
+        input: &UserForm,
+    ) -> UserFormValidation {
+        let mut validation_state = UserFormValidation::default();
+
+        if db::user::verify_password(connection, &input.email, &input.password, config).is_err() {
+            // To prevent enumeration attacks we treat a non-existing email as a wrong password.
+            validation_state.password = false;
+        }
+
+        validation_state.form_is_validated = true;
+        validation_state
+    }
+
     // Returns whether the form is validated and found valid.
     pub fn is_valid(&self) -> bool {
         self.form_is_validated && self.email && self.password
@@ -56,10 +91,22 @@ pub async fn login_handler(
     session: Session,
     tera: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
-    use super::bootstrap_components::{Alert, AlertType};
+    let input = UserForm::new("".to_string(), "".to_string());
+    let validation_state = UserFormValidation::default();
+    render_login(session, tera, input, validation_state)
+}
 
+// Renders the login form.
+fn render_login(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+    input: UserForm,
+    validation_state: UserFormValidation,
+) -> Result<HttpResponse, Error> {
     let mut context = tera::Context::new();
     context.insert("title", &"Log in");
+    context.insert("input", &input);
+    context.insert("validation", &validation_state);
 
     // If the user is coming from the activation form, show a success message.
     if session
@@ -80,8 +127,32 @@ pub async fn login_handler(
 
     let content = tera
         .render("user/login.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Submit handler for the login form.
+pub async fn login_submit(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+    input: web::Form<UserForm>,
+    pool: web::Data<db::ConnectionPool>,
+    config: web::Data<AppConfig>,
+) -> Result<HttpResponse, Error> {
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+
+    // Validate the form input.
+    let validation_state = UserFormValidation::validate_login(&connection, &config, &input);
+
+    // If validation failed, show the form again with validation errors highlighted.
+    if !validation_state.is_valid() {
+        return render_login(session, tera, input.into_inner(), validation_state);
+    }
+
+    // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
+    // request.
+    // Todo: set the session and show a temporary success message "You are now logged in".
+    Ok(HttpResponse::SeeOther().header("location", "/").finish())
 }
 
 // Request handler for a GET request on the registration form.
@@ -102,17 +173,7 @@ pub async fn register_submit(
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
     // Validate the form input.
-    let mut validation_state = UserFormValidation::default();
-
-    if !validate_email(&input.email) {
-        validation_state.email = false;
-    }
-
-    if input.password.is_empty() {
-        validation_state.password = false;
-    }
-
-    validation_state.form_is_validated = true;
+    let validation_state = UserFormValidation::validate_registration(&input);
 
     // If validation failed, show the form again with validation errors highlighted.
     if !validation_state.is_valid() {
@@ -152,11 +213,11 @@ fn render_register(
     let mut context = tera::Context::new();
     context.insert("title", &"Sign up");
     context.insert("input", &input);
-    context.insert("valid", &validation_state);
+    context.insert("validation", &validation_state);
 
     let content = tera
         .render("user/register.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
@@ -318,7 +379,7 @@ fn render_activate(
 
     let content = tera
         .render("user/activate.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
