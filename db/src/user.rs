@@ -46,7 +46,9 @@ impl fmt::Display for UserErrorKind {
             UserErrorKind::ActivationFailed(ref err) => {
                 write!(f, "Database error when activating user: {}", err)
             }
-            UserErrorKind::IncorrectPassword(ref email) => write!(f, "Wrong password for email address: {}", email),
+            UserErrorKind::IncorrectPassword(ref email) => {
+                write!(f, "Wrong password for email address: {}", email)
+            }
             UserErrorKind::InvalidEmail(ref email) => write!(f, "Invalid email address: {}", email),
             UserErrorKind::PasswordHashFailed(ref err) => {
                 write!(f, "Password hashing error: {}", err)
@@ -161,12 +163,18 @@ pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKin
 }
 
 /// Verifies that the given email and password are valid. Returns the user if they match.
-pub fn verify_password(connection: &PgConnection, email: &str, password: &str, config: &AppConfig) -> Result<User, UserErrorKind> {
+pub fn verify_password(
+    connection: &PgConnection,
+    email: &str,
+    password: &str,
+    config: &AppConfig,
+) -> Result<User, UserErrorKind> {
     let user = read(connection, email)?;
 
-    match asserts::hashed_password_is_valid(user.password.as_str(), password, config.secret_key()) {
-        false => Err(UserErrorKind::IncorrectPassword(email.to_string())),
-        true => Ok(user),
+    if asserts::hashed_password_is_valid(user.password.as_str(), password, config.secret_key()) {
+        Ok(user)
+    } else {
+        Err(UserErrorKind::IncorrectPassword(email.to_string()))
     }
 }
 
@@ -397,12 +405,13 @@ mod tests {
     #[test]
     fn test_verify_password() {
         let connection = establish_connection(&get_database_url());
-        let email = "test@example.com";
-        let password = "mypass";
         let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
             // Create two test users.
-            let credentials = vec![("test@example.com", "mypass"), ("other.user@example.com", "secret")];
+            let credentials = vec![
+                ("test@example.com", "mypass"),
+                ("other.user@example.com", "secret"),
+            ];
             for c in &credentials {
                 create(&connection, c.0, c.1, &config).unwrap();
             }
@@ -413,7 +422,11 @@ mod tests {
                 assert!(result.is_ok());
                 let user = result.unwrap();
                 assert_eq!(user.email, c.0);
-                assert!(asserts::hashed_password_is_valid(user.password.as_str(), c.1, config.secret_key()));
+                assert!(asserts::hashed_password_is_valid(
+                    user.password.as_str(),
+                    c.1,
+                    config.secret_key()
+                ));
             }
 
             // Check that an error is returned when a non-existing user is validated.
@@ -422,7 +435,10 @@ mod tests {
                 let result = verify_password(&connection, non_existing_email, c.1, &config);
                 assert!(result.is_err());
                 let error = result.unwrap_err();
-                assert_eq!(error, UserErrorKind::UserNotFound(non_existing_email.to_string()));
+                assert_eq!(
+                    error,
+                    UserErrorKind::UserNotFound(non_existing_email.to_string())
+                );
             }
 
             // Check that an error is returned when the password is incorrect.
