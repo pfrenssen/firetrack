@@ -36,6 +36,9 @@ necessary configuration options:
 # The database connection.
 DATABASE_URL=postgres://myuser:mypass@localhost/mydatabasename
 
+# The session key, 32 8-bit integers used as a seed to generate session IDs.
+SESSION_KEY=189,154,170,151,17,183,51,68,42,157,147,5,137,119,96,60,118,84,241,175,181,201,132,24,144,134,42,46,63,20,231,255
+
 # The secret key used in password hashing.
 SECRET_KEY=mysecret123
 

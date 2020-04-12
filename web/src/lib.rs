@@ -131,12 +131,13 @@ pub fn configure_application(
     app_config: AppConfig,
 ) {
     let tera = compile_templates();
+    let session_key = app_config.session_key();
     config.service(
         web::scope("")
             .data(tera)
             .data(pool)
             .data(app_config)
-            .wrap(CookieSession::signed(&[0; 32]).secure(false))
+            .wrap(CookieSession::signed(&session_key).secure(false))
             .service(actix_files::Files::new("/css", "web/static/css/"))
             .service(actix_files::Files::new("/images", "web/static/images/"))
             .service(actix_files::Files::new("/js", "web/static/js/"))
