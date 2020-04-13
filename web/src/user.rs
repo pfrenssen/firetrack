@@ -87,6 +87,7 @@ impl UserFormValidation {
 }
 
 // Request handler for the login form.
+// Todo return access denied if the user is already authenticated.
 pub async fn login_handler(
     session: Session,
     tera: web::Data<tera::Tera>,
@@ -96,7 +97,33 @@ pub async fn login_handler(
     render_login(session, tera, input, validation_state)
 }
 
+// Submit handler for the login form.
+// Todo return access denied if the user is already authenticated.
+pub async fn login_submit(
+    session: Session,
+    tera: web::Data<tera::Tera>,
+    input: web::Form<UserForm>,
+    pool: web::Data<db::ConnectionPool>,
+    config: web::Data<AppConfig>,
+) -> Result<HttpResponse, Error> {
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+
+    // Validate the form input.
+    let validation_state = UserFormValidation::validate_login(&connection, &config, &input);
+
+    // If validation failed, show the form again with validation errors highlighted.
+    if !validation_state.is_valid() {
+        return render_login(session, tera, input.into_inner(), validation_state);
+    }
+
+    // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
+    // request.
+    // Todo: set the session and show a temporary success message "You are now logged in".
+    Ok(HttpResponse::SeeOther().header("location", "/").finish())
+}
+
 // Renders the login form.
+// Todo Don't pass the session, keep the logic in the caller.
 fn render_login(
     session: Session,
     tera: web::Data<tera::Tera>,
@@ -131,31 +158,8 @@ fn render_login(
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
-// Submit handler for the login form.
-pub async fn login_submit(
-    session: Session,
-    tera: web::Data<tera::Tera>,
-    input: web::Form<UserForm>,
-    pool: web::Data<db::ConnectionPool>,
-    config: web::Data<AppConfig>,
-) -> Result<HttpResponse, Error> {
-    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
-
-    // Validate the form input.
-    let validation_state = UserFormValidation::validate_login(&connection, &config, &input);
-
-    // If validation failed, show the form again with validation errors highlighted.
-    if !validation_state.is_valid() {
-        return render_login(session, tera, input.into_inner(), validation_state);
-    }
-
-    // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
-    // request.
-    // Todo: set the session and show a temporary success message "You are now logged in".
-    Ok(HttpResponse::SeeOther().header("location", "/").finish())
-}
-
 // Request handler for a GET request on the registration form.
+// Todo return access denied if the user is already authenticated.
 pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
@@ -165,6 +169,7 @@ pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpRespons
 }
 
 // Submit handler for the registration form.
+// Todo return access denied if the user is already authenticated.
 pub async fn register_submit(
     session: Session,
     tera: web::Data<tera::Tera>,
@@ -266,6 +271,7 @@ impl ActivationFormInputValid {
 
 // Request handler for the activation form. This returns the initial GET request for the activation
 // form. The form fields are empty and there are no validation errors.
+// Todo return access denied if the user is already authenticated.
 pub async fn activate_handler(
     session: Session,
     tera: web::Data<tera::Tera>,
@@ -289,6 +295,7 @@ pub async fn activate_handler(
 }
 
 // Submit handler for the activation form.
+// Todo return access denied if the user is already authenticated.
 pub async fn activate_submit(
     session: Session,
     tera: web::Data<tera::Tera>,
