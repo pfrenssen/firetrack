@@ -16,6 +16,7 @@ use actix_web::test;
 mod bootstrap_components;
 mod user;
 
+use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
@@ -115,13 +116,24 @@ pub async fn serve(config: AppConfig) -> std::io::Result<()> {
 }
 
 // Controller for the homepage.
-async fn index(template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
-    let mut context = tera::Context::new();
+async fn index(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+    let mut context = get_tera_context(id);
     context.insert("title", &"Home");
+
     let content = template
         .render("index.html", &context)
         .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Returns a new Tera context object.
+pub fn get_tera_context(id: Identity) -> tera::Context {
+    let mut context = tera::Context::new();
+
+    // Set a flag to indicate if the user is logged in.
+    context.insert("authenticated", &id.identity().is_some());
+
+    context
 }
 
 // Configure the application.
@@ -137,7 +149,14 @@ pub fn configure_application(
             .data(tera)
             .data(pool)
             .data(app_config)
+            // Todo: Allow to toggle the secure flag on both the session and identity providers.
+            // Ref. https://github.com/pfrenssen/firetrack/issues/96
             .wrap(CookieSession::signed(&session_key).secure(false))
+            .wrap(IdentityService::new(
+                CookieIdentityPolicy::new(&session_key)
+                    .name("auth")
+                    .secure(false),
+            ))
             .service(actix_files::Files::new("/css", "web/static/css/"))
             .service(actix_files::Files::new("/images", "web/static/images/"))
             .service(actix_files::Files::new("/js", "web/static/js/"))

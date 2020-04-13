@@ -1,4 +1,6 @@
 use super::bootstrap_components::{Alert, AlertType};
+use super::get_tera_context;
+use actix_identity::Identity;
 use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
@@ -89,18 +91,20 @@ impl UserFormValidation {
 // Request handler for the login form.
 // Todo return access denied if the user is already authenticated.
 pub async fn login_handler(
+    id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
     let input = UserForm::new("".to_string(), "".to_string());
     let validation_state = UserFormValidation::default();
-    render_login(session, tera, input, validation_state)
+    render_login(id, session, tera, input, validation_state)
 }
 
 // Submit handler for the login form.
 // Todo return access denied if the user is already authenticated.
 pub async fn login_submit(
     session: Session,
+    id: Identity,
     tera: web::Data<tera::Tera>,
     input: web::Form<UserForm>,
     pool: web::Data<db::ConnectionPool>,
@@ -113,24 +117,28 @@ pub async fn login_submit(
 
     // If validation failed, show the form again with validation errors highlighted.
     if !validation_state.is_valid() {
-        return render_login(session, tera, input.into_inner(), validation_state);
+        return render_login(id, session, tera, input.into_inner(), validation_state);
     }
+
+    // The user has been validated, create a session.
+    id.remember(input.email.to_owned());
 
     // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
     // request.
-    // Todo: set the session and show a temporary success message "You are now logged in".
+    // Todo: show a temporary success message "You are now logged in".
     Ok(HttpResponse::SeeOther().header("location", "/").finish())
 }
 
 // Renders the login form.
 // Todo Don't pass the session, keep the logic in the caller.
 fn render_login(
+    id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = tera::Context::new();
+    let mut context = get_tera_context(id);
     context.insert("title", &"Log in");
     context.insert("input", &input);
     context.insert("validation", &validation_state);
@@ -160,18 +168,19 @@ fn render_login(
 
 // Request handler for a GET request on the registration form.
 // Todo return access denied if the user is already authenticated.
-pub async fn register_handler(tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn register_handler(id: Identity ,tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
     let input = UserForm::new("".to_string(), "".to_string());
     let validation_state = UserFormValidation::default();
-    render_register(tera, input, validation_state)
+    render_register(id, tera, input, validation_state)
 }
 
 // Submit handler for the registration form.
 // Todo return access denied if the user is already authenticated.
 pub async fn register_submit(
     session: Session,
+    id: Identity,
     tera: web::Data<tera::Tera>,
     input: web::Form<UserForm>,
     pool: web::Data<db::ConnectionPool>,
@@ -182,7 +191,7 @@ pub async fn register_submit(
 
     // If validation failed, show the form again with validation errors highlighted.
     if !validation_state.is_valid() {
-        return render_register(tera, input.into_inner(), validation_state);
+        return render_register(id, tera, input.into_inner(), validation_state);
     }
 
     // Create the user account.
@@ -211,11 +220,12 @@ pub async fn register_submit(
 
 // Renders the registration form, including validation errors.
 fn render_register(
+    id: Identity,
     tera: web::Data<tera::Tera>,
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = tera::Context::new();
+    let mut context = get_tera_context(id);
     context.insert("title", &"Sign up");
     context.insert("input", &input);
     context.insert("validation", &validation_state);
@@ -273,6 +283,7 @@ impl ActivationFormInputValid {
 // form. The form fields are empty and there are no validation errors.
 // Todo return access denied if the user is already authenticated.
 pub async fn activate_handler(
+    id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
     pool: web::Data<db::ConnectionPool>,
@@ -285,7 +296,7 @@ pub async fn activate_handler(
             if !user.activated {
                 let input = ActivationFormInput::new("".to_string());
                 let validation_state = ActivationFormInputValid::default();
-                return render_activate(tera, input, validation_state);
+                return render_activate(id, tera, input, validation_state);
             }
         }
     }
@@ -297,6 +308,7 @@ pub async fn activate_handler(
 // Submit handler for the activation form.
 // Todo return access denied if the user is already authenticated.
 pub async fn activate_submit(
+    id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
     input: web::Form<ActivationFormInput>,
@@ -307,6 +319,7 @@ pub async fn activate_submit(
     // Convenience functions for easily returning error messages.
     let validation_error = |message| {
         render_activate(
+            id,
             tera,
             input.into_inner(),
             ActivationFormInputValid::invalid(message),
@@ -375,11 +388,12 @@ pub async fn activate_submit(
 
 // Renders the activation form.
 fn render_activate(
+    id: Identity,
     tera: web::Data<tera::Tera>,
     input: ActivationFormInput,
     validation_state: ActivationFormInputValid,
 ) -> Result<HttpResponse, Error> {
-    let mut context = tera::Context::new();
+    let mut context = get_tera_context(id);
     context.insert("title", &"Activate account");
     context.insert("input", &input);
     context.insert("validation", &validation_state);
