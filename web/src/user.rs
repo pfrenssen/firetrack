@@ -168,6 +168,20 @@ fn render_login(
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
+// Request handler for logging out.
+pub async fn logout_handler(
+    id: Identity,
+    session: Session,
+) -> Result<HttpResponse, Error> {
+    assert_authenticated(&id)?;
+
+    id.forget();
+    session.purge();
+
+    // Todo: show a temporary success message "You have been logged out".
+    Ok(HttpResponse::SeeOther().header("location", "/").finish())
+}
+
 // Request handler for a GET request on the registration form.
 pub async fn register_handler(id: Identity ,tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     assert_not_authenticated(&id)?;
@@ -415,6 +429,14 @@ fn render_activate(
 fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
     if id.identity().is_some() {
         return Err(error::ErrorUnauthorized("You are already logged in."));
+    }
+    Ok(())
+}
+
+// Checks that the user is authenticated.
+fn assert_authenticated(id: &Identity) -> Result<(), Error> {
+    if id.identity().is_none() {
+        return Err(error::ErrorUnauthorized("You need to be logged in to access this page."));
     }
     Ok(())
 }

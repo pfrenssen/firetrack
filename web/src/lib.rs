@@ -169,6 +169,7 @@ pub fn configure_application(
             .route("/user/activate", web::post().to(user::activate_submit))
             .route("/user/login", web::get().to(user::login_handler))
             .route("/user/login", web::post().to(user::login_submit))
+            .route("/user/logout", web::get().to(user::logout_handler))
             .route("/user/register", web::get().to(user::register_handler))
             .route("/user/register", web::post().to(user::register_submit)),
     );
