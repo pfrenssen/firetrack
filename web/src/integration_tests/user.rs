@@ -93,3 +93,33 @@ async fn test_login_handler() {
     assert_page_title(&body, "Log in");
     assert_navbar(&body);
 }
+
+// Integration tests for the user registration form handler.
+#[actix_rt::test]
+async fn test_register_handler() {
+    dotenv::dotenv().ok();
+    dotenv::from_filename(".env.dist").ok();
+
+    let config = app::AppConfig::from_test_defaults();
+    let database_url = config.database_url();
+    let pool = db::create_test_connection_pool(database_url).unwrap();
+    let mut app = test::init_service(
+        App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
+    )
+    .await;
+
+    let req = test::TestRequest::get().uri("/user/register").to_request();
+
+    let response = app.call(req).await.unwrap();
+    let body = get_response_body(&response.response());
+
+    assert_response_ok(&response.response());
+    assert_header_title(&body, "Sign up");
+    assert_page_title(&body, "Sign up");
+    assert_navbar(&body);
+
+    // Check that the email and password fields and submit button are present.
+    assert_form_input(&body, "email", "email", "email", "Email address");
+    assert_form_input(&body, "password", "password", "password", "Password");
+    assert_form_submit(&body, "Sign up");
+}

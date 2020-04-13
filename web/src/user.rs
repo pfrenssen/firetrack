@@ -444,36 +444,6 @@ fn assert_authenticated(id: &Identity) -> Result<(), Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::firetrack_test::*;
-
-    use actix_web::test::TestRequest;
-
-    // Unit tests for the user registration form handler.
-    #[actix_rt::test]
-    async fn test_register_handler() {
-        dotenv::dotenv().ok();
-
-        // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-        let tera = crate::compile_templates();
-        let request = TestRequest::get().data(tera).to_http_request();
-        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
-
-        // Pass the Data struct containing the Tera templates to the controller. This mimics how
-        // actix-web passes the data to the controller.
-        let controller = register_handler(app_data_tera.clone());
-        let response = controller.await.unwrap();
-        let body = get_response_body(&response);
-
-        assert_response_ok(&response);
-        assert_header_title(&body, "Sign up");
-        assert_page_title(&body, "Sign up");
-        assert_navbar(&body);
-
-        // Check that the email and password fields and submit button are present.
-        assert_form_input(&body, "email", "email", "email", "Email address");
-        assert_form_input(&body, "password", "password", "password", "Password");
-        assert_form_submit(&body, "Sign up");
-    }
 
     // Tests UserFormInputValid::is_valid().
     #[test]

@@ -10,8 +10,6 @@ mod integration_tests;
 
 #[cfg(test)]
 use crate::firetrack_test::*;
-#[cfg(test)]
-use actix_web::test;
 
 mod bootstrap_components;
 mod user;
@@ -186,31 +184,4 @@ fn compile_templates() -> tera::Tera {
         "web/templates/**/*"
     };
     tera::Tera::new(path).unwrap()
-}
-
-#[cfg(test)]
-// Unit tests for the homepage.
-mod tests {
-    use super::*;
-
-    #[actix_rt::test]
-    async fn test_index() {
-        dotenv::dotenv().ok();
-
-        // Wrap the Tera struct in a HttpRequest and then retrieve it from the request as a Data struct.
-        let tera = compile_templates();
-        let request = test::TestRequest::get().data(tera).to_http_request();
-        let app_data_tera = request.app_data::<web::Data<tera::Tera>>().unwrap();
-
-        // Pass the Data struct containing the Tera templates to the index() function. This mimics how
-        // actix-web passes the data to the controller.
-        let controller = index(app_data_tera.clone());
-        let response = controller.await.unwrap();
-        let body = get_response_body(&response);
-
-        assert_response_ok(&response);
-        assert_header_title(&body, "Home");
-        assert_page_title(&body, "Home");
-        assert_navbar(&body);
-    }
 }
