@@ -169,10 +169,7 @@ fn render_login(
 }
 
 // Request handler for logging out.
-pub async fn logout_handler(
-    id: Identity,
-    session: Session,
-) -> Result<HttpResponse, Error> {
+pub async fn logout_handler(id: Identity, session: Session) -> Result<HttpResponse, Error> {
     assert_authenticated(&id)?;
 
     id.forget();
@@ -183,7 +180,10 @@ pub async fn logout_handler(
 }
 
 // Request handler for a GET request on the registration form.
-pub async fn register_handler(id: Identity ,tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn register_handler(
+    id: Identity,
+    tera: web::Data<tera::Tera>,
+) -> Result<HttpResponse, Error> {
     assert_not_authenticated(&id)?;
 
     // This returns the initial GET request for the registration form. The form fields are empty and
@@ -436,7 +436,9 @@ fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
 // Checks that the user is authenticated.
 fn assert_authenticated(id: &Identity) -> Result<(), Error> {
     if id.identity().is_none() {
-        return Err(error::ErrorUnauthorized("You need to be logged in to access this page."));
+        return Err(error::ErrorUnauthorized(
+            "You need to be logged in to access this page.",
+        ));
     }
     Ok(())
 }
