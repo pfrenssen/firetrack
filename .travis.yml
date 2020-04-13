@@ -64,6 +64,8 @@ script:
   - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
+  # Build the project.
+  - cargo build
   # Start the Mailgun mock server and wait for it to come online.
   - cargo run -- mailgun-mock-server &> mailgun.log &
   - until curl -s localhost:8089; do true; done &> /dev/null
