@@ -89,19 +89,19 @@ impl UserFormValidation {
 }
 
 // Request handler for the login form.
-// Todo return access denied if the user is already authenticated.
 pub async fn login_handler(
     id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     let input = UserForm::new("".to_string(), "".to_string());
     let validation_state = UserFormValidation::default();
     render_login(id, session, tera, input, validation_state)
 }
 
 // Submit handler for the login form.
-// Todo return access denied if the user is already authenticated.
 pub async fn login_submit(
     session: Session,
     id: Identity,
@@ -110,6 +110,8 @@ pub async fn login_submit(
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
 
     // Validate the form input.
@@ -167,8 +169,9 @@ fn render_login(
 }
 
 // Request handler for a GET request on the registration form.
-// Todo return access denied if the user is already authenticated.
 pub async fn register_handler(id: Identity ,tera: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
     let input = UserForm::new("".to_string(), "".to_string());
@@ -177,7 +180,6 @@ pub async fn register_handler(id: Identity ,tera: web::Data<tera::Tera>) -> Resu
 }
 
 // Submit handler for the registration form.
-// Todo return access denied if the user is already authenticated.
 pub async fn register_submit(
     session: Session,
     id: Identity,
@@ -186,6 +188,8 @@ pub async fn register_submit(
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     // Validate the form input.
     let validation_state = UserFormValidation::validate_registration(&input);
 
@@ -281,13 +285,14 @@ impl ActivationFormInputValid {
 
 // Request handler for the activation form. This returns the initial GET request for the activation
 // form. The form fields are empty and there are no validation errors.
-// Todo return access denied if the user is already authenticated.
 pub async fn activate_handler(
     id: Identity,
     session: Session,
     tera: web::Data<tera::Tera>,
     pool: web::Data<db::ConnectionPool>,
 ) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     // The email address is passed in the session by the registration / login form. Return an error
     // if it is not set or does not correspond with an existing, non-activated user.
     if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
@@ -306,7 +311,6 @@ pub async fn activate_handler(
 }
 
 // Submit handler for the activation form.
-// Todo return access denied if the user is already authenticated.
 pub async fn activate_submit(
     id: Identity,
     session: Session,
@@ -314,6 +318,8 @@ pub async fn activate_submit(
     input: web::Form<ActivationFormInput>,
     pool: web::Data<db::ConnectionPool>,
 ) -> Result<HttpResponse, Error> {
+    assert_not_authenticated(&id)?;
+
     let activation_code = input.activation_code.clone();
 
     // Convenience functions for easily returning error messages.
@@ -402,6 +408,15 @@ fn render_activate(
         .render("user/activate.html", &context)
         .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Checks that the user is not authenticated. Used to control access on login and registration
+// forms.
+fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
+    if id.identity().is_some() {
+        return Err(error::ErrorUnauthorized("You are already logged in."));
+    }
+    Ok(())
 }
 
 #[cfg(test)]
