@@ -7,6 +7,6 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@popperjs/core": "^2.3.1",
-    "jquery": "^3.4.1"
+    "jquery": "^3.5.0"
   }
 }
