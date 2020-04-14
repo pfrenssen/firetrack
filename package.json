@@ -6,7 +6,7 @@
   "author": "Pieter Frenssen <pieter@frenssen.be>",
   "license": "GPL-3.0",
   "dependencies": {
-    "@popperjs/core": "^2.3.1",
+    "@popperjs/core": "^2.3.2",
     "jquery": "^3.5.0"
   }
 }
