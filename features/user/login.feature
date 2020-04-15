@@ -36,3 +36,15 @@ Feature: User login
 
     # Clean up the user created through the UI.
     Then I delete the user "myra_paige@example.com"
+
+  Scenario Outline: A logged in user cannot access registration, login and activation forms
+    Given I am logged in as "georgius-albinson@hotmail.com"
+    When I go to "<path>"
+    Then the response should contain "You are already logged in."
+    And the response status code should be 401
+
+    Examples:
+      | path           |
+      | /user/login    |
+      | /user/activate |
+      | /user/register |
