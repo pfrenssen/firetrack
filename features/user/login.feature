@@ -23,13 +23,11 @@ Feature: User login
     When I fill in "Email address" with "myra_paige@example.com"
     And I fill in "Password" with "thunder"
     And I press "Log in"
-    # Then I should see a success message
     And I should see the link "Log out"
     But I should not see the link "Sign up"
     And I should not see the link "Log in"
 
     When I click "Log out"
-    # Then I should see a success message
     And I should see the link "Sign up"
     And I should see the link "Log in"
     But I should not see the link "Log out"

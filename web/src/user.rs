@@ -130,7 +130,6 @@ pub async fn login_submit(
 
     // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
     // request.
-    // Todo: show a temporary success message "You are now logged in".
     Ok(HttpResponse::SeeOther().header("location", "/").finish())
 }
 
