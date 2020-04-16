@@ -349,7 +349,7 @@ mod tests {
     // Tests super::get().
     #[test]
     fn test_get() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -427,7 +427,7 @@ mod tests {
     // Tests super::activate_user().
     #[test]
     fn test_activate_user() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -506,7 +506,7 @@ mod tests {
     // Tests super::purge().
     #[test]
     fn test_purge() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
@@ -547,7 +547,7 @@ mod tests {
     // Tests super::delete().
     #[test]
     fn test_delete() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -573,7 +573,7 @@ mod tests {
     // Tests super::read().
     #[test]
     fn test_read() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -604,7 +604,7 @@ mod tests {
     // Tests super::create().
     #[test]
     fn test_create() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email1 = "test-user-1@example.com";
         let email2 = "test-user-2@example.com";
         let password1 = "mypass";
@@ -669,7 +669,7 @@ mod tests {
     // Tests super::increase_attempt_counter().
     #[test]
     fn test_increase_attempt_counter() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
