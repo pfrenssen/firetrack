@@ -3,7 +3,7 @@ Feature: User login
   As a user
   I want to log in using my credentials
 
-  Scenario: Log in using correct credentials
+  Scenario: Log in using valid credentials
     Given I am on the user registration form
     When I fill in "Email address" with "myra_paige@example.com"
     And I fill in "Password" with "thunder"
@@ -36,6 +36,30 @@ Feature: User login
 
     # Clean up the user created through the UI.
     Then I delete the user "myra_paige@example.com"
+
+  Scenario Outline: Login form validation
+    Given user "jeho-shehu@yahoo.co.uk" with password "sunshine"
+    And I am on the user login form
+    When I fill in "Email address" with "<email>"
+    And I fill in "Password" with "<password>"
+    And I press "Log in"
+    Then I should be on "/user/login"
+    And I should see the form validation error "Incorrect email address or password. Please try again."
+    And I should see the heading "Log in"
+    And I should see the link "Sign up"
+    And I should see the link "Log in"
+    And I should not see the link "Log out"
+
+    Examples:
+      | email                  | password  |
+      |                        |           |
+      |                        | wrongpass |
+      |                        | sunshine  |
+      | wrongmail@yahoo.co.uk  |           |
+      | wrongmail@yahoo.co.uk  | wrongpass |
+      | wrongmail@yahoo.co.uk  | sunshine  |
+      | jeho-shehu@yahoo.co.uk |           |
+      | jeho-shehu@yahoo.co.uk | wrongpass |
 
   Scenario Outline: A logged in user cannot access registration, login and activation forms
     Given I am logged in as "georgius-albinson@hotmail.com"

@@ -35,6 +35,17 @@ class UserContext extends RawMinkContext
     }
 
     /**
+     * Navigates to the user login form.
+     *
+     * @Given I am on the user login form
+     */
+    public function goToUserLoginForm(): void
+    {
+        $this->visitPath('/user/login');
+        $this->assertSession()->statusCodeEquals(200);
+    }
+
+    /**
      * Deletes the user with the given email address.
      *
      * @param string $email
@@ -47,19 +58,30 @@ class UserContext extends RawMinkContext
     }
 
     /**
-     * Creates the user with the given email address and password.
+     * Creates the user with the given email address, password and activation state.
      *
      * @param string $email
      * @param string $password
+     *   The password, defaults to 'password'.
+     * @param string $activation
+     *   The activation state, can be either 'active' or 'inactive'. Defaults to 'active'.
      *
      * @Given user :email
+     * @Given :activation user :email
      * @Given user :email with password :password
+     * @Given :activation user :email with password :password
      */
-    public function createUser(string $email, string $password = 'password'): void
+    public function createUser(string $email, string $password = 'password', string $activation = 'active'): void
     {
-        $email = escapeshellarg($email);
-        $password = escapeshellarg($password);
-        $this->executeCommand("user add $email $password");
+        $escaped_email = escapeshellarg($email);
+        $escaped_password = escapeshellarg($password);
+        $this->executeCommand("user add $escaped_email $escaped_password");
+
+        $this->users[$email] = $email;
+
+        if ($activation === 'active') {
+            $this->activateUser($email);
+        }
     }
 
     /**
@@ -89,17 +111,18 @@ class UserContext extends RawMinkContext
      *
      * @throws \Behat\Mink\Exception\ElementNotFoundException
      *   Thrown when the form elements to log in a user are not found.
+     * @throws \Behat\Mink\Exception\ResponseTextException
+     *   Thrown when the success message is not shown after logging in.
      */
     public function logInAs(string $email, string $password = 'password'): void
     {
-        $this->users[$email] = $email;
         $this->createUser($email, $password);
-        $this->activateUser($email);
         $this->visitPath('/user/login');
         $page = $this->getSession()->getPage();
         $page->fillField('Email address', $email);
         $page->fillField('Password', $password);
         $page->pressButton('Log in');
+        $this->assertSession()->pageTextContains('Log out');
     }
 
     /**
