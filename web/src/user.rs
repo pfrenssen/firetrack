@@ -73,7 +73,10 @@ impl UserFormValidation {
     ) -> UserFormValidation {
         let mut validation_state = UserFormValidation::default();
 
-        if input.email.is_empty() || input.password.is_empty() || db::user::verify_password(connection, &input.email, &input.password, config).is_err() {
+        if input.email.is_empty()
+            || input.password.is_empty()
+            || db::user::verify_password(connection, &input.email, &input.password, config).is_err()
+        {
             // To prevent enumeration attacks we treat a non-existing email as a wrong password.
             validation_state.password = false;
         }
