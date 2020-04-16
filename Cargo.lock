@@ -338,7 +338,6 @@ version = "0.1.0-dev"
 dependencies = [
  "dotenv",
  "env_logger 0.7.1",
- "mailgun_v3",
  "mockito 0.25.1",
  "regex",
 ]
@@ -670,7 +669,6 @@ dependencies = [
  "app",
  "clap",
  "db",
- "libxml",
  "log",
  "mailgun_mock",
  "notifications",
@@ -2975,7 +2973,6 @@ dependencies = [
  "diesel",
  "dotenv",
  "libxml",
- "log",
  "mockito 0.25.1",
  "notifications",
  "r2d2",

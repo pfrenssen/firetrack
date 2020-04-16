@@ -12,7 +12,6 @@ actix-web = "~2.0"
 app = { path = "../app" }
 clap = "~2.33"
 db = { path = "../db" }
-libxml = "~0.2"
 log = "~0.4"
 mailgun_mock = { path = "../mailgun_mock" }
 notifications = { path = "../notifications" }

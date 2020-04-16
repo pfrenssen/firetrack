@@ -7,8 +7,8 @@ use diesel::connection::Connection;
 use diesel::pg::PgConnection;
 use diesel::r2d2::ConnectionManager;
 use diesel::r2d2::CustomizeConnection;
+use diesel::ConnectionError;
 use std::fmt;
-use std::process::exit;
 
 mod schema;
 
@@ -46,14 +46,13 @@ pub fn create_connection_pool(database_url: &str) -> Result<ConnectionPool, Data
 // Todo: return a `Result<PgConnection, DatabaseError>`. This is causing tests to fail silently when
 //   the database is not running.
 // See https://github.com/pfrenssen/firetrack/issues/50
-pub fn establish_connection(database_url: &str) -> PgConnection {
+pub fn establish_connection(database_url: &str) -> Result<PgConnection, ConnectionError> {
     match PgConnection::establish(&database_url) {
-        Ok(value) => value,
+        Ok(value) => Ok(value),
         Err(e) => {
             error!("Could not connect to PostgreSQL.");
             error!("Error connecting to {}", database_url);
-            error!("{}", e.to_string());
-            exit(1);
+            Err(e)
         }
     }
 }

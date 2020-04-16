@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_create() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn test_delete() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -342,7 +342,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -382,7 +382,7 @@ mod tests {
 
     #[test]
     fn test_activate() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let email = "test@example.com";
         let password = "mypass";
         let config = AppConfig::from_test_defaults();
@@ -404,7 +404,7 @@ mod tests {
 
     #[test]
     fn test_verify_password() {
-        let connection = establish_connection(&get_database_url());
+        let connection = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
             // Create two test users.

@@ -1,6 +1,4 @@
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate serde_derive;
 
 #[cfg(test)]
@@ -19,74 +17,9 @@ use actix_session::CookieSession;
 use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;
-use std::process::exit;
-
-/// A trait that defines functions that will log an error and exit with an error code.
-/// These can be used instead of panics to have clean logging in the console.
-pub trait ExitWithError<T> {
-    /// Unwraps an option or result, yielding the content of a [`Some`] or [`Ok`].
-    ///
-    /// # Exits
-    ///
-    /// Logs an error using the text provided by `msg` if the value is a [`None`] or [`Err`] and
-    /// exits with an error code.
-    fn expect_or_exit(self, msg: &str) -> T;
-
-    /// Unwraps an option or result, yielding the content of a [`Some`] or [`Ok`].
-    ///
-    /// # Exits
-    ///
-    /// Exits with an error code if the value is a [`None`] or [`Err`]. If the value is an [`Err`]
-    /// the corresponding error message will be logged.
-    fn unwrap_or_exit(self) -> T;
-}
-
-impl<T> ExitWithError<T> for Option<T> {
-    fn expect_or_exit(self, msg: &str) -> T {
-        match self {
-            Some(val) => val,
-            None => {
-                error!("{}", msg);
-                exit(1);
-            }
-        }
-    }
-
-    fn unwrap_or_exit(self) -> T {
-        match self {
-            Some(val) => val,
-            None => {
-                error!("called `Option::unwrap()` on a `None` value");
-                exit(1);
-            }
-        }
-    }
-}
-
-impl<T, E: std::fmt::Display> ExitWithError<T> for Result<T, E> {
-    fn expect_or_exit(self, msg: &str) -> T {
-        match self {
-            Ok(t) => t,
-            Err(_) => {
-                error!("{}", msg);
-                exit(1);
-            }
-        }
-    }
-
-    fn unwrap_or_exit(self) -> T {
-        match self {
-            Ok(t) => t,
-            Err(e) => {
-                error!("{}", &e);
-                exit(1);
-            }
-        }
-    }
-}
 
 // Starts the web server on the host address and port as configured in the application.
-pub async fn serve(config: AppConfig) -> std::io::Result<()> {
+pub async fn serve(config: AppConfig) -> Result<(), String> {
     let pool = db::create_connection_pool(&config.database_url()).unwrap();
     let cloned_config = config.clone();
 
@@ -100,16 +33,13 @@ pub async fn serve(config: AppConfig) -> std::io::Result<()> {
     // Start the web server.
     let addr = format!("{}:{}", config.host(), config.port());
     match HttpServer::new(app).bind(addr) {
-        Ok(server) => server.run().await,
-        Err(e) => {
-            error!(
-                "Failed to start web server on {}:{}",
-                config.host(),
-                config.port()
-            );
-            error!("{}", e.to_string());
-            exit(1);
-        }
+        Ok(server) => server.run().await.map_err(|e| e.to_string()),
+        Err(e) => Err(format!(
+            "Failed to start web server on {}:{} - {}",
+            config.host(),
+            config.port(),
+            e.to_string()
+        )),
     }
 }
 
