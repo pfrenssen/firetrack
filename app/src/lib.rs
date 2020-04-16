@@ -14,6 +14,9 @@ pub struct AppConfig {
     // Todo: integrate this into the host IP address.
     port: u16,
 
+    // The session key used to generate session IDs.
+    session_key: [u8; 32],
+
     // The database URL.
     database_url: String,
 
@@ -57,6 +60,7 @@ impl AppConfig {
     ///
     /// # let host = "127.0.0.1";
     /// # let port = 8888;
+    /// # let session_key = [0; 32];
     /// # let database_url = "postgres://username:password@localhost/firetrack";
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
@@ -75,6 +79,7 @@ impl AppConfig {
     ///
     /// # assert_eq!(config.host(), host);
     /// # assert_eq!(config.port(), port);
+    /// # assert_eq!(config.session_key(), session_key);
     /// # assert_eq!(config.database_url(), database_url);
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
@@ -94,6 +99,7 @@ impl AppConfig {
                 .expect("PORT environment variable is not set.")
                 .parse()
                 .expect("PORT environment variable should be an integer value."),
+            session_key: [0; 32],
             database_url: var("DATABASE_URL")
                 .expect("DATABASE_URL environment variable is not set."),
             secret_key: "my_secret".to_string(),
@@ -122,6 +128,7 @@ impl AppConfig {
     ///
     /// # let host = "127.0.0.1";
     /// # let port = 8888;
+    /// # let session_key = "1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1";
     /// # let database_url = "postgres://username:password@localhost/firetrack";
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
@@ -133,6 +140,7 @@ impl AppConfig {
     /// # let mailgun_mock_server_port = 8889;
     /// # env::set_var("HOST", host);
     /// # env::set_var("PORT", port.to_string());
+    /// # env::set_var("SESSION_KEY", session_key.to_string());
     /// # env::set_var("DATABASE_URL", database_url);
     /// # env::set_var("SECRET_KEY", secret_key);
     /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
@@ -147,6 +155,7 @@ impl AppConfig {
     ///
     /// # assert_eq!(config.host(), host);
     /// # assert_eq!(config.port(), port);
+    /// # assert_eq!(config.session_key(), [1; 32]);
     /// # assert_eq!(config.database_url(), database_url);
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
@@ -160,10 +169,23 @@ impl AppConfig {
     pub fn from_environment() -> AppConfig {
         import_env_vars();
 
+        // Check that the secret key is not empty.
         let secret_key = var("SECRET_KEY").expect("SECRET_KEY environment variable is not set.");
         if secret_key.is_empty() {
             panic!("SECRET_KEY environment variable is empty.");
         }
+
+        // Cast the session key into a [u8; 32].
+        let session_key = var("SESSION_KEY").expect("SESSION_KEY environment variable is not set.");
+        let regex =
+            r"^((1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5]),){31}(1?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$";
+        if !regex::Regex::new(regex)
+            .unwrap()
+            .is_match(session_key.as_str())
+        {
+            panic!("SESSION_KEY environment variable must be an array of 32 8-bit numbers.");
+        }
+        let session_key = session_key.split(',').map(|s| s.parse().unwrap()).cast();
 
         AppConfig {
             host: var("HOST").expect("HOST environment variable is not set."),
@@ -171,6 +193,7 @@ impl AppConfig {
                 .expect("PORT environment variable is not set.")
                 .parse()
                 .expect("PORT environment variable should be an integer value."),
+            session_key,
             database_url: var("DATABASE_URL")
                 .expect("DATABASE_URL environment variable is not set."),
             secret_key,
@@ -232,7 +255,21 @@ impl AppConfig {
         self.port
     }
 
-    /// Returns the host port number.
+    /// Returns the session key.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use app::AppConfig;
+    ///
+    /// let config = AppConfig::from_test_defaults();
+    /// assert_eq!(config.session_key(), [0; 32]);
+    /// ```
+    pub fn session_key(&self) -> [u8; 32] {
+        self.session_key
+    }
+
+    /// Returns the database URL.
     ///
     /// # Example
     ///
@@ -383,3 +420,26 @@ fn import_env_vars() {
     // as a fallback.
     dotenv::from_filename(".env.dist").ok();
 }
+
+use std::convert::AsMut;
+use std::default::Default;
+
+// Trait for casting a vector into an array.
+// https://stackoverflow.com/a/60572615/350644
+trait CastExt<T, U: Default + AsMut<[T]>>: Sized + Iterator<Item = T> {
+    fn cast(mut self) -> U {
+        let mut out: U = U::default();
+        let arr: &mut [T] = out.as_mut();
+        #[allow(clippy::needless_range_loop)]
+        for i in 0..arr.len() {
+            match self.next() {
+                None => panic!("Array was not filled"),
+                Some(v) => arr[i] = v,
+            }
+        }
+        assert!(self.next().is_none(), "Array was overfilled");
+        out
+    }
+}
+
+impl<T, U: Iterator<Item = T>, V: Default + AsMut<[T]>> CastExt<T, V> for U {}

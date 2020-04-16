@@ -26,8 +26,12 @@
                     <a class="nav-link" href="#">Link</a>
                 </li>
             </ul>
-            <a class="btn btn-primary" href="/user/register">Sign up</a>
-            <a class="btn" href="/user/login">Log in</a>
+            {% if authenticated %}
+                <a class="btn" href="/user/logout">Log out</a>
+            {% else %}
+                <a class="btn btn-primary" href="/user/register">Sign up</a>
+                <a class="btn" href="/user/login">Log in</a>
+            {% endif %}
         </div>
     </nav>
 

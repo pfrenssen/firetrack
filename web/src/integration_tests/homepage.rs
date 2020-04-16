@@ -1,6 +1,6 @@
 use super::super::*;
 
-use actix_web::{dev::Service, http::StatusCode, test, App};
+use actix_web::{dev::Service, test, App};
 
 #[actix_rt::test]
 async fn access_homepage() {
@@ -15,9 +15,11 @@ async fn access_homepage() {
     .await;
     let req = test::TestRequest::get().uri("/").to_request();
     let response = app.call(req).await.unwrap();
-    assert_eq!(
-        response.status(),
-        StatusCode::OK,
-        "Call to '/' returns 200 OK."
-    );
+
+    assert_response_ok(&response.response());
+
+    let body = get_response_body(&response.response());
+    assert_header_title(&body, "Home");
+    assert_page_title(&body, "Home");
+    assert_navbar(&body);
 }

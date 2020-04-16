@@ -1,6 +1,31 @@
 {% extends "base.html" %}
+{% import "js/js_macros.html" as js_macros %}
 
 {% block content %}
-<form class="form-login" method="post" enctype="application/x-www-form-urlencoded" action="/user/login" novalidate>
+{% set is_validated = "" %}
+{% if validation.form_is_validated %}
+    {% set is_validated = " was-validated" %}
+    {% if validation.password %}
+        {% set password_validation = " is-valid" %}
+    {% else %}
+        {% set password_validation = " is-invalid" %}
+    {% endif %}
+{% else %}
+    {% set password_validation = "" %}
+{% endif %}
+<form class="form-login{{ is_validated }}" method="post" enctype="application/x-www-form-urlencoded" action="/user/login" novalidate>
+    <div class="form-label-group">
+        <label for="email">Email address</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="Email address" value="{{ input.email }}" required autofocus="">
+    </div>
+
+    <div class="form-label-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" class="form-control{{ password_validation }}" placeholder="Password" value="" required>
+        <div class="invalid-feedback">Incorrect email address or password. Please try again.</div>
+    </div>
+
+    <button class="btn btn-lg btn-primary btn-block" type="submit">{{ title }}</button>
 </form>
+{{ js_macros::disable_invalid_form_submission(selector="form-login") }}
 {% endblock content %}

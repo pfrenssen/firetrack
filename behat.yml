@@ -6,6 +6,7 @@ default:
         - BootstrapContext
         - FeatureContext
         - HtmlContext
+        - MailgunContext
         - UserContext
         - Behat\MinkExtension\Context\MinkContext
       filters:

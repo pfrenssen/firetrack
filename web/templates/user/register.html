@@ -4,7 +4,7 @@
 
 {% block content %}
 <form class="form-register" method="post" enctype="application/x-www-form-urlencoded" action="/user/register" novalidate>
-    {{ macros::form_elements(input=input, validation=valid) }}
+    {{ macros::form_elements(input=input, validation=validation) }}
 </form>
 {{ js_macros::disable_invalid_form_submission(selector="form-register") }}
 {% endblock content %}

@@ -4,14 +4,18 @@ declare(strict_types = 1);
 
 use Behat\Mink\Exception\ElementNotFoundException;
 use Behat\MinkExtension\Context\RawMinkContext;
-use Firetrack\Tests\EmailMessage;
 use Firetrack\Tests\Exception\ExpectationException;
+use Firetrack\Tests\Traits\ActivationCodeTrait;
+use Firetrack\Tests\Traits\MailgunTrait;
 
 /**
  * Step definitions for interacting with activation codes.
  */
 class ActivationCodeContext extends RawMinkContext
 {
+
+    use ActivationCodeTrait;
+    use MailgunTrait;
 
     /**
      * Checks that an activation mail has been sent to the given email address.
@@ -45,7 +49,7 @@ class ActivationCodeContext extends RawMinkContext
             throw new ExpectationException(sprintf('No activation code was sent to %s', $email));
         }
 
-        $code = $this->getActivationCode($message);
+        $code = $this->getActivationCodeFromMessage($message);
         try {
             $this->getSession()->getPage()->fillField($field, $code);
         } catch (ElementNotFoundException $e) {
@@ -56,106 +60,6 @@ class ActivationCodeContext extends RawMinkContext
                 )
             );
         }
-    }
-
-    /**
-     * Returns the first activation message that was sent to the given email address.
-     *
-     * @param string $email
-     *   The email address to which the message was sent.
-     *
-     * @return EmailMessage|null
-     *   The message, or NULL if no message was found.
-     */
-    protected function getActivationMessage(string $email): ?EmailMessage
-    {
-        foreach ($this->getMessagesTo($email) as $message) {
-            if ($this->isActivationMessage($message)) {
-                return $message;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns the activation code contained in the given activation mail.
-     *
-     * @param EmailMessage $message
-     *   The activation message.
-     *
-     * @return string
-     *   The activation code.
-     *
-     * @throws \InvalidArgumentException
-     *   Thrown when the passed in message is not an activation message.
-     */
-    protected function getActivationCode(EmailMessage $message): string
-    {
-        if (!$this->isActivationMessage($message)) {
-            throw new \InvalidArgumentException('Can only retrieve activation codes from activation messages');
-        }
-
-        $matches = [];
-        preg_match('/^Activation code: (\d{6})$/', $message->text, $matches);
-
-        return $matches[1];
-    }
-
-    /**
-     * Returns the messages which were sent to the given email address.
-     *
-     * @param string $email
-     *   The email address to which the messages were sent.
-     *
-     * @return EmailMessage[]
-     */
-    protected function getMessagesTo(string $email): array
-    {
-        return array_filter(
-            $this->getMessages(),
-            function (EmailMessage $message) use ($email) {
-                return $message->to === $email;
-            }
-        );
-    }
-
-    /**
-     * Returns the list of email messages that have been sent via Mailgun.
-     *
-     * @return EmailMessage[]
-     */
-    protected function getMessages(): array
-    {
-        return array_map(
-            function (string $line) {
-                return EmailMessage::fromServerLogEntry($line);
-            },
-            $this->getLog()
-        );
-    }
-
-    /**
-     * Returns the Mailgun mock server log as an array of lines.
-     *
-     * @return string[]
-     */
-    protected function getLog(): array
-    {
-        // @todo Make the path to the log file configurable in behat.yml.
-        $filename = getcwd() . '/mailgun-mock-server.log';
-        return file($filename, FILE_IGNORE_NEW_LINES);
-    }
-
-    /**
-     * Checks whether the passed in message is an activation message.
-     *
-     * @param EmailMessage $message
-     *
-     * @return bool
-     */
-    protected function isActivationMessage(EmailMessage $message): bool
-    {
-        return (bool) preg_match('/^Activation code: \d{6}$/', $message->text);
     }
 
     /**

@@ -7,12 +7,13 @@ edition = "2018"
 [dependencies]
 actix-files = "~0.2"
 actix-http = "^1.0.1"
-actix-session = "~0.3.0"
+actix-identity = "~0.2"
+actix-session = "~0.3"
 actix-web = "~2.0"
 app = { path = "../app" }
 db = { path = "../db" }
 diesel = { version = "~1.4", features = ['chrono', 'postgres', 'r2d2'] }
-dotenv = "^0.15"
+dotenv = "~0.15"
 libxml = "~0.2"
 log = "~0.4"
 notifications = { path = "../notifications" }

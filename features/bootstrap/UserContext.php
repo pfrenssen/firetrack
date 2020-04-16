@@ -3,7 +3,8 @@
 declare(strict_types = 1);
 
 use Behat\MinkExtension\Context\RawMinkContext;
-use Firetrack\Tests\Exception\ExpectationException;
+use Firetrack\Tests\Traits\ActivationCodeTrait;
+use Firetrack\Tests\Traits\FiretrackCliTrait;
 
 /**
  * Step definitions for interacting with the user profile pages.
@@ -11,13 +12,16 @@ use Firetrack\Tests\Exception\ExpectationException;
 class UserContext extends RawMinkContext
 {
 
+    use ActivationCodeTrait;
+    use FiretrackCliTrait;
+
     /**
-     * A list of possible locations of the firetrack binary, relative to the current path, in order of preference.
+     * Users created during scenarios.
+     *
+     * @var string[]
+     *   An array of email addresses of users created during scenarios.
      */
-    const BINARY_LOCATIONS = [
-        'target/release/cli',
-        'target/debug/cli',
-    ];
+    protected array $users = [];
 
     /**
      * Navigates to the user registration form.
@@ -27,6 +31,17 @@ class UserContext extends RawMinkContext
     public function goToUserRegistrationForm(): void
     {
         $this->visitPath('/user/register');
+        $this->assertSession()->statusCodeEquals(200);
+    }
+
+    /**
+     * Navigates to the user login form.
+     *
+     * @Given I am on the user login form
+     */
+    public function goToUserLoginForm(): void
+    {
+        $this->visitPath('/user/login');
         $this->assertSession()->statusCodeEquals(200);
     }
 
@@ -43,44 +58,83 @@ class UserContext extends RawMinkContext
     }
 
     /**
-     * Executes a command using the Firetrack binary.
+     * Creates the user with the given email address, password and activation state.
      *
-     * @param string $command
-     *   The command to execute.
+     * @param string $email
+     * @param string $password
+     *   The password, defaults to 'password'.
+     * @param string $activation
+     *   The activation state, can be either 'active' or 'inactive'. Defaults to 'active'.
      *
-     * @return string[]
-     *   The command output.
+     * @Given user :email
+     * @Given :activation user :email
+     * @Given user :email with password :password
+     * @Given :activation user :email with password :password
      */
-    protected function executeCommand(string $command): array {
-        $output = [];
-        $exit = 0;
+    public function createUser(string $email, string $password = 'password', string $activation = 'active'): void
+    {
+        $escaped_email = escapeshellarg($email);
+        $escaped_password = escapeshellarg($password);
+        $this->executeCommand("user add $escaped_email $escaped_password");
 
-        $binary = $this->locateExecutable();
-        $command = escapeshellcmd("$binary $command");
-        exec($command, $output, $exit);
+        $this->users[$email] = $email;
 
-        if ($exit !== 0) {
-            throw new ExpectationException(sprintf("Command '%s' returned error code %u.", $command, $exit));
+        if ($activation === 'active') {
+            $this->activateUser($email);
         }
-
-        return $output;
     }
 
     /**
-     * Locates the Firetrack executable.
+     * Activates the user with the given email address.
      *
-     * @return string
-     *   The absolute path to the Firetrack binary.
+     * @param string $email
+     *
+     * @Given the account of :email is activated
      */
-    protected function locateExecutable(): string {
-        foreach (static::BINARY_LOCATIONS as $location) {
-            $path = getcwd() . DIRECTORY_SEPARATOR . $location;
-            if (is_executable($path)) {
-                return realpath($path);
-            }
-        }
+    public function activateUser(string $email): void
+    {
+        $code = $this->getActivationCode($email);
 
-        throw new ExpectationException(sprintf('Firetrack executable could not be located.'));
+        $email = escapeshellarg($email);
+        $code = escapeshellarg($code);
+        $this->executeCommand("user activate $email $code");
+    }
+
+    /**
+     * Creates a user account for the given email address and logs in as this user.
+     *
+     * @param string $email
+     * @param string $password
+     *
+     * @Given I am logged in as :email
+     * @Given I am logged in as :email with password :password
+     *
+     * @throws \Behat\Mink\Exception\ElementNotFoundException
+     *   Thrown when the form elements to log in a user are not found.
+     * @throws \Behat\Mink\Exception\ResponseTextException
+     *   Thrown when the success message is not shown after logging in.
+     */
+    public function logInAs(string $email, string $password = 'password'): void
+    {
+        $this->createUser($email, $password);
+        $this->visitPath('/user/login');
+        $page = $this->getSession()->getPage();
+        $page->fillField('Email address', $email);
+        $page->fillField('Password', $password);
+        $page->pressButton('Log in');
+        $this->assertSession()->pageTextContains('Log out');
+    }
+
+    /**
+     * Cleans up users created during the scenario.
+     *
+     * @AfterScenario
+     */
+    public function cleanUsers(): void {
+        foreach ($this->users as $email) {
+            $this->deleteUser($email);
+        }
+        $this->users = [];
     }
 
 }
