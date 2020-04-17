@@ -14,9 +14,9 @@ const MAX_VALUE: i32 = 999_999;
 const MAX_ATTEMPTS: i16 = 5;
 
 #[derive(Associations, Clone, Debug, PartialEq, Queryable)]
-#[belongs_to(User, foreign_key = "email")]
+#[belongs_to(User, foreign_key = "id")]
 pub struct ActivationCode {
-    pub email: String,
+    pub id: i32,
     pub code: i32,
     pub expiration_time: chrono::NaiveDateTime,
     pub attempts: i16,
@@ -31,7 +31,7 @@ impl ActivationCode {
     /// # use db::activation_code::ActivationCode;
     /// #
     /// let mut activation_code = ActivationCode {
-    ///     email: "test@example.com".to_string(),
+    ///     id: 1,
     ///     code: 123456,
     ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
@@ -55,7 +55,7 @@ impl ActivationCode {
     /// # use db::activation_code::ActivationCode;
     /// #
     /// let mut activation_code = ActivationCode {
-    ///     email: "test@example.com".to_string(),
+    ///     id: 1,
     ///     code: 123456,
     ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
@@ -84,7 +84,7 @@ impl ActivationCode {
     /// # use db::activation_code::{ActivationCode, ActivationCodeErrorKind};
     /// #
     /// let mut activation_code = ActivationCode {
-    ///     email: "test@example.com".to_string(),
+    ///     id: 1,
     ///     code: 123456,
     ///     expiration_time: chrono::Local::now().checked_add_signed(chrono::Duration::minutes(30)).unwrap().naive_local(),
     ///     attempts: 0,
@@ -178,11 +178,11 @@ pub fn get(
 ) -> Result<ActivationCode, ActivationCodeErrorKind> {
     assert_not_activated(user)?;
 
-    let email = user.email.as_str();
-    match read(connection, email) {
+    let id = user.id;
+    match read(connection, id) {
         Some(c) => {
             if c.is_expired() {
-                create(connection, email)
+                create(connection, user.id)
             } else {
                 // If the activation code already exists, increase the attempts counter before
                 // returning the code. This prevents an attacker flooding the user's inbox with
@@ -190,7 +190,7 @@ pub fn get(
                 increase_attempt_counter(connection, c)
             }
         }
-        None => create(connection, email),
+        None => create(connection, id),
     }
 }
 
@@ -201,7 +201,7 @@ pub fn activate_user(
     activation_code: i32,
 ) -> Result<User, ActivationCodeErrorKind> {
     assert_not_activated(&user)?;
-    match read(connection, user.email.as_str()) {
+    match read(connection, user.id) {
         Some(c) => {
             if c.is_expired() {
                 return Err(ActivationCodeErrorKind::Expired);
@@ -235,19 +235,19 @@ pub fn purge(connection: &PgConnection) -> Result<(), ActivationCodeErrorKind> {
 
 /// Deletes the activation code for the given user.
 pub fn delete(connection: &PgConnection, user: &User) -> Result<(), ActivationCodeErrorKind> {
-    diesel::delete(dsl::activation_codes.filter(dsl::email.eq(user.email.as_str())))
+    diesel::delete(dsl::activation_codes.filter(dsl::id.eq(user.id)))
         .execute(connection)
         .map_err(ActivationCodeErrorKind::DeletionFailed)?;
     Ok(())
 }
 
-// Retrieves the activation code for the user with the given email address.
+// Retrieves the activation code for the user with the given ID.
 //
 // Returns raw data from the database which may be stale. Use `get()` instead, this is guaranteed to
 // return a valid activation code when possible, and has protection against brute force attacks.
-fn read(connection: &PgConnection, email: &str) -> Option<ActivationCode> {
+fn read(connection: &PgConnection, id: i32) -> Option<ActivationCode> {
     let activation_code = dsl::activation_codes
-        .find(email)
+        .find(id)
         .first::<ActivationCode>(connection);
     match activation_code {
         Ok(c) => Some(c),
@@ -257,9 +257,8 @@ fn read(connection: &PgConnection, email: &str) -> Option<ActivationCode> {
 
 // Creates an activation code.
 //
-// Creates a new activation code database record for the user with the given email address with the
-// following data:
-// - email: the user's email address.
+// Creates a new activation code database record for the given user with the following data:
+// - id: the user's ID.
 // - code: a random number between 100000 and 999999.
 // - expiration_time: a timestamp 30 minutes from now.
 //
@@ -267,10 +266,7 @@ fn read(connection: &PgConnection, email: &str) -> Option<ActivationCode> {
 // to use `get()` instead of this function; it will check if an existing non-expired activation code
 // exists and return it if possible. It will create a new activation code only if no previous record
 // exists, or it is expired.
-fn create(
-    connection: &PgConnection,
-    email: &str,
-) -> Result<ActivationCode, ActivationCodeErrorKind> {
+fn create(connection: &PgConnection, id: i32) -> Result<ActivationCode, ActivationCodeErrorKind> {
     // Create a new activation code.
     let random_code = thread_rng().gen_range(MIN_VALUE, MAX_VALUE);
     let expiration_time =
@@ -284,19 +280,19 @@ fn create(
     // record.
     diesel::insert_into(dsl::activation_codes)
         .values((
-            dsl::email.eq(email),
+            dsl::id.eq(id),
             dsl::code.eq(random_code),
             dsl::expiration_time.eq(expiration_time),
             dsl::attempts.eq(0),
         ))
-        .on_conflict(dsl::email)
+        .on_conflict(dsl::id)
         .do_update()
         .set((
             dsl::code.eq(random_code),
             dsl::expiration_time.eq(expiration_time),
             dsl::attempts.eq(0),
         ))
-        .returning((dsl::email, dsl::code, dsl::expiration_time, dsl::attempts))
+        .returning((dsl::id, dsl::code, dsl::expiration_time, dsl::attempts))
         .get_result(connection)
         .map_err(ActivationCodeErrorKind::CreationFailed)
 }
@@ -316,9 +312,9 @@ fn increase_attempt_counter(
     }
 
     let activation_code =
-        diesel::update(dsl::activation_codes.filter(dsl::email.eq(activation_code.email.as_str())))
+        diesel::update(dsl::activation_codes.filter(dsl::id.eq(activation_code.id)))
             .set(dsl::attempts.eq(dsl::attempts + 1))
-            .returning((dsl::email, dsl::code, dsl::expiration_time, dsl::attempts))
+            .returning((dsl::id, dsl::code, dsl::expiration_time, dsl::attempts))
             .get_result::<ActivationCode>(connection)
             .map_err(ActivationCodeErrorKind::UpdateFailed)?;
 
@@ -358,14 +354,14 @@ mod tests {
             let user = user::create(&connection, email, password, &config).unwrap();
 
             // Initially, an activation code should not be present in the database.
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             // Generate an activation code and check that it contains correct values.
             let activation_code = get(&connection, &user).unwrap();
-            assert_activation_code(&activation_code, email, None, None, 0);
+            assert_activation_code(&activation_code, user.id, None, None, 0);
 
             // Check that a record now exists in the database.
-            assert!(read(&connection, email).is_some());
+            assert!(read(&connection, user.id).is_some());
 
             // We should be allowed to retrieve the activation code 5 more times, but any more
             // attempts should return an error.
@@ -374,7 +370,7 @@ mod tests {
                 let newly_retrieved = get(&connection, &user).unwrap();
                 assert_activation_code(
                     &newly_retrieved,
-                    &activation_code.email,
+                    activation_code.id,
                     Some(activation_code.code),
                     Some(activation_code.expiration_time),
                     attempt_count,
@@ -389,16 +385,16 @@ mod tests {
             }
 
             // Expire the activation code by updating the expired time.
-            expire_activation_code(&connection, email);
+            expire_activation_code(&connection, user.id);
 
             // Check that the activation code is now effectively expired, by reading the data
             // directly from the database.
-            assert!(read(&connection, email).unwrap().is_expired());
+            assert!(read(&connection, user.id).unwrap().is_expired());
 
             // When an activation code is expired and is again requested, a new activation code
             // should be generated and the attempts counter should be reset to 0.
             let fresh_activation_code = get(&connection, &user).unwrap();
-            assert_activation_code(&fresh_activation_code, email, None, None, 0);
+            assert_activation_code(&fresh_activation_code, user.id, None, None, 0);
             assert_ne!(activation_code.code, fresh_activation_code.code);
 
             // Activate the user and request a new activation code. This should result in an
@@ -412,6 +408,7 @@ mod tests {
             // Request an activation code for a user that has not been saved in the database. This
             // should result in an error.
             let user = User {
+                id: 1,
                 activated: false,
                 email: "non-existing-user@example.com".to_string(),
                 created: chrono::Local::now().naive_local(),
@@ -435,7 +432,7 @@ mod tests {
             // Create a test user through the API. This does not cause an activation code to be
             // generated, as is happening in normal usage (i.e. through the web UI).
             let user = user::create(&connection, email, password, &config).unwrap();
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             // In normal usage if an activation code is not present in the database for a non-
             // activated user this means that the activation code has expired and been purged from
@@ -447,7 +444,7 @@ mod tests {
 
             // Generate an activation code. It should initially have 0 attempts.
             let activation_code = get(&connection, &user).unwrap();
-            assert_activation_code(&activation_code, email, None, None, 0);
+            assert_activation_code(&activation_code, user.id, None, None, 0);
 
             // Try activating using the wrong code. This should result 5 times in an `InvalidCode`
             // error, and any subsequent attempts should activate the brute force protection and
@@ -476,7 +473,7 @@ mod tests {
 
             // Expire the activation code. It should then return an `Expired` error when trying to
             // activate, regardless of whether the correct or wrong code is passed.
-            expire_activation_code(&connection, email);
+            expire_activation_code(&connection, user.id);
             assert_eq!(
                 ActivationCodeErrorKind::Expired,
                 activate_user(&connection, user.clone(), activation_code.code).unwrap_err()
@@ -511,33 +508,32 @@ mod tests {
         let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
             // Create some test users and activation codes.
-            for i in 0..10 {
+            let mut user_ids: [i32; 10] = [0; 10];
+            for (i, user_id) in user_ids.iter_mut().enumerate() {
                 let email = format!("test{}@example.com", i);
-                user::create(&connection, email.as_str(), password, &config).unwrap();
-                create(&connection, email.as_str()).unwrap();
+                let user = user::create(&connection, email.as_str(), password, &config).unwrap();
+                *user_id = user.id;
+                create(&connection, user.id).unwrap();
 
                 // The first 5 users will have a fresh activation code, while the last 5 have an
                 // expired code.
                 if i >= 5 {
-                    expire_activation_code(&connection, email.as_str());
+                    expire_activation_code(&connection, user.id);
                 }
             }
 
             // Before purging, all activation codes should be present in the database.
-            for i in 0..10 {
-                let email = format!("test{}@example.com", i);
-                assert!(read(&connection, email.as_str()).is_some());
+            for user_id in user_ids.iter() {
+                assert!(read(&connection, *user_id).is_some());
             }
 
             // After purging, the last 5 activation codes should no longer be present.
             assert!(purge(&connection).is_ok());
-            for i in 0..5 {
-                let email = format!("test{}@example.com", i);
-                assert!(read(&connection, email.as_str()).is_some());
+            for user_id in user_ids.iter().take(5) {
+                assert!(read(&connection, *user_id).is_some());
             }
-            for i in 5..10 {
-                let email = format!("test{}@example.com", i);
-                assert!(read(&connection, email.as_str()).is_none());
+            for user_id in user_ids.iter().skip(5) {
+                assert!(read(&connection, *user_id).is_none());
             }
 
             Ok(())
@@ -555,16 +551,16 @@ mod tests {
             // Initially we do not expect to have a record for an activation code present in the
             // database for a user that is created through the API.
             let user = user::create(&connection, email, password, &config).unwrap();
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             // Generate an activation code. Now there should be a record.
             assert!(get(&connection, &user).is_ok());
-            assert!(read(&connection, email).is_some());
+            assert!(read(&connection, user.id).is_some());
 
             // Delete the activation code. This should not result in an error, and the record should
             // no longer be present.
             assert!(delete(&connection, &user).is_ok());
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             Ok(())
         });
@@ -580,22 +576,22 @@ mod tests {
         connection.test_transaction::<_, Error, _>(|| {
             // When no activation code is present yet, the `read()` function should return `None`.
             let user = user::create(&connection, email, password, &config).unwrap();
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             // Generate an activation code and assert that the `read()` function returns it.
             assert!(get(&connection, &user).is_ok());
-            let activation_code = read(&connection, email).unwrap();
-            assert_activation_code(&activation_code, email, None, None, 0);
+            let activation_code = read(&connection, user.id).unwrap();
+            assert_activation_code(&activation_code, user.id, None, None, 0);
 
             // Expire the activation code. It should still be returned.
-            expire_activation_code(&connection, email);
-            let activation_code = read(&connection, email).unwrap();
+            expire_activation_code(&connection, user.id);
+            let activation_code = read(&connection, user.id).unwrap();
             let expiration_time = chrono::Local::now().naive_local();
-            assert_activation_code(&activation_code, email, None, Some(expiration_time), 0);
+            assert_activation_code(&activation_code, user.id, None, Some(expiration_time), 0);
 
             // Delete the activation code. Now the `read()` function should return `None` again.
             assert!(delete(&connection, &user).is_ok());
-            assert!(read(&connection, email).is_none());
+            assert!(read(&connection, user.id).is_none());
 
             Ok(())
         });
@@ -612,18 +608,18 @@ mod tests {
         let config = AppConfig::from_test_defaults();
         connection.test_transaction::<_, Error, _>(|| {
             // Create two test users.
-            user::create(&connection, email1, password1, &config).unwrap();
-            user::create(&connection, email2, password2, &config).unwrap();
+            let user1 = user::create(&connection, email1, password1, &config).unwrap();
+            let user2 = user::create(&connection, email2, password2, &config).unwrap();
 
             // Initially there should be no activation codes for the test users.
-            assert!(read(&connection, email1).is_none());
-            assert!(read(&connection, email2).is_none());
+            assert!(read(&connection, user1.id).is_none());
+            assert!(read(&connection, user2.id).is_none());
 
             // Create activation codes for the users and check that valid objects are returned.
-            let activation_code_for_user_1 = create(&connection, email1).unwrap();
-            assert_activation_code(&activation_code_for_user_1, email1, None, None, 0);
-            let activation_code_for_user_2 = create(&connection, email2).unwrap();
-            assert_activation_code(&activation_code_for_user_2, email2, None, None, 0);
+            let activation_code_for_user_1 = create(&connection, user1.id).unwrap();
+            assert_activation_code(&activation_code_for_user_1, user1.id, None, None, 0);
+            let activation_code_for_user_2 = create(&connection, user2.id).unwrap();
+            assert_activation_code(&activation_code_for_user_2, user2.id, None, None, 0);
 
             // Check that the activation codes are different for both users.
             // Todo: there is a 1/900000 chance that both activation codes are equal, so this might
@@ -638,25 +634,25 @@ mod tests {
             // the one returned by `create()`.
             assert_eq!(
                 activation_code_for_user_1,
-                read(&connection, email1).unwrap()
+                read(&connection, user1.id).unwrap()
             );
             assert_eq!(
                 activation_code_for_user_2,
-                read(&connection, email2).unwrap()
+                read(&connection, user2.id).unwrap()
             );
 
             // When a new activation code is created for a user it should overwrite the existing
             // one. It should have a different code than the previous one.
             // Todo: there is a 1/900000 chance that both activation codes are equal, so this might
             // cause a random failure.
-            let new_activation_code_for_user_1 = create(&connection, email1).unwrap();
-            assert_activation_code(&new_activation_code_for_user_1, email1, None, None, 0);
+            let new_activation_code_for_user_1 = create(&connection, user1.id).unwrap();
+            assert_activation_code(&new_activation_code_for_user_1, user1.id, None, None, 0);
             assert_ne!(
                 activation_code_for_user_1.code,
                 new_activation_code_for_user_1.code
             );
-            let new_activation_code_for_user_2 = create(&connection, email2).unwrap();
-            assert_activation_code(&new_activation_code_for_user_2, email2, None, None, 0);
+            let new_activation_code_for_user_2 = create(&connection, user2.id).unwrap();
+            assert_activation_code(&new_activation_code_for_user_2, user2.id, None, None, 0);
             assert_ne!(
                 activation_code_for_user_2.code,
                 new_activation_code_for_user_2.code
@@ -678,7 +674,7 @@ mod tests {
             // matching database record then we should get an error.
             let user = user::create(&connection, email, password, &config).unwrap();
             let unsaved_activation_code = ActivationCode {
-                email: email.to_string(),
+                id: user.id,
                 code: 123_456,
                 expiration_time: chrono::Local::now()
                     .checked_add_signed(chrono::Duration::minutes(30))
@@ -722,6 +718,7 @@ mod tests {
     #[test]
     fn test_assert_not_activated() {
         let mut user = User {
+            id: 1,
             activated: false,
             email: "user@example.com".to_string(),
             created: chrono::Local::now().naive_local(),
@@ -741,8 +738,8 @@ mod tests {
     fn assert_activation_code(
         // The activation code to check.
         activation_code: &ActivationCode,
-        // The expected email address.
-        email: &str,
+        // The expected user ID.
+        id: i32,
         // The expected activation code. If omitted the code will only be checked to see if it is
         // between MIN_VALUE and MAX_VALUE.
         code: Option<i32>,
@@ -754,8 +751,8 @@ mod tests {
         // The expected value of the retry attempts counter.
         attempts: i16,
     ) {
-        // Check the email address.
-        assert_eq!(email.to_string(), activation_code.email);
+        // Check the user ID.
+        assert_eq!(id, activation_code.id);
 
         // Check the activation code.
         match code {
@@ -790,8 +787,8 @@ mod tests {
     }
 
     // Expire the activation code for the given user by updating the expired time in the database.
-    fn expire_activation_code(connection: &PgConnection, email: &str) {
-        diesel::update(dsl::activation_codes.filter(dsl::email.eq(email)))
+    fn expire_activation_code(connection: &PgConnection, id: i32) {
+        diesel::update(dsl::activation_codes.filter(dsl::id.eq(id)))
             .set(dsl::expiration_time.eq(chrono::Local::now().naive_local()))
             .execute(connection)
             .unwrap();
