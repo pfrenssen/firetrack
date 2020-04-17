@@ -1,0 +1,18 @@
+[package]
+name = "db"
+version = "0.1.0-dev"
+authors = ["Pieter Frenssen <pieter@frenssen.be>"]
+edition = "2018"
+
+[dependencies]
+app = { path = "../app" }
+argonautica = "~0.2"
+chrono = "~0.4"
+diesel = { version = "~1.4", features = ['chrono', 'postgres', 'r2d2'] }
+log = "~0.4"
+r2d2 = "~0.8"
+rand = "~0.7"
+validator = "~0.10"
+
+[dev-dependencies]
+dotenv = "~0.15"

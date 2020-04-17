@@ -1,6 +1,6 @@
 {
     "name": "pfrenssen/firetrack",
-    "license": "GPL",
+    "license": "GPL-3.0-or-later",
     "authors": [
         {
             "name": "Pieter Frenssen",
@@ -9,11 +9,19 @@
     ],
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "require": {},
+    "require": {
+        "php": ">=7.4.0",
+        "twbs/bootstrap": "^4.4"
+    },
     "require-dev": {
-        "behat/behat": "^3.5@dev",
+        "behat/behat": "^3.5",
         "behat/mink-goutte-driver": "^1.2@dev",
         "behat/mink-extension": "^2.1@dev",
         "lovers-of-behat/screenshot-extension": "^0.1.0"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Firetrack\\Tests\\": "features/src"
+        }
     }
 }

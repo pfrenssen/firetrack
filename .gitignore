@@ -1,5 +1,6 @@
 /.env
 /.idea
+/mailgun-mock-server.log
 /target
 **/*.rs.bk
 
