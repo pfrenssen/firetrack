@@ -9,6 +9,7 @@ use validator::validate_email;
 
 #[derive(Clone, Debug, Queryable)]
 pub struct User {
+    pub id: i32,
     pub email: String,
     pub password: String,
     pub created: chrono::NaiveDateTime,
@@ -103,6 +104,7 @@ pub fn create(
             users::activated.eq(false),
         ))
         .returning((
+            users::id,
             users::email,
             users::password,
             users::created,
@@ -153,8 +155,9 @@ fn hash_password(
 
 /// Retrieves the user with the given email address from the database.
 pub fn read(connection: &PgConnection, email: &str) -> Result<User, UserErrorKind> {
-    use super::schema::users::dsl::users;
-    let user = users.find(email).first::<User>(connection);
+    let user = users::table
+        .filter(users::email.eq(email))
+        .first::<User>(connection);
     match user {
         Ok(u) => Ok(u),
         Err(diesel::result::Error::NotFound) => Err(UserErrorKind::UserNotFound(email.to_string())),
@@ -190,6 +193,7 @@ pub fn activate(connection: &PgConnection, user: User) -> Result<User, UserError
     let user = diesel::update(users::table.filter(users::email.eq(user.email.as_str())))
         .set((users::activated.eq(true),))
         .returning((
+            users::id,
             users::email,
             users::password,
             users::created,

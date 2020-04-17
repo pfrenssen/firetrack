@@ -19,8 +19,8 @@ pub enum NotificationErrorKind {
     ActivationNotificationNotDelivered(String),
     // The activation notification could not be sent because the notification code is not valid.
     InvalidActivationCode(ActivationCodeErrorKind),
-    // The passed activation code did not match the passed user.
-    WrongActivationCodeUser(String, String),
+    // The user ID in the passed activation code did not match that from the passed user.
+    WrongActivationCodeUser(i32, i32),
 }
 
 impl fmt::Display for NotificationErrorKind {
@@ -36,11 +36,11 @@ impl fmt::Display for NotificationErrorKind {
                 "Activation mail could not be delivered due to an invalid activation code: {}",
                 err
             ),
-            NotificationErrorKind::WrongActivationCodeUser(ref user_email, ref activation_email) => write!(
+            NotificationErrorKind::WrongActivationCodeUser(ref user_id, ref activation_id) => write!(
                 f,
-                "Activation mail could not be delivered because the activation code is for {} but the passed user is {}",
-                activation_email,
-                user_email
+                "Activation mail could not be delivered because the activation code is for the user with ID {} but the passed user ID is {}",
+                activation_id,
+                user_id
             ),
         }
     }
@@ -57,11 +57,11 @@ pub async fn activate(
         .validate()
         .map_err(NotificationErrorKind::InvalidActivationCode)?;
 
-    // Sanity check: the user and the activation code should match.
-    if user.email != activation_code.email {
+    // Sanity check: the user ID should match the one from the activation code.
+    if user.id != activation_code.id {
         return Err(NotificationErrorKind::WrongActivationCodeUser(
-            user.email.clone(),
-            activation_code.email.clone(),
+            user.id,
+            activation_code.id,
         ));
     }
 
@@ -251,15 +251,12 @@ mod tests {
         let user = get_user();
 
         let activation_code = ActivationCode {
-            email: "some_other_user@example.com".to_string(),
+            id: user.id + 1,
             ..get_activation_code()
         };
 
         assert_eq!(
-            NotificationErrorKind::WrongActivationCodeUser(
-                user.email.clone(),
-                activation_code.email.clone()
-            ),
+            NotificationErrorKind::WrongActivationCodeUser(user.id, activation_code.id),
             activate(&user, &activation_code, &AppConfig::from_test_defaults())
                 .await
                 .unwrap_err()
@@ -312,6 +309,7 @@ mod tests {
     // Returns a test user.
     fn get_user() -> User {
         User {
+            id: 1,
             activated: false,
             email: "testuser@example.com".to_string(),
             created: chrono::Local::now().naive_local(),
@@ -322,7 +320,7 @@ mod tests {
     // Returns a test activation code.
     fn get_activation_code() -> ActivationCode {
         ActivationCode {
-            email: "testuser@example.com".to_string(),
+            id: 1,
             code: 123_456,
             expiration_time: chrono::Local::now()
                 .checked_add_signed(chrono::Duration::minutes(30))
