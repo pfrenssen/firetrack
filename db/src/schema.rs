@@ -8,6 +8,16 @@ table! {
 }
 
 table! {
+    categories (id) {
+        id -> Int4,
+        name -> Varchar,
+        description -> Nullable<Varchar>,
+        user_id -> Int4,
+        parent_id -> Nullable<Int4>,
+    }
+}
+
+table! {
     users (id) {
         id -> Int4,
         email -> Varchar,
@@ -18,5 +28,10 @@ table! {
 }
 
 joinable!(activation_codes -> users (id));
+joinable!(categories -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(activation_codes, users,);
+allow_tables_to_appear_in_same_query!(
+    activation_codes,
+    categories,
+    users,
+);
