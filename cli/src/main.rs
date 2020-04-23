@@ -151,6 +151,33 @@ async fn main() {
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
+                SubCommand::with_name("category")
+                    .about("Commands for managing categories")
+                    .subcommands(vec![SubCommand::with_name("add")
+                        .about("Create a new category")
+                        .arg(Arg::with_name("email").required(true).help(
+                            "The email address of the account for which to create the category",
+                        ))
+                        .arg(
+                            Arg::with_name("name")
+                                .required(true)
+                                .help("The category name"),
+                        )
+                        .arg(
+                            Arg::with_name("description")
+                                .long("description")
+                                .short("d")
+                                .help("The description"),
+                        )
+                        .arg(
+                            Arg::with_name("parent_name")
+                                .long("parent")
+                                .short("p")
+                                .help("The parent category name"),
+                        )])
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
+            )
+            .subcommand(
                 SubCommand::with_name("notify")
                     .about("Send a notification")
                     .subcommand(
@@ -220,6 +247,25 @@ async fn main() {
             ("purge", _) => {
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
                 db::activation_code::purge(&connection).unwrap_or_exit();
+            }
+            ("", None) => {}
+            _ => unreachable!(),
+        },
+        ("category", Some(arguments)) => match arguments.subcommand() {
+            ("add", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+                db::category::create(
+                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &user,
+                    arguments.value_of("name").unwrap(),
+                    arguments.value_of("description"),
+                    None,
+                    // Todo Support passing the parent name.
+                    // arguments.value_of("parent_name"),
+                )
+                .unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
