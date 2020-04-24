@@ -143,7 +143,48 @@ mod tests {
     use app::AppConfig;
     use diesel::result::Error;
 
-    // Tests super::create().
+    // Tests creation of root level categories.
+    #[test]
+    fn test_create_root_category() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create two test users that will serve as the owners of the test categories.
+            let user1 = create_test_user(&conn, &config);
+            let user2 = create_test_user(&conn, &config);
+
+            // At the start of the test we should have no categories.
+            assert_category_count(&conn, 0);
+
+            // Create a root category without a description.
+            let name1 = "Housing";
+            let create_root_cat = || create(&conn, &user1, name1, None, None);
+            let rootcat = create_root_cat().unwrap();
+            assert_category(&rootcat, None, name1, None, user1.id, None);
+            assert_category_count(&conn, 1);
+
+            // We can create a root category for a different user with the same name.
+            let rootcat_user2 = create(&conn, &user2, name1, None, None).unwrap();
+            assert_category(&rootcat_user2, None, name1, None, user2.id, None);
+            assert_category_count(&conn, 2);
+
+            // We can create a root category with a description.
+            let name2 = "Shopping";
+            let desc = Some("Clothing, books, hobbies, …");
+            let rootcat_desc = create(&conn, &user1, name2, desc, None).unwrap();
+            assert_category(&rootcat_desc, None, name2, desc, user1.id, None);
+            assert_category_count(&conn, 3);
+
+            // Check that if we try to create a root category with a name that already exists we get
+            // an error.
+            assert_category_exists_err(create_root_cat().unwrap_err(), name1, None);
+
+            Ok(())
+        });
+    }
+
+    // Test that an error is returned when creating a category with an empty name.
     #[test]
     fn test_create_with_empty_category_name() {
         let connection = establish_connection(&get_database_url()).unwrap();
@@ -153,7 +194,6 @@ mod tests {
             // Create a test user that will serve as the owner of the test categories.
             let user = create_test_user(&connection, &config);
 
-            // When creating a category with an empty name an error should be returned.
             let mut empty_names = vec![
                 "".to_string(),         // Empty string.
                 " ".to_string(),        // Space.
@@ -198,26 +238,23 @@ mod tests {
     // Tests super::read().
     #[test]
     fn test_read() {
-        let connection = establish_connection(&get_database_url()).unwrap();
+        let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
-        connection.test_transaction::<_, Error, _>(|| {
-            // Create a test user that will serve as the owner of the test categories.
-            let user = create_test_user(&connection, &config);
-
-            let name = "Groceries";
-
+        conn.test_transaction::<_, Error, _>(|| {
             // When no category with the given ID exists, `None` should be returned.
-            assert!(read(&connection, 1).is_none());
+            assert!(read(&conn, 1).is_none());
 
             // Create a root category and assert that the `read()` function returns it.
-            let created_category = create(&connection, &user, name, None, None).unwrap();
-            let category = read(&connection, created_category.id).unwrap();
-            assert_category(&category, created_category.id, name, None, user.id, None);
+            let user = create_test_user(&conn, &config);
+            let name = "Groceries";
+            let result = create(&conn, &user, name, None, None).unwrap();
+            let cat = read(&conn, result.id).unwrap();
+            assert_category(&cat, Some(result.id), name, None, user.id, None);
 
             // Delete the category. Now the `read()` function should return `None` again.
-            assert!(delete(&connection, category.id).is_ok());
-            assert!(read(&connection, category.id).is_none());
+            assert!(delete(&conn, cat.id).is_ok());
+            assert!(read(&conn, cat.id).is_none());
 
             Ok(())
         });
@@ -227,21 +264,43 @@ mod tests {
     fn assert_category(
         // The category to check.
         category: &Category,
-        // The expected category ID.
-        id: i32,
+        // The expected category ID. If None this will not be checked.
+        id: Option<i32>,
         // The expected category name.
         name: &str,
         // The expected description.
-        description: Option<String>,
+        description: Option<&str>,
         // The expected user ID of the category owner.
         user_id: i32,
         // The expected parent category ID.
         parent_id: Option<i32>,
     ) {
-        assert_eq!(id, category.id);
+        if let Some(id) = id {
+            assert_eq!(id, category.id);
+        }
         assert_eq!(name, category.name);
-        assert_eq!(description, category.description);
+        assert_eq!(description.map(|d| d.to_string()), category.description);
         assert_eq!(user_id, category.user_id);
         assert_eq!(parent_id, category.parent_id);
+    }
+
+    // Checks that the number of categories stored in the database matches the expected count.
+    fn assert_category_count(connection: &PgConnection, expected_count: i64) {
+        let actual_count: i64 = dsl::categories
+            .select(diesel::dsl::count_star())
+            .first(connection)
+            .unwrap();
+        assert_eq!(expected_count, actual_count);
+    }
+
+    // Checks that the given error is an CategoryErrorKind::CategoryAlreadyExists error.
+    fn assert_category_exists_err(error: CategoryErrorKind, name: &str, parent: Option<Category>) {
+        assert_eq!(
+            error,
+            CategoryErrorKind::CategoryAlreadyExists {
+                name: name.to_string(),
+                parent
+            }
+        );
     }
 }
