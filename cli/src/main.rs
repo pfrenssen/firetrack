@@ -167,13 +167,15 @@ async fn main() {
                             Arg::with_name("description")
                                 .long("description")
                                 .short("d")
+                                .takes_value(true)
                                 .help("The description"),
                         )
                         .arg(
-                            Arg::with_name("parent_name")
+                            Arg::with_name("parent_id")
                                 .long("parent")
                                 .short("p")
-                                .help("The parent category name"),
+                                .takes_value(true)
+                                .help("The ID of the parent category"),
                         )])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -256,14 +258,33 @@ async fn main() {
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
+
+                // Check that the parent category ID is a numeric value.
+                let parent_id: Option<i32> = arguments.value_of("parent_id").map(|id| {
+                    id.parse()
+                        .map_err(|_| "The parent category must be a numeric ID")
+                        .unwrap_or_exit()
+                });
+
+                // Check that the parent with the given ID exists.
+                let parent = match parent_id {
+                    Some(id) => {
+                        let category = db::category::read(&connection, id);
+                        let message = format!("The category with ID {} could not be loaded", id);
+                        if category.is_none() {
+                            Err::<String, _>(message).unwrap_or_exit();
+                        };
+                        category
+                    }
+                    None => None,
+                };
+
                 db::category::create(
                     &establish_connection(&config.database_url()).unwrap_or_exit(),
                     &user,
                     arguments.value_of("name").unwrap(),
                     arguments.value_of("description"),
-                    None,
-                    // Todo Support passing the parent name.
-                    // arguments.value_of("parent_name"),
+                    parent,
                 )
                 .unwrap_or_exit();
             }

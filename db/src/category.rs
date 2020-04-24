@@ -3,6 +3,7 @@ use super::schema::categories::dsl;
 use super::user::User;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::result::{DatabaseErrorKind::UniqueViolation, Error::DatabaseError};
 use std::fmt;
 
 #[derive(Associations, Clone, Debug, PartialEq, Queryable)]
@@ -39,7 +40,7 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::CategoryAlreadyExists { name, parent } => match parent {
                 Some(p) => write!(
                     f,
-                    "The category '{}' already exists for the parent category '{}",
+                    "The child category '{}' already exists in the parent category '{}'",
                     name, p.name
                 ),
                 None => write!(f, "The root category '{}' already exists", name),
@@ -60,7 +61,7 @@ pub fn create(
     user: &User,
     name: &str,
     description: Option<&str>,
-    parent_id: Option<i32>,
+    parent: Option<Category>,
 ) -> Result<Category, CategoryErrorKind> {
     // Validate the category name.
     let name = name.trim();
@@ -68,12 +69,12 @@ pub fn create(
         return Err(CategoryErrorKind::MissingData("category name".to_string()));
     }
 
-    // Todo: Check that a category with an identical name and parent_id do not exist yet.
     // Todo: Check that the parent category exists and belongs to the same user.
+    let parent_id = parent.clone().map(|c| c.id);
 
-    diesel::insert_into(dsl::categories)
+    let result = diesel::insert_into(dsl::categories)
         .values((
-            dsl::name.eq(name),
+            dsl::name.eq(&name),
             dsl::description.eq(description),
             dsl::user_id.eq(user.id),
             dsl::parent_id.eq(parent_id),
@@ -85,8 +86,17 @@ pub fn create(
             dsl::user_id,
             dsl::parent_id,
         ))
-        .get_result(connection)
-        .map_err(CategoryErrorKind::CreationFailed)
+        .get_result(connection);
+
+    // Convert a UniqueViolation to a more informative CategoryAlreadyExists error.
+    if let Err(DatabaseError(UniqueViolation, _)) = result {
+        return Err(CategoryErrorKind::CategoryAlreadyExists {
+            name: name.to_string(),
+            parent,
+        });
+    }
+
+    result.map_err(CategoryErrorKind::CreationFailed)
 }
 
 /// Retrieves the category with the given ID.
