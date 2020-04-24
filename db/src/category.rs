@@ -70,7 +70,7 @@ pub fn create(
     user: &User,
     name: &str,
     description: Option<&str>,
-    parent: Option<Category>,
+    parent: Option<&Category>,
 ) -> Result<Category, CategoryErrorKind> {
     // Validate the category name.
     let name = name.trim();
@@ -79,7 +79,7 @@ pub fn create(
     }
 
     // Check that the parent category belongs to the same user.
-    if let Some(parent) = &parent {
+    if let Some(parent) = parent {
         if parent.user_id != user.id {
             return Err(CategoryErrorKind::ParentCategoryHasWrongUser(
                 user.id,
@@ -88,7 +88,7 @@ pub fn create(
         }
     }
 
-    let parent_id = parent.clone().map(|c| c.id);
+    let parent_id = parent.map(|c| c.id);
 
     let result = diesel::insert_into(dsl::categories)
         .values((
@@ -110,7 +110,7 @@ pub fn create(
     if let Err(DatabaseError(UniqueViolation, _)) = result {
         return Err(CategoryErrorKind::CategoryAlreadyExists {
             name: name.to_string(),
-            parent: parent.map(|p| p.name),
+            parent: parent.map(|p| p.name.clone()),
         });
     }
 
@@ -294,7 +294,7 @@ mod tests {
     }
 
     // Checks that the given error is an CategoryErrorKind::CategoryAlreadyExists error.
-    fn assert_category_exists_err(error: CategoryErrorKind, name: &str, parent: Option<Category>) {
+    fn assert_category_exists_err(error: CategoryErrorKind, name: &str, parent: Option<&Category>) {
         assert_eq!(
             error,
             CategoryErrorKind::CategoryAlreadyExists {

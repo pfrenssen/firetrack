@@ -284,7 +284,7 @@ async fn main() {
                     &user,
                     arguments.value_of("name").unwrap(),
                     arguments.value_of("description"),
-                    parent,
+                    parent.as_ref(),
                 )
                 .unwrap_or_exit();
             }
