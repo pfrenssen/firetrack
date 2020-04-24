@@ -31,6 +31,8 @@ pub enum CategoryErrorKind {
     CreationFailed(diesel::result::Error),
     // A category could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
+    // A category was passed that belongs to the wrong user.
+    ParentCategoryHasWrongUser(i32, i32),
 }
 
 impl fmt::Display for CategoryErrorKind {
@@ -51,6 +53,13 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting category: {}", err)
             }
+            CategoryErrorKind::ParentCategoryHasWrongUser(ref expected_user_id, actual_user_id) => {
+                write!(
+                    f,
+                    "Expected parent category for user {} instead of user {}",
+                    expected_user_id, actual_user_id
+                )
+            }
         }
     }
 }
@@ -69,7 +78,16 @@ pub fn create(
         return Err(CategoryErrorKind::MissingData("category name".to_string()));
     }
 
-    // Todo: Check that the parent category exists and belongs to the same user.
+    // Check that the parent category belongs to the same user.
+    if let Some(parent) = &parent {
+        if parent.user_id != user.id {
+            return Err(CategoryErrorKind::ParentCategoryHasWrongUser(
+                user.id,
+                parent.user_id,
+            ));
+        }
+    }
+
     let parent_id = parent.clone().map(|c| c.id);
 
     let result = diesel::insert_into(dsl::categories)
