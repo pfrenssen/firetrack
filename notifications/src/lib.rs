@@ -169,35 +169,11 @@ mod tests {
 
         let uri = get_mailgun_uri(&config);
 
-        // Set up mocked responses. Note that these are matched in reverse order, so the first
-        // mocked response is returned only when none of the others match.
-
-        // Return a 401 unauthorized if an invalid API key is passed. Note that this matches only
-        // because the next response (which has precedence over this one and checks that the API key
-        // is valid) _doesn't_ match. Mockito doesn't have negative matching so we handle it this
-        // way.
-        let _m1 = mockito::mock("POST", uri.as_str())
-            // The API key is passed as a base64 encoded basic authentication string.
-            .match_header("authorization", Matcher::Any)
-            .with_status(401)
-            .create();
-
-        // Unused response which matches on a valid API key, this allows the previously defined
-        // response to match on invalid API keys.
-        let _m2 = mockito::mock("POST", uri.as_str())
-            // The API key is passed as a base64 encoded basic authentication string.
-            .match_header(
-                "authorization",
-                format!(
-                    "Basic {}",
-                    base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
-                )
-                .as_str(),
-            )
-            .create();
+        // Set up mocked responses. Note that these are matched in the defined order, so the last
+        // mocked response is returned only when none of the previous ones match.
 
         // Return a valid response if a request is received that contains all of the required data.
-        let _m3 = mockito::mock("POST", uri.as_str())
+        let _m1 = mockito::mock("POST", uri.as_str())
             // The API key is passed as a base64 encoded basic authentication string.
             .match_header(
                 "authorization",
@@ -229,6 +205,29 @@ mod tests {
             .with_status(200)
             .with_header("content-type", "application/json")
             .with_body(valid_response.to_string())
+            .create();
+
+        // Unused response which matches on a valid API key, this allows the following response to
+        // match on invalid API keys.
+        let _m2 = mockito::mock("POST", uri.as_str())
+            // The API key is passed as a base64 encoded basic authentication string.
+            .match_header(
+                "authorization",
+                format!(
+                    "Basic {}",
+                    base64::encode(format!("api:{}", config.mailgun_api_key()).as_bytes())
+                )
+                .as_str(),
+            )
+            .create();
+
+        // Return a 401 unauthorized if an invalid API key is passed. Note that this matches only
+        // because the previous response (which checks that the API key is valid) _doesn't_ match.
+        // Mockito doesn't have negative matching so we handle it this way.
+        let _m3 = mockito::mock("POST", uri.as_str())
+            // The API key is passed as a base64 encoded basic authentication string.
+            .match_header("authorization", Matcher::Any)
+            .with_status(401)
             .create();
 
         // Test that a valid request for sending an activation email is made to the Mailgun API when
