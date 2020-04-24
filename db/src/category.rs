@@ -142,6 +142,7 @@ mod tests {
     use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
+    use std::collections::{BTreeMap, HashMap};
 
     // Tests creation of root level categories.
     #[test]
@@ -179,6 +180,68 @@ mod tests {
             // Check that if we try to create a root category with a name that already exists we get
             // an error.
             assert_category_exists_err(create_root_cat().unwrap_err(), name1, None);
+
+            Ok(())
+        });
+    }
+
+    // Tests creation of child categories.
+    #[test]
+    fn test_create_child_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        // Test cases, keyed by category name, with optional description and parent category.
+        let test_cases: BTreeMap<i8, (&str, Option<&str>, Option<i8>)> = [
+            (0, ("Food", Some("Root category"), None)),
+            (1, ("Groceries", None, Some(0))),
+            (2, ("Groceries", Some("Same name as parent"), Some(1))),
+            (3, ("Restaurants", Some("Eating out"), Some(0))),
+            (4, ("Japanese restaurants", None, Some(3))),
+            (5, ("Sushi", Some("Including delivery"), Some(4))),
+            (6, ("Conveyor belt sushi", Some("Choo choo"), Some(5))),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create two test users that will serve as the owners of the test categories.
+            let user1 = create_test_user(&conn, &config);
+            let user2 = create_test_user(&conn, &config);
+
+            // At the start of the test we should have no categories.
+            let mut count = 0;
+            assert_category_count(&conn, count);
+
+            let mut categories = HashMap::new();
+            for (id, (name, description, parent_id)) in test_cases {
+                let mut create_category = |u: &User| {
+                    let parent = parent_id
+                        .map(|id| categories.get(&(id, u.id)))
+                        .unwrap_or(None);
+                    // Create the category for test user 1.
+                    let category = create(&conn, &u, name, description, parent);
+                    categories.insert((id, u.id), category.unwrap());
+                    count += 1;
+                    assert_category_count(&conn, count);
+                };
+
+                // Different users should be able to create categories with the same names and the
+                // same parent categories. Try creating each category for both test users.
+                create_category(&user1);
+                create_category(&user2);
+            }
+
+            // Check that if we try to create a category with a name that already exists for the
+            // parent category we get an error. We are using test case 5 (Sushi) which has test case
+            // 4 (Japanese restaurants) as parent category.
+            let parent = categories.get(&(4, user1.id));
+            assert_category_exists_err(
+                create(&conn, &user1, "Sushi", None, parent).unwrap_err(),
+                "Sushi",
+                parent,
+            );
 
             Ok(())
         });
