@@ -1,6 +1,6 @@
 use super::schema::categories;
 use super::schema::categories::dsl;
-use super::user::User
+use super::user::User;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::fmt;
@@ -111,13 +111,13 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
 mod tests {
     use super::*;
     use crate::db_test::create_test_user;
-    use crate::{establish_connection, get_database_url, user};
+    use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
 
     // Tests super::create().
     #[test]
-    fn test_create() {
+    fn test_create_with_empty_category_name() {
         let connection = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
@@ -125,56 +125,35 @@ mod tests {
             // Create a test user that will serve as the owner of the test categories.
             let user = create_test_user(&connection, &config);
 
-            // When creating a category with an empty name an error should be returned. Trying a
-            // range of whitespace from the big list of naughty strings.
-            let empty_names = vec![
-                // Empty string.
-                "".to_string(),
-                // Space.
-                " ".to_string(),
-                // Line feed.
-                "\n".to_string(),
-                // Horizontal tab.
-                "\t".to_string(),
-                // Vertical tab
-                '\u{0B}'.to_string(),
-                // Form feed.
-                '\u{0C}'.to_string(),
-                // Next line.
-                '\u{85}'.to_string(),
-                // Ogham space mark.
-                '\u{1680}'.to_string(),
-                // En space.
-                '\u{2002}'.to_string(),
-                // Em space.
-                '\u{2003}'.to_string(),
-                // Three-per-em space.
-                '\u{2004}'.to_string(),
-                // Four-per-em space.
-                '\u{2005}'.to_string(),
-                // Six-per-em space.
-                '\u{2006}'.to_string(),
-                // Figure space.
-                '\u{2007}'.to_string(),
-                // Punctuation space.
-                '\u{2008}'.to_string(),
-                // Thin space.
-                '\u{2009}'.to_string(),
-                // Hair space.
-                '\u{200A}'.to_string(),
-                // Line separator.
-                '\u{2028}'.to_string(),
-                // Paragraph separator.
-                '\u{2029}'.to_string(),
-                // Narrow no-break space.
-                '\u{202F}'.to_string(),
-                // Medium mathematical space.
-                '\u{205F}'.to_string(),
-                // Ideographic space.
-                '\u{3000}'.to_string(),
-                // Combination of spaces.
-                format!(" \n \t{}{}", '\u{2029}', '\u{2007}').to_string(),
+            // When creating a category with an empty name an error should be returned.
+            let mut empty_names = vec![
+                "".to_string(),         // Empty string.
+                " ".to_string(),        // Space.
+                "\n".to_string(),       // Line feed.
+                "\t".to_string(),       // Horizontal tab.
+                '\u{0B}'.to_string(),   // Vertical tab.
+                '\u{0C}'.to_string(),   // Form feed.
+                '\u{85}'.to_string(),   // Next line.
+                '\u{1680}'.to_string(), // Ogham space mark.
+                '\u{2002}'.to_string(), // En space.
+                '\u{2003}'.to_string(), // Em space.
+                '\u{2004}'.to_string(), // Three-per-em space.
+                '\u{2005}'.to_string(), // Four-per-em space.
+                '\u{2006}'.to_string(), // Six-per-em space.
+                '\u{2007}'.to_string(), // Figure space.
+                '\u{2008}'.to_string(), // Punctuation space.
+                '\u{2009}'.to_string(), // Thin space.
+                '\u{200A}'.to_string(), // Hair space.
+                '\u{2028}'.to_string(), // Line separator.
+                '\u{2029}'.to_string(), // Paragraph separator.
+                '\u{202F}'.to_string(), // Narrow no-break space.
+                '\u{205F}'.to_string(), // Medium mathematical space.
+                '\u{3000}'.to_string(), // Ideographic space.
             ];
+
+            // Also test a combination of various whitespace characters.
+            empty_names.push(format!(" \n\t{}{}{}", '\u{1680}', '\u{2005}', '\u{2028}'));
+
             for empty_name in empty_names {
                 let created_category =
                     create(&connection, &user, &empty_name, None, None).unwrap_err();
