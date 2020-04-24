@@ -1,6 +1,6 @@
 use super::schema::categories;
 use super::schema::categories::dsl;
-use super::user::{User, UserErrorKind};
+use super::user::User
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use std::fmt;
