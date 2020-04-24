@@ -25,7 +25,7 @@ pub enum CategoryErrorKind {
     // The category with the given name and parent already exists.
     CategoryAlreadyExists {
         name: String,
-        parent: Option<Category>,
+        parent: Option<String>,
     },
     // A category could not be created due to a database error.
     CreationFailed(diesel::result::Error),
@@ -43,7 +43,7 @@ impl fmt::Display for CategoryErrorKind {
                 Some(p) => write!(
                     f,
                     "The child category '{}' already exists in the parent category '{}'",
-                    name, p.name
+                    name, p
                 ),
                 None => write!(f, "The root category '{}' already exists", name),
             },
@@ -110,7 +110,7 @@ pub fn create(
     if let Err(DatabaseError(UniqueViolation, _)) = result {
         return Err(CategoryErrorKind::CategoryAlreadyExists {
             name: name.to_string(),
-            parent,
+            parent: parent.map(|p| p.name),
         });
     }
 
@@ -299,7 +299,7 @@ mod tests {
             error,
             CategoryErrorKind::CategoryAlreadyExists {
                 name: name.to_string(),
-                parent
+                parent: parent.map(|p| p.name.clone())
             }
         );
     }
