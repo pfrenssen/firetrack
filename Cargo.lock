@@ -675,6 +675,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_derive",
+ "serde_json",
  "tera",
  "validator",
  "web",
@@ -764,6 +765,7 @@ dependencies = [
  "log",
  "r2d2",
  "rand 0.7.3",
+ "serde",
  "validator",
 ]
 

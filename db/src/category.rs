@@ -4,9 +4,10 @@ use super::user::User;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::{DatabaseErrorKind::UniqueViolation, Error::DatabaseError};
+use serde::Serialize;
 use std::fmt;
 
-#[derive(Associations, Clone, Debug, PartialEq, Queryable)]
+#[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize)]
 #[belongs_to(User, foreign_key = "id")]
 #[table_name = "categories"]
 pub struct Category {

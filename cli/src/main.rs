@@ -6,6 +6,7 @@ extern crate log;
 use app::*;
 use clap::{AppSettings, Arg, SubCommand};
 use db::establish_connection;
+use serde_json::json;
 use std::env;
 use std::process::exit;
 use web::serve;
@@ -153,30 +154,35 @@ async fn main() {
             .subcommand(
                 SubCommand::with_name("category")
                     .about("Commands for managing categories")
-                    .subcommands(vec![SubCommand::with_name("add")
-                        .about("Create a new category")
-                        .arg(Arg::with_name("email").required(true).help(
-                            "The email address of the account for which to create the category",
-                        ))
-                        .arg(
-                            Arg::with_name("name")
-                                .required(true)
-                                .help("The category name"),
-                        )
-                        .arg(
-                            Arg::with_name("description")
-                                .long("description")
-                                .short("d")
-                                .takes_value(true)
-                                .help("The description"),
-                        )
-                        .arg(
-                            Arg::with_name("parent_id")
-                                .long("parent")
-                                .short("p")
-                                .takes_value(true)
-                                .help("The ID of the parent category"),
-                        )])
+                    .subcommands(vec![
+                        SubCommand::with_name("add")
+                            .about("Create a new category")
+                            .arg(Arg::with_name("email").required(true).help(
+                                "The email address of the account for which to create the category",
+                            ))
+                            .arg(
+                                Arg::with_name("name")
+                                    .required(true)
+                                    .help("The category name"),
+                            )
+                            .arg(
+                                Arg::with_name("description")
+                                    .long("description")
+                                    .short("d")
+                                    .takes_value(true)
+                                    .help("The description"),
+                            )
+                            .arg(
+                                Arg::with_name("parent_id")
+                                    .long("parent")
+                                    .short("p")
+                                    .takes_value(true)
+                                    .help("The ID of the parent category"),
+                            ),
+                        SubCommand::with_name("get")
+                            .about("Retrieves a category as JSON data")
+                            .arg(Arg::with_name("id").required(true).help("The category ID")),
+                    ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
@@ -287,6 +293,25 @@ async fn main() {
                     parent.as_ref(),
                 )
                 .unwrap_or_exit();
+            }
+            ("get", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+
+                // Check that the ID is a numeric value.
+                let id: i32 = arguments
+                    .value_of("id")
+                    .map(|id| {
+                        id.parse()
+                            .map_err(|_| "The category ID must be numeric")
+                            .unwrap_or_exit()
+                    })
+                    .unwrap();
+
+                let category = db::category::read(&connection, id);
+                if category.is_none() {
+                    Err::<String, _>("Category not found").unwrap_or_exit();
+                };
+                println!("{}", json!(category.unwrap()));
             }
             ("", None) => {}
             _ => unreachable!(),
