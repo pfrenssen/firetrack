@@ -298,6 +298,40 @@ mod tests {
         });
     }
 
+    // Test that an error is returned when passing in a parent category from a different user.
+    #[test]
+    fn test_create_with_invalid_parent_category() {
+        let connection = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        connection.test_transaction::<_, Error, _>(|| {
+            // Create a test user that will serve as the owner of the test category.
+            let user = create_test_user(&connection, &config);
+
+            // Create a different user that owns some other category.
+            let other_user = create_test_user(&connection, &config);
+
+            // Try creating a new category that has a parent category belonging to a different user.
+            // This should result in an error.
+            let other_user_cat = create(&connection, &other_user, "Utilities", None, None).unwrap();
+            let cat = create(
+                &connection,
+                &user,
+                "Telecommunication",
+                Some("Internet and telephone"),
+                Some(&other_user_cat),
+            )
+            .unwrap_err();
+
+            assert_eq!(
+                CategoryErrorKind::ParentCategoryHasWrongUser(user.id, other_user.id),
+                cat
+            );
+
+            Ok(())
+        });
+    }
+
     // Tests super::read().
     #[test]
     fn test_read() {
