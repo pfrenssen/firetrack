@@ -269,11 +269,10 @@ async fn main() {
                 let user = db::user::read(&connection, email).unwrap_or_exit();
 
                 // Check that the parent category ID is a numeric value.
-                let parent_id: Option<i32> = arguments.value_of("parent_id").map(|id| {
-                    id.parse()
-                        .map_err(|_| "The parent category must be a numeric ID")
-                        .unwrap_or_exit()
-                });
+                let parent_id: Option<i32> = assert_integer_argument(
+                    arguments.value_of("parent_id"),
+                    "The parent category must be a numeric ID",
+                );
 
                 // Check that the parent with the given ID exists.
                 let parent = match parent_id {
