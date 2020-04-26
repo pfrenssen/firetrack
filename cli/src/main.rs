@@ -182,6 +182,9 @@ async fn main() {
                         SubCommand::with_name("get")
                             .about("Retrieves a category as JSON data")
                             .arg(Arg::with_name("id").required(true).help("The category ID")),
+                        SubCommand::with_name("delete")
+                            .about("Deletes a category")
+                            .arg(Arg::with_name("id").required(true).help("The category ID")),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -295,23 +298,26 @@ async fn main() {
                 .unwrap_or_exit();
             }
             ("get", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The category ID must be numeric",
+                )
+                .unwrap();
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
-
-                // Check that the ID is a numeric value.
-                let id: i32 = arguments
-                    .value_of("id")
-                    .map(|id| {
-                        id.parse()
-                            .map_err(|_| "The category ID must be numeric")
-                            .unwrap_or_exit()
-                    })
-                    .unwrap();
-
                 let category = db::category::read(&connection, id);
                 if category.is_none() {
                     Err::<String, _>("Category not found").unwrap_or_exit();
                 };
                 println!("{}", json!(category.unwrap()));
+            }
+            ("delete", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The category ID must be numeric",
+                )
+                .unwrap();
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                db::category::delete(&connection, id).unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
@@ -334,5 +340,10 @@ async fn main() {
         }
         ("", None) => {}
         _ => unreachable!(),
+    }
+
+    // Checks that the given argument can be casted to an integer.
+    fn assert_integer_argument(arg: Option<&str>, msg: &str) -> Option<i32> {
+        arg.map(|v| v.parse().map_err(|_| msg).unwrap_or_exit())
     }
 }
