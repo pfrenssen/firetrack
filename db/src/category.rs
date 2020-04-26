@@ -21,8 +21,6 @@ pub struct Category {
 // Possible errors thrown when handling categories.
 #[derive(Debug, PartialEq)]
 pub enum CategoryErrorKind {
-    // Some required data is missing.
-    MissingData(String),
     // The category with the given name and parent already exists.
     CategoryAlreadyExists {
         name: String,
@@ -32,6 +30,10 @@ pub enum CategoryErrorKind {
     CreationFailed(diesel::result::Error),
     // A category could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
+    // Some required data is missing.
+    MissingData(String),
+    // A category could not be deleted because it does not exist.
+    NotDeleted(i32),
     // A category was passed that belongs to the wrong user.
     ParentCategoryHasWrongUser(i32, i32),
 }
@@ -39,7 +41,6 @@ pub enum CategoryErrorKind {
 impl fmt::Display for CategoryErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-            CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
             CategoryErrorKind::CategoryAlreadyExists { name, parent } => match parent {
                 Some(p) => write!(
                     f,
@@ -54,6 +55,12 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting category: {}", err)
             }
+            CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
+            CategoryErrorKind::NotDeleted(ref id) => write!(
+                f,
+                "Could not delete category {} because it does not exist",
+                id
+            ),
             CategoryErrorKind::ParentCategoryHasWrongUser(ref expected_user_id, actual_user_id) => {
                 write!(
                     f,
@@ -130,9 +137,14 @@ pub fn read(connection: &PgConnection, id: i32) -> Option<Category> {
 
 /// Deletes the category with the given ID.
 pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKind> {
-    diesel::delete(dsl::categories.filter(dsl::id.eq(id)))
+    let result = diesel::delete(dsl::categories.filter(dsl::id.eq(id)))
         .execute(connection)
         .map_err(CategoryErrorKind::DeletionFailed)?;
+
+    if result == 0 {
+        return Err(CategoryErrorKind::NotDeleted(id));
+    }
+
     Ok(())
 }
 
@@ -353,6 +365,36 @@ mod tests {
             // Delete the category. Now the `read()` function should return `None` again.
             assert!(delete(&conn, cat.id).is_ok());
             assert!(read(&conn, cat.id).is_none());
+
+            Ok(())
+        });
+    }
+
+    // Tests super::delete().
+    #[test]
+    fn test_delete() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Initially there should not be any categories.
+            assert_category_count(&conn, 0);
+
+            // Create a root category. Now there should be one category.
+            let user = create_test_user(&conn, &config);
+            let name = "Healthcare";
+            let cat = create(&conn, &user, name, None, None).unwrap();
+            assert_category_count(&conn, 1);
+
+            // Delete the category. This should not result in any errors, and there should again be
+            // 0 categories in the database.
+            assert!(delete(&conn, cat.id).is_ok());
+            assert_category_count(&conn, 0);
+
+            // Try deleting the category again.
+            let result = delete(&conn, cat.id);
+            assert!(result.is_err());
+            assert_eq!(CategoryErrorKind::NotDeleted(cat.id), result.unwrap_err());
 
             Ok(())
         });
