@@ -3,7 +3,8 @@ use super::schema::categories::dsl;
 use super::user::User;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::result::{DatabaseErrorKind::UniqueViolation, Error::DatabaseError};
+use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
+use diesel::result::Error::DatabaseError;
 use serde::Serialize;
 use std::fmt;
 
@@ -30,6 +31,8 @@ pub enum CategoryErrorKind {
     CreationFailed(diesel::result::Error),
     // A category could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
+    // A category could not be deleted because it has child categories.
+    HasChildren(i32),
     // Some required data is missing.
     MissingData(String),
     // A category could not be deleted because it does not exist.
@@ -55,6 +58,11 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting category: {}", err)
             }
+            CategoryErrorKind::HasChildren(ref id) => write!(
+                f,
+                "The category with ID {} could not be deleted because it has child categories",
+                id
+            ),
             CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
             CategoryErrorKind::NotDeleted(ref id) => write!(
                 f,
@@ -137,10 +145,16 @@ pub fn read(connection: &PgConnection, id: i32) -> Option<Category> {
 
 /// Deletes the category with the given ID.
 pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKind> {
-    let result = diesel::delete(dsl::categories.filter(dsl::id.eq(id)))
-        .execute(connection)
-        .map_err(CategoryErrorKind::DeletionFailed)?;
+    let result = diesel::delete(dsl::categories.filter(dsl::id.eq(id))).execute(connection);
 
+    // Convert a ForeignKeyViolation to a more informative error.
+    if let Err(DatabaseError(ForeignKeyViolation, _)) = result {
+        return Err(CategoryErrorKind::HasChildren(id));
+    }
+
+    let result = result.map_err(CategoryErrorKind::DeletionFailed)?;
+
+    // Throw an error if nothing was deleted.
     if result == 0 {
         return Err(CategoryErrorKind::NotDeleted(id));
     }
@@ -395,6 +409,34 @@ mod tests {
             let result = delete(&conn, cat.id);
             assert!(result.is_err());
             assert_eq!(CategoryErrorKind::NotDeleted(cat.id), result.unwrap_err());
+
+            Ok(())
+        });
+    }
+
+    // Tests that a category which has a child category cannot be deleted.
+    #[test]
+    fn test_delete_with_child() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create a root category.
+            let user = create_test_user(&conn, &config);
+            let name = "Lifestyle";
+            let parent_cat = create(&conn, &user, name, None, None).unwrap();
+
+            // Create a child category.
+            let child_name = "Haircuts";
+            create(&conn, &user, child_name, None, Some(&parent_cat)).unwrap();
+
+            // Delete to delete the parent category. This should result in an error.
+            let result = delete(&conn, parent_cat.id);
+            assert!(result.is_err());
+            assert_eq!(
+                CategoryErrorKind::HasChildren(parent_cat.id),
+                result.unwrap_err()
+            );
 
             Ok(())
         });
