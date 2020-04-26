@@ -6,6 +6,7 @@ extern crate log;
 use app::*;
 use clap::{AppSettings, Arg, SubCommand};
 use db::establish_connection;
+use serde_json::json;
 use std::env;
 use std::process::exit;
 use web::serve;
@@ -151,6 +152,43 @@ async fn main() {
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
+                SubCommand::with_name("category")
+                    .about("Commands for managing categories")
+                    .subcommands(vec![
+                        SubCommand::with_name("add")
+                            .about("Create a new category")
+                            .arg(Arg::with_name("email").required(true).help(
+                                "The email address of the account for which to create the category",
+                            ))
+                            .arg(
+                                Arg::with_name("name")
+                                    .required(true)
+                                    .help("The category name"),
+                            )
+                            .arg(
+                                Arg::with_name("description")
+                                    .long("description")
+                                    .short("d")
+                                    .takes_value(true)
+                                    .help("The description"),
+                            )
+                            .arg(
+                                Arg::with_name("parent_id")
+                                    .long("parent")
+                                    .short("p")
+                                    .takes_value(true)
+                                    .help("The ID of the parent category"),
+                            ),
+                        SubCommand::with_name("get")
+                            .about("Retrieves a category as JSON data")
+                            .arg(Arg::with_name("id").required(true).help("The category ID")),
+                        SubCommand::with_name("delete")
+                            .about("Deletes a category")
+                            .arg(Arg::with_name("id").required(true).help("The category ID")),
+                    ])
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
+            )
+            .subcommand(
                 SubCommand::with_name("notify")
                     .about("Send a notification")
                     .subcommand(
@@ -224,6 +262,65 @@ async fn main() {
             ("", None) => {}
             _ => unreachable!(),
         },
+        ("category", Some(arguments)) => match arguments.subcommand() {
+            ("add", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+
+                // Check that the parent category ID is a numeric value.
+                let parent_id: Option<i32> = assert_integer_argument(
+                    arguments.value_of("parent_id"),
+                    "The parent category must be a numeric ID",
+                );
+
+                // Check that the parent with the given ID exists.
+                let parent = match parent_id {
+                    Some(id) => {
+                        let category = db::category::read(&connection, id);
+                        let message = format!("The category with ID {} could not be loaded", id);
+                        if category.is_none() {
+                            Err::<String, _>(message).unwrap_or_exit();
+                        };
+                        category
+                    }
+                    None => None,
+                };
+
+                db::category::create(
+                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &user,
+                    arguments.value_of("name").unwrap(),
+                    arguments.value_of("description"),
+                    parent.as_ref(),
+                )
+                .unwrap_or_exit();
+            }
+            ("get", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The category ID must be numeric",
+                )
+                .unwrap();
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let category = db::category::read(&connection, id);
+                if category.is_none() {
+                    Err::<String, _>("Category not found").unwrap_or_exit();
+                };
+                println!("{}", json!(category.unwrap()));
+            }
+            ("delete", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The category ID must be numeric",
+                )
+                .unwrap();
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                db::category::delete(&connection, id).unwrap_or_exit();
+            }
+            ("", None) => {}
+            _ => unreachable!(),
+        },
         ("notify", Some(notify)) => match notify.subcommand() {
             ("activate", Some(arguments)) => {
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
@@ -242,5 +339,10 @@ async fn main() {
         }
         ("", None) => {}
         _ => unreachable!(),
+    }
+
+    // Checks that the given argument can be casted to an integer.
+    fn assert_integer_argument(arg: Option<&str>, msg: &str) -> Option<i32> {
+        arg.map(|v| v.parse().map_err(|_| msg).unwrap_or_exit())
     }
 }

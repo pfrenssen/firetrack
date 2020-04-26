@@ -1,4 +1,4 @@
-// Todo: Add functions for updating and deleting a user.
+// Todo: Add a function for updating a user.
 use super::schema::users;
 use app::AppConfig;
 use argonautica::Hasher;

@@ -10,9 +10,12 @@ use diesel::r2d2::CustomizeConnection;
 use diesel::ConnectionError;
 use std::fmt;
 
+#[cfg(test)]
+mod db_test;
 mod schema;
 
 pub mod activation_code;
+pub mod category;
 pub mod user;
 
 // Type alias to make it easier to refer to the connection pool.
@@ -43,9 +46,6 @@ pub fn create_connection_pool(database_url: &str) -> Result<ConnectionPool, Data
 }
 
 // Establishes a non-pooled database connection.
-// Todo: return a `Result<PgConnection, DatabaseError>`. This is causing tests to fail silently when
-//   the database is not running.
-// See https://github.com/pfrenssen/firetrack/issues/50
 pub fn establish_connection(database_url: &str) -> Result<PgConnection, ConnectionError> {
     match PgConnection::establish(&database_url) {
         Ok(value) => Ok(value),
