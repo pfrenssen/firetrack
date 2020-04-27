@@ -18,6 +18,15 @@ table! {
 }
 
 table! {
+    expenses (id) {
+        id -> Int4,
+        amount -> Numeric,
+        category_id -> Int4,
+        date -> Timestamp,
+    }
+}
+
+table! {
     users (id) {
         id -> Int4,
         email -> Varchar,
@@ -29,5 +38,11 @@ table! {
 
 joinable!(activation_codes -> users (id));
 joinable!(categories -> users (user_id));
+joinable!(expenses -> categories (category_id));
 
-allow_tables_to_appear_in_same_query!(activation_codes, categories, users,);
+allow_tables_to_appear_in_same_query!(
+    activation_codes,
+    categories,
+    expenses,
+    users,
+);
