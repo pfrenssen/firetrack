@@ -21,7 +21,9 @@ table! {
     expenses (id) {
         id -> Int4,
         amount -> Numeric,
+        description -> Nullable<Varchar>,
         category_id -> Int4,
+        user_id -> Int4,
         date -> Timestamp,
     }
 }
@@ -39,6 +41,7 @@ table! {
 joinable!(activation_codes -> users (id));
 joinable!(categories -> users (user_id));
 joinable!(expenses -> categories (category_id));
+joinable!(expenses -> users (user_id));
 
 allow_tables_to_appear_in_same_query!(
     activation_codes,
