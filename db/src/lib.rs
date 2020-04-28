@@ -16,6 +16,7 @@ mod schema;
 
 pub mod activation_code;
 pub mod category;
+pub mod expense;
 pub mod user;
 
 // Type alias to make it easier to refer to the connection pool.
