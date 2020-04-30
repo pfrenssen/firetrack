@@ -4,5 +4,5 @@ CREATE TABLE expenses (
   description VARCHAR(255),
   category_id INTEGER REFERENCES categories (id) NOT NULL,
   user_id INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  date TIMESTAMP NOT NULL
+  date DATE NOT NULL
 );

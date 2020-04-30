@@ -24,7 +24,7 @@ table! {
         description -> Nullable<Varchar>,
         category_id -> Int4,
         user_id -> Int4,
-        date -> Timestamp,
+        date -> Date,
     }
 }
 
