@@ -43,9 +43,4 @@ joinable!(categories -> users (user_id));
 joinable!(expenses -> categories (category_id));
 joinable!(expenses -> users (user_id));
 
-allow_tables_to_appear_in_same_query!(
-    activation_codes,
-    categories,
-    expenses,
-    users,
-);
+allow_tables_to_appear_in_same_query!(activation_codes, categories, expenses, users,);
