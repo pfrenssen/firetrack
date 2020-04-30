@@ -138,32 +138,23 @@ mod tests {
     // Test that an error is returned when the passed in amount is 0 or lower.
     #[test]
     fn test_create_with_invalid_amount() {
-        let connection = establish_connection(&get_database_url()).unwrap();
+        let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
         let min_value = Decimal::min_value().to_string();
         let test_cases = vec!["0.00", "-0.01", "-1.00", min_value.as_str()];
 
-        connection.test_transaction::<_, Error, _>(|| {
-            let user = create_test_user(&connection, &config);
-            let category = create_test_category(&connection, &user);
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+            let cat = create_test_category(&conn, &user);
 
             for test_case in test_cases {
-                let result = create(
-                    &connection,
-                    &user,
-                    &Decimal::from_str(test_case).unwrap(),
-                    &category,
-                    None,
-                    None,
-                )
-                .unwrap_err();
-
-                assert_eq!(ExpenseErrorKind::InvalidAmount, result);
+                let amount = &Decimal::from_str(test_case).unwrap();
+                let result = create(&conn, &user, amount, &cat, None, None);
+                assert_eq!(ExpenseErrorKind::InvalidAmount, result.unwrap_err());
             }
 
             Ok(())
         });
     }
-
 }
