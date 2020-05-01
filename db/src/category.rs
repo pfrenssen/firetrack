@@ -38,7 +38,7 @@ pub enum CategoryErrorKind {
     // A category could not be deleted because it does not exist.
     NotDeleted(i32),
     // A category was passed that belongs to the wrong user.
-    ParentCategoryHasWrongUser(i32, i32),
+    ParentCategoryHasWrongUser,
 }
 
 impl fmt::Display for CategoryErrorKind {
@@ -69,12 +69,8 @@ impl fmt::Display for CategoryErrorKind {
                 "Could not delete category {} because it does not exist",
                 id
             ),
-            CategoryErrorKind::ParentCategoryHasWrongUser(ref expected_user_id, actual_user_id) => {
-                write!(
-                    f,
-                    "Expected parent category for user {} instead of user {}",
-                    expected_user_id, actual_user_id
-                )
+            CategoryErrorKind::ParentCategoryHasWrongUser => {
+                write!(f, "Parent category should be for the same user",)
             }
         }
     }
@@ -97,10 +93,7 @@ pub fn create(
     // Check that the parent category belongs to the same user.
     if let Some(parent) = parent {
         if parent.user_id != user.id {
-            return Err(CategoryErrorKind::ParentCategoryHasWrongUser(
-                user.id,
-                parent.user_id,
-            ));
+            return Err(CategoryErrorKind::ParentCategoryHasWrongUser);
         }
     }
 
@@ -350,10 +343,7 @@ mod tests {
             )
             .unwrap_err();
 
-            assert_eq!(
-                CategoryErrorKind::ParentCategoryHasWrongUser(user.id, other_user.id),
-                cat
-            );
+            assert_eq!(CategoryErrorKind::ParentCategoryHasWrongUser, cat);
 
             Ok(())
         });

@@ -25,7 +25,7 @@ pub struct Expense {
 #[derive(Debug, PartialEq)]
 pub enum ExpenseErrorKind {
     // A category was passed that belongs to the wrong user.
-    CategoryHasWrongUser(i32, i32),
+    CategoryHasWrongUser,
     // An expense could not be created due to a database error.
     CreationFailed(diesel::result::Error),
     // The amount should be greater than 0.
@@ -35,11 +35,7 @@ pub enum ExpenseErrorKind {
 impl fmt::Display for ExpenseErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-            ExpenseErrorKind::CategoryHasWrongUser(ref expected_user_id, actual_user_id) => write!(
-                f,
-                "Expected category for user {} instead of user {}",
-                expected_user_id, actual_user_id
-            ),
+            ExpenseErrorKind::CategoryHasWrongUser => write!(f, "Category is from the wrong user",),
             ExpenseErrorKind::CreationFailed(ref err) => {
                 write!(f, "Database error when creating expense: {}", err)
             }
@@ -59,10 +55,7 @@ pub fn create(
 ) -> Result<Expense, ExpenseErrorKind> {
     // Check that the category belongs to the same user.
     if category.user_id != user.id {
-        return Err(ExpenseErrorKind::CategoryHasWrongUser(
-            user.id,
-            category.user_id,
-        ));
+        return Err(ExpenseErrorKind::CategoryHasWrongUser);
     }
 
     if *amount <= Decimal::new(0, 2) {
@@ -126,10 +119,7 @@ mod tests {
             )
             .unwrap_err();
 
-            assert_eq!(
-                ExpenseErrorKind::CategoryHasWrongUser(user.id, other_user.id),
-                result
-            );
+            assert_eq!(ExpenseErrorKind::CategoryHasWrongUser, result);
 
             Ok(())
         });
