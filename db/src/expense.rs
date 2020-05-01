@@ -46,7 +46,9 @@ impl fmt::Display for ExpenseErrorKind {
             ExpenseErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting expense: {}", err)
             }
-            ExpenseErrorKind::InvalidAmount => write!(f, "Amount should be greater than 0.00"),
+            ExpenseErrorKind::InvalidAmount => {
+                write!(f, "Amount should be between 0.01 and 9999999.99")
+            }
             ExpenseErrorKind::NotFound(ref id) => write!(f, "Expense {} not found", id),
         }
     }
@@ -66,7 +68,7 @@ pub fn create(
         return Err(ExpenseErrorKind::CategoryHasWrongUser);
     }
 
-    if *amount <= Decimal::new(0, 2) {
+    if *amount <= Decimal::new(0, 2) || *amount > Decimal::new(999_999_999, 2) {
         return Err(ExpenseErrorKind::InvalidAmount);
     }
 
@@ -124,6 +126,79 @@ mod tests {
     use rust_decimal::Decimal;
     use std::str::FromStr;
 
+    // Tests super::create().
+    #[test]
+    fn test_create() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create 2 test users with each 2 categories.
+            let mut test_user_cats: Vec<(User, (Category, Category))> = vec![];
+            for _i in 0..2 {
+                let user = create_test_user(&conn, &config);
+                let cat1 = create_test_category(&conn, &user);
+                let cat2 = create_test_category(&conn, &user);
+                test_user_cats.push((user, (cat1, cat2)));
+            }
+
+            let test_cases = vec![
+                ("0.01", None, "2020-01-01"),
+                ("0.01", Some("Rubber band"), "2250-01-01"),
+                ("99.99", None, "1883-08-26"),
+                ("99.99", Some("Sushi"), "2020-05-01"),
+                ("9999999.99", None, "1984-03-03"),
+                ("9999999.99", Some("Another yacht"), "2019-12-31"),
+            ];
+
+            // At the start of the test we should have no expenses.
+            let mut expected_count = 0;
+            assert_expense_count(&conn, expected_count);
+
+            for (amount, desc, date) in test_cases {
+                let amount = Decimal::from_str(amount).unwrap();
+                let date = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap();
+                for (user, (cat1, cat2)) in &test_user_cats {
+                    let expense = create(&conn, &user, &amount, &cat1, desc, Some(&date)).unwrap();
+                    assert_expense(&expense, None, &amount, desc, cat1.id, user.id, date);
+                    expected_count += 1;
+                    assert_expense_count(&conn, expected_count);
+                    let expense = create(&conn, &user, &amount, &cat2, desc, Some(&date)).unwrap();
+                    assert_expense(&expense, None, &amount, desc, cat2.id, user.id, date);
+                    expected_count += 1;
+                    assert_expense_count(&conn, expected_count);
+                }
+            }
+
+            Ok(())
+        });
+    }
+
+    // Tests that an expense created without passing a date will get today's date.
+    #[test]
+    fn test_create_without_date() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+            let cat = create_test_category(&conn, &user);
+            let amount = Decimal::from_str("1474.95").unwrap();
+            let expense = create(&conn, &user, &amount, &cat, None, None).unwrap();
+            assert_expense(
+                &expense,
+                None,
+                &amount,
+                None,
+                cat.id,
+                user.id,
+                Utc::now().naive_utc().date(),
+            );
+
+            Ok(())
+        });
+    }
+
     // Test that an error is returned when passing in a category from a different user.
     #[test]
     fn test_create_with_invalid_category() {
@@ -164,7 +239,7 @@ mod tests {
         let config = AppConfig::from_test_defaults();
 
         let min_value = Decimal::min_value().to_string();
-        let test_cases = vec!["0.00", "-0.01", "-1.00", min_value.as_str()];
+        let test_cases = vec!["0.00", "-0.01", "-1.00", min_value.as_str(), "10000000.00"];
 
         conn.test_transaction::<_, Error, _>(|| {
             let user = create_test_user(&conn, &config);
