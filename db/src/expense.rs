@@ -28,8 +28,12 @@ pub enum ExpenseErrorKind {
     CategoryHasWrongUser,
     // An expense could not be created due to a database error.
     CreationFailed(diesel::result::Error),
+    // An expense could not be deleted due to a database error.
+    DeletionFailed(diesel::result::Error),
     // The amount should be greater than 0.
     InvalidAmount,
+    // An expense does not exist.
+    NotFound(i32),
 }
 
 impl fmt::Display for ExpenseErrorKind {
@@ -39,7 +43,11 @@ impl fmt::Display for ExpenseErrorKind {
             ExpenseErrorKind::CreationFailed(ref err) => {
                 write!(f, "Database error when creating expense: {}", err)
             }
+            ExpenseErrorKind::DeletionFailed(ref err) => {
+                write!(f, "Database error when deleting expense: {}", err)
+            }
             ExpenseErrorKind::InvalidAmount => write!(f, "Amount should be greater than 0.00"),
+            ExpenseErrorKind::NotFound(ref id) => write!(f, "Expense {} not found", id),
         }
     }
 }
@@ -90,6 +98,20 @@ pub fn read(connection: &PgConnection, id: i32) -> Option<Expense> {
         Ok(c) => Some(c),
         Err(_) => None,
     }
+}
+
+/// Deletes the expense with the given ID.
+pub fn delete(connection: &PgConnection, id: i32) -> Result<(), ExpenseErrorKind> {
+    let result = diesel::delete(dsl::expenses.filter(dsl::id.eq(id))).execute(connection);
+
+    let result = result.map_err(ExpenseErrorKind::DeletionFailed)?;
+
+    // Throw an error if nothing was deleted.
+    if result == 0 {
+        return Err(ExpenseErrorKind::NotFound(id));
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -184,6 +206,41 @@ mod tests {
                 Utc::now().naive_utc().date(),
             );
 
+            // Delete the expense. Now the `read()` function should return `None` again.
+            assert!(delete(&conn, expense.id).is_ok());
+            assert!(read(&conn, expense.id).is_none());
+
+            Ok(())
+        });
+    }
+
+    // Tests super::delete().
+    #[test]
+    fn test_delete() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Initially there should not be any expenses.
+            assert_expense_count(&conn, 0);
+
+            // Create an expense. Now there should be one expense.
+            let user = create_test_user(&conn, &config);
+            let cat = create_test_category(&conn, &user);
+            let amount = Decimal::from_str("99.95").unwrap();
+            let expense = create(&conn, &user, &amount, &cat, None, None).unwrap();
+            assert_expense_count(&conn, 1);
+
+            // Delete the expense. This should not result in any errors, and there should again be 0
+            // expenses in the database.
+            assert!(delete(&conn, expense.id).is_ok());
+            assert_expense_count(&conn, 0);
+
+            // Try deleting the expense again.
+            let result = delete(&conn, expense.id);
+            assert!(result.is_err());
+            assert_eq!(ExpenseErrorKind::NotFound(expense.id), result.unwrap_err());
+
             Ok(())
         });
     }
@@ -213,5 +270,14 @@ mod tests {
         assert_eq!(category_id, expense.category_id);
         assert_eq!(user_id, expense.user_id);
         assert_eq!(date, expense.date);
+    }
+
+    // Checks that the number of expenses stored in the database matches the expected count.
+    fn assert_expense_count(connection: &PgConnection, expected_count: i64) {
+        let actual_count: i64 = dsl::expenses
+            .select(diesel::dsl::count_star())
+            .first(connection)
+            .unwrap();
+        assert_eq!(expected_count, actual_count);
     }
 }

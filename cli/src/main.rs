@@ -225,6 +225,9 @@ async fn main() {
                         SubCommand::with_name("get")
                             .about("Outputs an expense as JSON data")
                             .arg(Arg::with_name("id").required(true).help("The expense ID")),
+                        SubCommand::with_name("delete")
+                            .about("Deletes an expense")
+                            .arg(Arg::with_name("id").required(true).help("The expense ID")),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -421,6 +424,15 @@ async fn main() {
                     Err::<String, _>("Expense not found").unwrap_or_exit();
                 };
                 println!("{}", json!(expense.unwrap()));
+            }
+            ("delete", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The expense ID must be numeric",
+                )
+                .unwrap();
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                db::expense::delete(&connection, id).unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
