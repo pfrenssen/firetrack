@@ -35,8 +35,8 @@ pub enum CategoryErrorKind {
     HasChildren(i32),
     // Some required data is missing.
     MissingData(String),
-    // A category could not be deleted because it does not exist.
-    NotDeleted(i32),
+    // The category does not exist.
+    NotFound(i32),
     // A category was passed that belongs to the wrong user.
     ParentCategoryHasWrongUser,
 }
@@ -64,11 +64,7 @@ impl fmt::Display for CategoryErrorKind {
                 id
             ),
             CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
-            CategoryErrorKind::NotDeleted(ref id) => write!(
-                f,
-                "Could not delete category {} because it does not exist",
-                id
-            ),
+            CategoryErrorKind::NotFound(ref id) => write!(f, "Category {} not found", id),
             CategoryErrorKind::ParentCategoryHasWrongUser => {
                 write!(f, "Parent category should be for the same user",)
             }
@@ -149,7 +145,7 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
 
     // Throw an error if nothing was deleted.
     if result == 0 {
-        return Err(CategoryErrorKind::NotDeleted(id));
+        return Err(CategoryErrorKind::NotFound(id));
     }
 
     Ok(())
@@ -398,7 +394,7 @@ mod tests {
             // Try deleting the category again.
             let result = delete(&conn, cat.id);
             assert!(result.is_err());
-            assert_eq!(CategoryErrorKind::NotDeleted(cat.id), result.unwrap_err());
+            assert_eq!(CategoryErrorKind::NotFound(cat.id), result.unwrap_err());
 
             Ok(())
         });
