@@ -6,9 +6,11 @@ extern crate log;
 use app::*;
 use clap::{AppSettings, Arg, SubCommand};
 use db::establish_connection;
+use rust_decimal::Decimal;
 use serde_json::json;
 use std::env;
 use std::process::exit;
+use std::str::FromStr;
 use web::serve;
 
 /// A trait that defines functions that will log an error and exit with an error code.
@@ -189,6 +191,41 @@ async fn main() {
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
             .subcommand(
+                SubCommand::with_name("expense")
+                    .about("Commands for managing expenses")
+                    .subcommands(vec![
+                        SubCommand::with_name("add")
+                            .about("Create a new expense")
+                            .arg(Arg::with_name("email").required(true).help(
+                                "The email address of the account for which to create the expense",
+                            ))
+                            .arg(
+                                Arg::with_name("amount")
+                                    .required(true)
+                                    .help("The amount that was spent"),
+                            )
+                            .arg(
+                                Arg::with_name("category_id")
+                                    .required(true)
+                                    .help("The ID of the category"),
+                            )
+                            .arg(
+                                Arg::with_name("description")
+                                    .long("description")
+                                    .short("d")
+                                    .takes_value(true)
+                                    .help("The description"),
+                            )
+                            .arg(
+                                Arg::with_name("date")
+                                    .long("date")
+                                    .takes_value(true)
+                                    .help("The date for the expense, in the format YYYY-MM-DD. If omitted, today's date will be used."),
+                            ),
+                    ])
+                    .setting(AppSettings::SubcommandRequiredElseHelp),
+            )
+            .subcommand(
                 SubCommand::with_name("notify")
                     .about("Send a notification")
                     .subcommand(
@@ -317,6 +354,57 @@ async fn main() {
                 .unwrap();
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
                 db::category::delete(&connection, id).unwrap_or_exit();
+            }
+            ("", None) => {}
+            _ => unreachable!(),
+        },
+        ("expense", Some(arguments)) => match arguments.subcommand() {
+            ("add", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+
+                // Check that the amount is in decimal format with maximum two fractional digits.
+                let amount = arguments.value_of("amount").unwrap();
+                if !regex::Regex::new(r"^\d{0,7}(\.\d{1,2})?$")
+                    .unwrap()
+                    .is_match(amount)
+                {
+                    Err::<String, _>("Amount should be in the format \"149.99\"").unwrap_or_exit();
+                }
+                let amount = Decimal::from_str(amount).unwrap_or_exit();
+
+                let date = arguments.value_of("date").map(|d| {
+                    chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d")
+                        .map_err(|_| {
+                            "The date should be valid and in the format YYYY-MM-DD".to_string()
+                        })
+                        .unwrap_or_exit()
+                });
+
+                // Check that the category ID is a numeric value.
+                let category_id = assert_integer_argument(
+                    arguments.value_of("category_id"),
+                    "The category must be a numeric ID",
+                )
+                .unwrap();
+
+                // Load the category.
+                let category = db::category::read(&connection, category_id);
+                let message = format!("The category with ID {} could not be loaded", category_id);
+                if category.is_none() {
+                    Err::<String, _>(message).unwrap_or_exit();
+                };
+
+                db::expense::create(
+                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &user,
+                    &amount,
+                    &category.unwrap(),
+                    arguments.value_of("description"),
+                    date.as_ref(),
+                )
+                .unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
