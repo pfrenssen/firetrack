@@ -182,7 +182,7 @@ async fn main() {
                                     .help("The ID of the parent category"),
                             ),
                         SubCommand::with_name("get")
-                            .about("Retrieves a category as JSON data")
+                            .about("Outputs a category as JSON data")
                             .arg(Arg::with_name("id").required(true).help("The category ID")),
                         SubCommand::with_name("delete")
                             .about("Deletes a category")
@@ -222,6 +222,9 @@ async fn main() {
                                     .takes_value(true)
                                     .help("The date for the expense, in the format YYYY-MM-DD. If omitted, today's date will be used."),
                             ),
+                        SubCommand::with_name("get")
+                            .about("Outputs an expense as JSON data")
+                            .arg(Arg::with_name("id").required(true).help("The expense ID")),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -405,6 +408,19 @@ async fn main() {
                     date.as_ref(),
                 )
                 .unwrap_or_exit();
+            }
+            ("get", Some(arguments)) => {
+                let id = assert_integer_argument(
+                    arguments.value_of("id"),
+                    "The expense ID must be numeric",
+                )
+                .unwrap();
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let expense = db::expense::read(&connection, id);
+                if expense.is_none() {
+                    Err::<String, _>("Expense not found").unwrap_or_exit();
+                };
+                println!("{}", json!(expense.unwrap()));
             }
             ("", None) => {}
             _ => unreachable!(),

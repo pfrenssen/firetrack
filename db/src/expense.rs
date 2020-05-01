@@ -62,7 +62,7 @@ pub fn create(
         return Err(ExpenseErrorKind::InvalidAmount);
     }
 
-    let result = diesel::insert_into(dsl::expenses)
+    diesel::insert_into(dsl::expenses)
         .values((
             dsl::amount.eq(amount),
             dsl::description.eq(description),
@@ -78,8 +78,18 @@ pub fn create(
             dsl::user_id,
             dsl::date,
         ))
-        .get_result(connection);
-    result.map_err(ExpenseErrorKind::CreationFailed)
+        .get_result(connection)
+        .map_err(ExpenseErrorKind::CreationFailed)
+}
+
+/// Retrieves the expense with the given ID.
+pub fn read(connection: &PgConnection, id: i32) -> Option<Expense> {
+    let expense = dsl::expenses.find(id).first::<Expense>(connection);
+
+    match expense {
+        Ok(c) => Some(c),
+        Err(_) => None,
+    }
 }
 
 #[cfg(test)]
@@ -146,5 +156,62 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    // Tests super::read().
+    #[test]
+    fn test_read() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // When no expense with the given ID exists, `None` should be returned.
+            assert!(read(&conn, 1).is_none());
+
+            // Create an expense and assert that the `read()` function returns it.
+            let user = create_test_user(&conn, &config);
+            let cat = create_test_category(&conn, &user);
+            let amount = Decimal::from_str("99.95").unwrap();
+            let result = create(&conn, &user, &amount, &cat, None, None).unwrap();
+            let expense = read(&conn, result.id).unwrap();
+            assert_expense(
+                &expense,
+                Some(result.id),
+                &amount,
+                None,
+                cat.id,
+                user.id,
+                Utc::now().naive_utc().date(),
+            );
+
+            Ok(())
+        });
+    }
+
+    // Checks that the given expense matches the given values.
+    fn assert_expense(
+        // The expense to check.
+        expense: &Expense,
+        // The expected expense ID. If None this will not be checked.
+        id: Option<i32>,
+        // The expected amount.
+        amount: &Decimal,
+        // The expected description.
+        description: Option<&str>,
+        // The expected category ID.
+        category_id: i32,
+        // The expected user ID of the category owner.
+        user_id: i32,
+        // The expected date.
+        date: chrono::NaiveDate,
+    ) {
+        if let Some(id) = id {
+            assert_eq!(id, expense.id);
+        }
+        assert_eq!(*amount, expense.amount);
+        assert_eq!(description.map(|d| d.to_string()), expense.description);
+        assert_eq!(category_id, expense.category_id);
+        assert_eq!(user_id, expense.user_id);
+        assert_eq!(date, expense.date);
     }
 }
