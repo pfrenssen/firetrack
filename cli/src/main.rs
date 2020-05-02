@@ -362,9 +362,10 @@ async fn main() {
 
                 // Check that the amount is in decimal format with maximum two fractional digits.
                 let amount = arguments.value_of("amount").unwrap();
-                if !regex::Regex::new(r"^\d{0,7}(\.\d{1,2})?$")
-                    .unwrap()
-                    .is_match(amount)
+                if amount.is_empty()
+                    || !regex::Regex::new(r"^\d{0,7}(\.\d{1,2})?$")
+                        .unwrap()
+                        .is_match(amount)
                 {
                     Err::<String, _>("Amount should be in the format \"149.99\"").unwrap_or_exit();
                 }
