@@ -31,14 +31,14 @@ pub enum CategoryErrorKind {
     CreationFailed(diesel::result::Error),
     // A category could not be deleted due to a database error.
     DeletionFailed(diesel::result::Error),
-    // A category could not be deleted because it has child categories.
-    HasChildren(i32),
+    // A category could not be deleted because it has children.
+    HasChildren(i32, String),
     // Some required data is missing.
     MissingData(String),
-    // A category could not be deleted because it does not exist.
-    NotDeleted(i32),
+    // The category does not exist.
+    NotFound(i32),
     // A category was passed that belongs to the wrong user.
-    ParentCategoryHasWrongUser(i32, i32),
+    ParentCategoryHasWrongUser,
 }
 
 impl fmt::Display for CategoryErrorKind {
@@ -58,23 +58,15 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::DeletionFailed(ref err) => {
                 write!(f, "Database error when deleting category: {}", err)
             }
-            CategoryErrorKind::HasChildren(ref id) => write!(
+            CategoryErrorKind::HasChildren(ref id, orphan_type) => write!(
                 f,
-                "The category with ID {} could not be deleted because it has child categories",
-                id
+                "The category with ID {} could not be deleted because it contains at least one {}",
+                id, orphan_type
             ),
             CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
-            CategoryErrorKind::NotDeleted(ref id) => write!(
-                f,
-                "Could not delete category {} because it does not exist",
-                id
-            ),
-            CategoryErrorKind::ParentCategoryHasWrongUser(ref expected_user_id, actual_user_id) => {
-                write!(
-                    f,
-                    "Expected parent category for user {} instead of user {}",
-                    expected_user_id, actual_user_id
-                )
+            CategoryErrorKind::NotFound(ref id) => write!(f, "Category {} not found", id),
+            CategoryErrorKind::ParentCategoryHasWrongUser => {
+                write!(f, "Parent category should be for the same user",)
             }
         }
     }
@@ -97,10 +89,7 @@ pub fn create(
     // Check that the parent category belongs to the same user.
     if let Some(parent) = parent {
         if parent.user_id != user.id {
-            return Err(CategoryErrorKind::ParentCategoryHasWrongUser(
-                user.id,
-                parent.user_id,
-            ));
+            return Err(CategoryErrorKind::ParentCategoryHasWrongUser);
         }
     }
 
@@ -148,15 +137,21 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
     let result = diesel::delete(dsl::categories.filter(dsl::id.eq(id))).execute(connection);
 
     // Convert a ForeignKeyViolation to a more informative error.
-    if let Err(DatabaseError(ForeignKeyViolation, _)) = result {
-        return Err(CategoryErrorKind::HasChildren(id));
+    if let Err(DatabaseError(ForeignKeyViolation, info)) = result {
+        let orphan_type = if info.message().contains("expenses_category_id_fkey") {
+            "expense".to_string()
+        } else {
+            "category".to_string()
+        };
+
+        return Err(CategoryErrorKind::HasChildren(id, orphan_type));
     }
 
     let result = result.map_err(CategoryErrorKind::DeletionFailed)?;
 
     // Throw an error if nothing was deleted.
     if result == 0 {
-        return Err(CategoryErrorKind::NotDeleted(id));
+        return Err(CategoryErrorKind::NotFound(id));
     }
 
     Ok(())
@@ -165,7 +160,7 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db_test::create_test_user;
+    use crate::db_test::*;
     use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
@@ -350,10 +345,7 @@ mod tests {
             )
             .unwrap_err();
 
-            assert_eq!(
-                CategoryErrorKind::ParentCategoryHasWrongUser(user.id, other_user.id),
-                cat
-            );
+            assert_eq!(CategoryErrorKind::ParentCategoryHasWrongUser, cat);
 
             Ok(())
         });
@@ -408,7 +400,7 @@ mod tests {
             // Try deleting the category again.
             let result = delete(&conn, cat.id);
             assert!(result.is_err());
-            assert_eq!(CategoryErrorKind::NotDeleted(cat.id), result.unwrap_err());
+            assert_eq!(CategoryErrorKind::NotFound(cat.id), result.unwrap_err());
 
             Ok(())
         });
@@ -434,7 +426,31 @@ mod tests {
             let result = delete(&conn, parent_cat.id);
             assert!(result.is_err());
             assert_eq!(
-                CategoryErrorKind::HasChildren(parent_cat.id),
+                CategoryErrorKind::HasChildren(parent_cat.id, "category".to_string()),
+                result.unwrap_err()
+            );
+
+            Ok(())
+        });
+    }
+
+    // Tests that a category which contains an expense cannot be deleted.
+    #[test]
+    fn test_delete_category_containing_expense() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create a category which contains an expense.
+            let user = create_test_user(&conn, &config);
+            let cat = create_test_category(&conn, &user);
+            create_test_expense(&conn, &user, &cat);
+
+            // Delete to delete the category. This should result in an error.
+            let result = delete(&conn, cat.id);
+            assert!(result.is_err());
+            assert_eq!(
+                crate::category::CategoryErrorKind::HasChildren(cat.id, "expense".to_string()),
                 result.unwrap_err()
             );
 

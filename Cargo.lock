@@ -619,6 +619,7 @@ checksum = "80094f509cf8b5ae86a4966a39b3ff66cd7e2a3e594accec3743ff3fabeab5b2"
 dependencies = [
  "num-integer",
  "num-traits",
+ "serde",
  "time",
 ]
 
@@ -667,12 +668,14 @@ dependencies = [
  "actix-rt",
  "actix-web",
  "app",
+ "chrono",
  "clap",
  "db",
  "log",
  "mailgun_mock",
  "notifications",
  "regex",
+ "rust_decimal",
  "serde",
  "serde_derive",
  "serde_json",
@@ -765,6 +768,7 @@ dependencies = [
  "log",
  "r2d2",
  "rand 0.7.3",
+ "rust_decimal",
  "serde",
  "validator",
 ]
@@ -2209,6 +2213,19 @@ dependencies = [
  "untrusted",
  "web-sys",
  "winapi 0.3.8",
+]
+
+[[package]]
+name = "rust_decimal"
+version = "1.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1989cf75ea3463a3584ad69f92642e8046083482f519017aa2258333e5dc61cd"
+dependencies = [
+ "byteorder",
+ "bytes",
+ "diesel",
+ "num-traits",
+ "serde",
 ]
 
 [[package]]

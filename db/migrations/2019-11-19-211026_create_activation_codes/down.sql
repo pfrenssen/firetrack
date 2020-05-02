@@ -1,1 +1,1 @@
-DROP TABLE activation_codes
+DROP TABLE activation_codes;
