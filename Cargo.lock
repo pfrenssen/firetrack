@@ -2966,6 +2966,7 @@ dependencies = [
  "actix-http",
  "actix-identity",
  "actix-rt",
+ "actix-service",
  "actix-session",
  "actix-web",
  "app",

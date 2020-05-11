@@ -1,3 +1,8 @@
+{% set body_properties = "" -%}
+{% if body_classes -%}
+    {% set body_classes = body_classes | join(sep=" ") -%}
+    {% set body_properties = ' class="' ~ body_classes ~ '"' -%}
+{% endif -%}
 <!doctype html>
 <html lang="en">
 <head>
@@ -8,8 +13,10 @@
     <title>Firetrack - {{ title }}</title>
     <link rel="stylesheet" href="/third-party/bootstrap.min.css">
     <link rel="stylesheet" href="/css/login.css">
+    <!-- Todo: only include when rendering the error page -->
+    <link rel="stylesheet" href="/css/error.css">
 </head>
-<body>
+<body{{ body_properties | safe }}>
     <nav class="navbar navbar-expand-md navbar-light bg-light">
         <a href="/"><img src="/images/logo.png" width="30" height="30" class="d-inline-block align-top" alt="Logo"></a>
         <a href="/"><h3 class="my-0 mr-md-auto font-weight-normal">Firetrack</h3></a>

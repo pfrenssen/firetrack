@@ -142,8 +142,7 @@ fn render_login(
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Log in");
+    let mut context = get_tera_context("Log in", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
@@ -245,8 +244,7 @@ fn render_register(
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Sign up");
+    let mut context = get_tera_context("Sign up", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
@@ -415,8 +413,7 @@ fn render_activate(
     input: ActivationFormInput,
     validation_state: ActivationFormInputValid,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Activate account");
+    let mut context = get_tera_context("Activate account", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
