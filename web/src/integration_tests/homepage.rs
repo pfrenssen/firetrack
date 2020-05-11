@@ -19,7 +19,6 @@ async fn access_homepage() {
     assert_response_ok(&response.response());
 
     let body = get_response_body(&response.response());
-    assert_header_title(&body, "Home");
     assert_page_title(&body, "Home");
     assert_navbar(&body);
 }

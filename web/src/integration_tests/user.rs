@@ -89,7 +89,6 @@ async fn test_login_handler() {
     let body = get_response_body(&response.response());
 
     assert_response_ok(&response.response());
-    assert_header_title(&body, "Log in");
     assert_page_title(&body, "Log in");
     assert_navbar(&body);
 }
@@ -114,7 +113,6 @@ async fn test_register_handler() {
     let body = get_response_body(&response.response());
 
     assert_response_ok(&response.response());
-    assert_header_title(&body, "Sign up");
     assert_page_title(&body, "Sign up");
     assert_navbar(&body);
 

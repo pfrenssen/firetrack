@@ -33,17 +33,13 @@ pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
     );
 }
 
-// Checks that the header title matches the given string.
-pub fn assert_header_title(body: &str, title: &str) {
+// Checks that the page title and main header match the given string.
+pub fn assert_page_title(body: &str, title: &str) {
     let header_title = format!("Firetrack - {}", title);
     assert_xpath(body, "//head//title", header_title.as_str());
-}
-
-// Checks that the page title matches the given string.
-pub fn assert_page_title(body: &str, title: &str) {
-    let xpath = "//body//h1";
 
     // Check that there is only 1 <h1> title on the page.
+    let xpath = "//body//h1";
     assert_xpath_result_count(body, xpath, 1);
 
     assert_xpath(body, xpath, title);
