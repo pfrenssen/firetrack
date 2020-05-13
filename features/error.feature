@@ -20,3 +20,23 @@ Feature: Error pages
     And I should see the link "Log out"
     But I should not see the link "Sign up"
     And I should not see the link "Log in"
+
+  Scenario: Anonymous and authenticated users can see 403 pages
+    # Anonymous users get a 403 on the activation page.
+    When I go to "/user/activate"
+    Then the response status code should be 403
+    And I should see the heading "Access denied"
+    And I should see "403"
+    And I should see the link "Sign up"
+    And I should see the link "Log in"
+    But I should not see the link "Log out"
+
+    # Authenticated users get a 403 on the login page.
+    Given I am logged in as "malka.gonzales@gandi.net"
+    When I go to "/user/login"
+    Then the response status code should be 403
+    And I should see the heading "Access denied"
+    And I should see "403"
+    And I should see the link "Log out"
+    But I should not see the link "Sign up"
+    And I should not see the link "Log in"
