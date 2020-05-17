@@ -1,4 +1,5 @@
 use super::super::*;
+use crate::integration_tests::build_test_app;
 use actix_web::http::StatusCode;
 use actix_web::{dev::Service, test, App};
 use db::user::asserts::hashed_password_is_valid;
@@ -72,16 +73,7 @@ async fn register_with_valid_data() {
 // Integration tests for the user login form handler.
 #[actix_rt::test]
 async fn test_login_handler() {
-    dotenv::dotenv().ok();
-    dotenv::from_filename(".env.dist").ok();
-
-    let config = app::AppConfig::from_test_defaults();
-    let database_url = config.database_url();
-    let pool = db::create_test_connection_pool(database_url).unwrap();
-    let mut app = test::init_service(
-        App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
-    )
-    .await;
+    let mut app = build_test_app().await;
 
     let req = test::TestRequest::get().uri("/user/login").to_request();
 
@@ -96,16 +88,7 @@ async fn test_login_handler() {
 // Integration tests for the user registration form handler.
 #[actix_rt::test]
 async fn test_register_handler() {
-    dotenv::dotenv().ok();
-    dotenv::from_filename(".env.dist").ok();
-
-    let config = app::AppConfig::from_test_defaults();
-    let database_url = config.database_url();
-    let pool = db::create_test_connection_pool(database_url).unwrap();
-    let mut app = test::init_service(
-        App::new().configure(|c| configure_application(c, pool.clone(), config.clone())),
-    )
-    .await;
+    let mut app = build_test_app().await;
 
     let req = test::TestRequest::get().uri("/user/register").to_request();
 
