@@ -53,7 +53,9 @@ fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Resp
     let identity = request.get_identity();
 
     // Render the error page.
-    // Todo: Find a way to retrieve Tera from the response, compiling the templates is very slow.
+    // Todo: Find a way to retrieve Tera from the response, compiling the templates is slow.
+    // Ref. https://github.com/actix/actix-web/issues/1508
+    // Ref. https://github.com/pfrenssen/firetrack/pull/117
     let tera = compile_templates();
     let mut context = get_tera_context(title, identity);
     context.insert("body_classes", &vec!["error"]);
