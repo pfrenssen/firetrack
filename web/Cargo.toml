@@ -25,6 +25,7 @@ validator = "~0.10"
 
 [dev-dependencies]
 actix-rt = "~1.0"
+actix-service = "~1.0"
 chrono = "~0.4"
 mockito = "^0.25.1"
 serde_json = "^1.0.53"

@@ -33,17 +33,13 @@ pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
     );
 }
 
-// Checks that the header title matches the given string.
-pub fn assert_header_title(body: &str, title: &str) {
+// Checks that the page title and main header match the given string.
+pub fn assert_page_title(body: &str, title: &str) {
     let header_title = format!("Firetrack - {}", title);
     assert_xpath(body, "//head//title", header_title.as_str());
-}
-
-// Checks that the page title matches the given string.
-pub fn assert_page_title(body: &str, title: &str) {
-    let xpath = "//body//h1";
 
     // Check that there is only 1 <h1> title on the page.
+    let xpath = "//body//h1";
     assert_xpath_result_count(body, xpath, 1);
 
     assert_xpath(body, xpath, title);
@@ -96,16 +92,9 @@ pub fn assert_form_submit(body: &str, label: &str) {
 pub fn get_response_body(response: &HttpResponse) -> String {
     // Get the response body.
     let body = match response.body() {
-        // It is not clear to me under which circumstances this will return a 'Body' or a 'Response'
-        // so let's print out some debugging info.
-        ResponseBody::Body(b) => {
-            println!("'Body' response body is returned.");
-            b
-        }
-        ResponseBody::Other(o) => {
-            println!("'Other' response body is returned.");
-            o
-        }
+        // This returns `Body` for regular route handlers, and `Other` for error handlers.
+        ResponseBody::Body(b) => b,
+        ResponseBody::Other(o) => o,
     };
     // Convert the response in Bytes to a string slice.
     let body = match body {

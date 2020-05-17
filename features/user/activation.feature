@@ -26,7 +26,7 @@ Feature: Account activation
   Scenario: Accessing the activation form without authenticating returns an access denied error
     Given I go to "/user/activate"
     Then the response should contain "Please log in before activating your account."
-    And the response status code should be 401
+    And the response status code should be 403
 
   Scenario: Validation of the activation form
     Given I am on the user registration form

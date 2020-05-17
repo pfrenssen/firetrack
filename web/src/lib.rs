@@ -10,11 +10,13 @@ mod integration_tests;
 use crate::firetrack_test::*;
 
 mod bootstrap_components;
+mod error;
 mod user;
 
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
-use actix_web::{error, middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::error::ErrorInternalServerError;
+use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;
 
@@ -45,21 +47,47 @@ pub async fn serve(config: AppConfig) -> Result<(), String> {
 
 // Controller for the homepage.
 async fn index(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Home");
+    let context = get_tera_context("Home", id);
 
     let content = template
         .render("index.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|_| ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
+/// Contains the identity of the current user as a string containing the email address. This is used
+/// so we can instantiate a `tera::Context` struct both from the `actix_identity::Identity` struct
+/// which is available in responses (e.g. route handlers) as a `FromRequest` data extractor, and the
+/// raw `Option<String>` value which is available in middlewares (e.g. error handlers) from the
+/// `RequestIdentity` trait.
+pub struct TeraContextIdentity {
+    pub id: Option<String>,
+}
+
+// Converts `Identity` into `TeraContextIdentity` for use in route handlers through `FromRequest`.
+impl From<Identity> for TeraContextIdentity {
+    fn from(id: Identity) -> Self {
+        TeraContextIdentity { id: id.identity() }
+    }
+}
+
+// Converts `Option<String>` into `TeraContextIdentity` for use in middleware / error handlers
+// through `RequestIdentity`.
+impl From<Option<String>> for TeraContextIdentity {
+    fn from(id: Option<String>) -> Self {
+        TeraContextIdentity { id }
+    }
+}
+
 // Returns a new Tera context object.
-pub fn get_tera_context(id: Identity) -> tera::Context {
+pub fn get_tera_context<T: Into<TeraContextIdentity>>(title: &str, id: T) -> tera::Context {
     let mut context = tera::Context::new();
 
+    // Set the page title.
+    context.insert("title", &title);
+
     // Set a flag to indicate if the user is logged in.
-    context.insert("authenticated", &id.identity().is_some());
+    context.insert("authenticated", &id.into().id.is_some());
 
     context
 }
@@ -77,6 +105,9 @@ pub fn configure_application(
             .data(tera)
             .data(pool)
             .data(app_config)
+            // Middleware is executed in the reverse order. Define the error handlers first so they
+            // run after the identity and session handlers and can access their data if needed.
+            .wrap(error::error_handlers())
             // Todo: Allow to toggle the secure flag on both the session and identity providers.
             // Ref. https://github.com/pfrenssen/firetrack/issues/96
             .wrap(CookieSession::signed(&session_key).secure(false))

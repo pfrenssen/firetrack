@@ -142,8 +142,7 @@ fn render_login(
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Log in");
+    let mut context = get_tera_context("Log in", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
@@ -245,8 +244,7 @@ fn render_register(
     input: UserForm,
     validation_state: UserFormValidation,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Sign up");
+    let mut context = get_tera_context("Sign up", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
@@ -321,7 +319,7 @@ pub async fn activate_handler(
             }
         }
     }
-    Err(error::ErrorUnauthorized(
+    Err(error::ErrorForbidden(
         "Please log in before activating your account.",
     ))
 }
@@ -348,7 +346,7 @@ pub async fn activate_submit(
         )
     };
     let authorization_failed = || {
-        Err(error::ErrorUnauthorized(
+        Err(error::ErrorForbidden(
             "Please log in before activating your account.",
         ))
     };
@@ -415,8 +413,7 @@ fn render_activate(
     input: ActivationFormInput,
     validation_state: ActivationFormInputValid,
 ) -> Result<HttpResponse, Error> {
-    let mut context = get_tera_context(id);
-    context.insert("title", &"Activate account");
+    let mut context = get_tera_context("Activate account", id);
     context.insert("input", &input);
     context.insert("validation", &validation_state);
 
@@ -430,7 +427,7 @@ fn render_activate(
 // forms.
 fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
     if id.identity().is_some() {
-        return Err(error::ErrorUnauthorized("You are already logged in."));
+        return Err(error::ErrorForbidden("You are already logged in."));
     }
     Ok(())
 }
@@ -438,7 +435,7 @@ fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
 // Checks that the user is authenticated.
 fn assert_authenticated(id: &Identity) -> Result<(), Error> {
     if id.identity().is_none() {
-        return Err(error::ErrorUnauthorized(
+        return Err(error::ErrorForbidden(
             "You need to be logged in to access this page.",
         ));
     }
