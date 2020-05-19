@@ -54,6 +54,14 @@ fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Resp
     let request = res.request();
     let identity = request.get_identity();
 
+    // Provide a fallback to a simple plain text response in case an error occurs during the
+    // rendering of the error page.
+    let fallback = |m: &str| {
+        Response::build(res.status())
+            .content_type("text/plain")
+            .body(m.to_string())
+    };
+
     // Render the error page or fall back to a simple text message if Tera is not available.
     let tera = request.app_data::<Data<Tera>>().map(|t| t.get_ref());
     match tera {
@@ -62,20 +70,15 @@ fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Resp
             context.insert("body_classes", &vec!["error"]);
             context.insert("message", message);
             context.insert("status_code", res.status().as_str());
-            let content = tera.render("error.html", &context).map_err(|err| {
-                actix_web::error::ErrorInternalServerError(format!("Template error: {:?}", err))
-            });
+            let content = tera.render("error.html", &context);
 
-            // Generate an HTML response.
-            Response::build(res.status())
-                .content_type("text/html")
-                .body(content.unwrap())
+            match content {
+                Ok(content) => Response::build(res.status())
+                    .content_type("text/html")
+                    .body(content),
+                Err(_) => fallback(message),
+            }
         }
-        None => {
-            // Generate a text response.
-            Response::build(res.status())
-                .content_type("text/plain")
-                .body(message.to_string())
-        }
+        None => fallback(message),
     }
 }
