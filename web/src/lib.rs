@@ -16,7 +16,7 @@ mod user;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
 use actix_web::error::ErrorInternalServerError;
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;
 
@@ -28,7 +28,7 @@ pub async fn serve(config: AppConfig) -> Result<(), String> {
     // Configure the application.
     let app = move || {
         App::new()
-            .wrap(middleware::Logger::default())
+            .wrap(Logger::default())
             .configure(|c| configure_application(c, pool.clone(), cloned_config.clone()))
     };
 
@@ -111,14 +111,6 @@ pub fn configure_application(
             "/third-party",
             "web/static/third-party/",
         ))
-        .route("/", web::get().to(index))
-        .route("/user/activate", web::get().to(user::activate_handler))
-        .route("/user/activate", web::post().to(user::activate_submit))
-        .route("/user/login", web::get().to(user::login_handler))
-        .route("/user/login", web::post().to(user::login_submit))
-        .route("/user/logout", web::get().to(user::logout_handler))
-        .route("/user/register", web::get().to(user::register_handler))
-        .route("/user/register", web::post().to(user::register_submit))
         .service(
             web::scope("")
                 // Middleware is executed in the reverse order. Define the error handlers first so they
@@ -131,7 +123,15 @@ pub fn configure_application(
                     CookieIdentityPolicy::new(&session_key)
                         .name("auth")
                         .secure(false),
-                )),
+                ))
+                .route("/", web::get().to(index))
+                .route("/user/activate", web::get().to(user::activate_handler))
+                .route("/user/activate", web::post().to(user::activate_submit))
+                .route("/user/login", web::get().to(user::login_handler))
+                .route("/user/login", web::post().to(user::login_submit))
+                .route("/user/logout", web::get().to(user::logout_handler))
+                .route("/user/register", web::get().to(user::register_handler))
+                .route("/user/register", web::post().to(user::register_submit)),
         );
 }
 
