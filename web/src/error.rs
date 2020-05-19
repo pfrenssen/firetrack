@@ -1,11 +1,13 @@
-use crate::{compile_templates, get_tera_context};
+use crate::get_tera_context;
 use actix_http::body::{Body, ResponseBody};
 use actix_http::Response;
 use actix_identity::RequestIdentity;
 use actix_web::dev::ServiceResponse;
 use actix_web::http::StatusCode;
 use actix_web::middleware::errhandlers::{ErrorHandlerResponse, ErrorHandlers};
+use actix_web::web::Data;
 use actix_web::Result;
+use tera::Tera;
 
 /// Custom error handlers that show error messages as HTML pages.
 pub fn error_handlers() -> ErrorHandlers<Body> {
@@ -52,21 +54,28 @@ fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Resp
     let request = res.request();
     let identity = request.get_identity();
 
-    // Render the error page.
-    // Todo: Find a way to retrieve Tera from the response, compiling the templates is slow.
-    // Ref. https://github.com/actix/actix-web/issues/1508
-    // Ref. https://github.com/pfrenssen/firetrack/pull/117
-    let tera = compile_templates();
-    let mut context = get_tera_context(title, identity);
-    context.insert("body_classes", &vec!["error"]);
-    context.insert("message", message);
-    context.insert("status_code", res.status().as_str());
-    let content = tera.render("error.html", &context).map_err(|err| {
-        actix_web::error::ErrorInternalServerError(format!("Template error: {:?}", err))
-    });
+    // Render the error page or fall back to a simple text message if Tera is not available.
+    let tera = request.app_data::<Data<Tera>>().map(|t| t.get_ref());
+    match tera {
+        Some(tera) => {
+            let mut context = get_tera_context(title, identity);
+            context.insert("body_classes", &vec!["error"]);
+            context.insert("message", message);
+            context.insert("status_code", res.status().as_str());
+            let content = tera.render("error.html", &context).map_err(|err| {
+                actix_web::error::ErrorInternalServerError(format!("Template error: {:?}", err))
+            });
 
-    // Generate an HTML response.
-    Response::build(res.status())
-        .content_type("text/html")
-        .body(content.unwrap())
+            // Generate an HTML response.
+            Response::build(res.status())
+                .content_type("text/html")
+                .body(content.unwrap())
+        }
+        None => {
+            // Generate a text response.
+            Response::build(res.status())
+                .content_type("text/plain")
+                .body(message.to_string())
+        }
+    }
 }

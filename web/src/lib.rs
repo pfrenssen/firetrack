@@ -16,7 +16,7 @@ mod user;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
 use actix_web::error::ErrorInternalServerError;
-use actix_web::{middleware, web, App, Error, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, App, Error, HttpResponse, HttpServer};
 use app::AppConfig;
 use std::env;
 
@@ -28,7 +28,7 @@ pub async fn serve(config: AppConfig) -> Result<(), String> {
     // Configure the application.
     let app = move || {
         App::new()
-            .wrap(middleware::Logger::default())
+            .wrap(Logger::default())
             .configure(|c| configure_application(c, pool.clone(), cloned_config.clone()))
     };
 
@@ -100,38 +100,39 @@ pub fn configure_application(
 ) {
     let tera = compile_templates();
     let session_key = app_config.session_key();
-    config.service(
-        web::scope("")
-            .data(tera)
-            .data(pool)
-            .data(app_config)
-            // Middleware is executed in the reverse order. Define the error handlers first so they
-            // run after the identity and session handlers and can access their data if needed.
-            .wrap(error::error_handlers())
-            // Todo: Allow to toggle the secure flag on both the session and identity providers.
-            // Ref. https://github.com/pfrenssen/firetrack/issues/96
-            .wrap(CookieSession::signed(&session_key).secure(false))
-            .wrap(IdentityService::new(
-                CookieIdentityPolicy::new(&session_key)
-                    .name("auth")
-                    .secure(false),
-            ))
-            .service(actix_files::Files::new("/css", "web/static/css/"))
-            .service(actix_files::Files::new("/images", "web/static/images/"))
-            .service(actix_files::Files::new("/js", "web/static/js/"))
-            .service(actix_files::Files::new(
-                "/third-party",
-                "web/static/third-party/",
-            ))
-            .route("/", web::get().to(index))
-            .route("/user/activate", web::get().to(user::activate_handler))
-            .route("/user/activate", web::post().to(user::activate_submit))
-            .route("/user/login", web::get().to(user::login_handler))
-            .route("/user/login", web::post().to(user::login_submit))
-            .route("/user/logout", web::get().to(user::logout_handler))
-            .route("/user/register", web::get().to(user::register_handler))
-            .route("/user/register", web::post().to(user::register_submit)),
-    );
+    config
+        .data(tera)
+        .data(pool)
+        .data(app_config)
+        .service(actix_files::Files::new("/css", "web/static/css/"))
+        .service(actix_files::Files::new("/images", "web/static/images/"))
+        .service(actix_files::Files::new("/js", "web/static/js/"))
+        .service(actix_files::Files::new(
+            "/third-party",
+            "web/static/third-party/",
+        ))
+        .service(
+            web::scope("")
+                // Middleware is executed in the reverse order. Define the error handlers first so they
+                // run after the identity and session handlers and can access their data if needed.
+                .wrap(error::error_handlers())
+                // Todo: Allow to toggle the secure flag on both the session and identity providers.
+                // Ref. https://github.com/pfrenssen/firetrack/issues/96
+                .wrap(CookieSession::signed(&session_key).secure(false))
+                .wrap(IdentityService::new(
+                    CookieIdentityPolicy::new(&session_key)
+                        .name("auth")
+                        .secure(false),
+                ))
+                .route("/", web::get().to(index))
+                .route("/user/activate", web::get().to(user::activate_handler))
+                .route("/user/activate", web::post().to(user::activate_submit))
+                .route("/user/login", web::get().to(user::login_handler))
+                .route("/user/login", web::post().to(user::login_submit))
+                .route("/user/logout", web::get().to(user::logout_handler))
+                .route("/user/register", web::get().to(user::register_handler))
+                .route("/user/register", web::post().to(user::register_submit)),
+        );
 }
 
 // Compile the Tera templates.
