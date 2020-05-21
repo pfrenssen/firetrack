@@ -45,17 +45,15 @@ pub fn assert_page_title(body: &str, title: &str) {
     assert_xpath(body, xpath, title);
 }
 
-// Checks that the navbar is present.
-pub fn assert_navbar(body: &str) {
+// Checks that the header elements are present.
+pub fn assert_header(body: &str) {
     let expressions = [
-        // The navbar itself.
-        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]",
         // The logo, linking to the homepage.
-        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/']//img[@src='/images/logo.png']",
+        "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/img[@src='/images/logo.png']",
         // The site name, linking to the homepage.
-        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/']//h3[text()='Firetrack']",
-        // The button to toggle the navbar.
-        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//button[@class='navbar-toggler']",
+        "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/span[text()='Firetrack']",
+        // The button to toggle the sidebar.
+        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/ul[@class='navbar-nav']/li[@class='nav-item']/a[@data-widget='pushmenu']",
         // The link to the registration page.
         "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/user/register']",
         // The link to the login page.
@@ -124,7 +122,13 @@ fn assert_xpath_result_count(xml: &str, expression: &str, expected_count: usize)
     let doc = parser.parse_string(xml.as_bytes()).unwrap();
     let context = Context::new(&doc).unwrap();
     let result = context.evaluate(expression).unwrap();
-    assert_eq!(expected_count, result.get_number_of_nodes());
+    assert_eq!(
+        expected_count,
+        result.get_number_of_nodes(),
+        "Expecting {} instances of {}",
+        expected_count,
+        expression
+    );
 }
 
 // Sets up a Mailgun mock server that will respond positively to every request on its endpoint.

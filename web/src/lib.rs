@@ -125,6 +125,7 @@ pub fn configure_application(
                         .secure(false),
                 ))
                 .route("/", web::get().to(index))
+                .route("/favicon.ico", web::get().to(index))
                 .route("/user/activate", web::get().to(user::activate_handler))
                 .route("/user/activate", web::post().to(user::activate_submit))
                 .route("/user/login", web::get().to(user::login_handler))

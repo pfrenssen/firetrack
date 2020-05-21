@@ -82,7 +82,7 @@ async fn test_login_handler() {
 
     assert_response_ok(&response.response());
     assert_page_title(&body, "Log in");
-    assert_navbar(&body);
+    assert_header(&body);
 }
 
 // Integration tests for the user registration form handler.
@@ -97,7 +97,7 @@ async fn test_register_handler() {
 
     assert_response_ok(&response.response());
     assert_page_title(&body, "Sign up");
-    assert_navbar(&body);
+    assert_header(&body);
 
     // Check that the email and password fields and submit button are present.
     assert_form_input(&body, "email", "email", "email", "Email address");

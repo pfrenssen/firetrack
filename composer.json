@@ -11,7 +11,7 @@
     "prefer-stable": true,
     "require": {
         "php": ">=7.4.0",
-        "twbs/bootstrap": "^4.4"
+        "almasaeed2010/adminlte": "^3.0"
     },
     "require-dev": {
         "behat/behat": "^3.5",
