@@ -122,7 +122,13 @@ fn assert_xpath_result_count(xml: &str, expression: &str, expected_count: usize)
     let doc = parser.parse_string(xml.as_bytes()).unwrap();
     let context = Context::new(&doc).unwrap();
     let result = context.evaluate(expression).unwrap();
-    assert_eq!(expected_count, result.get_number_of_nodes(), "Expecting {} instances of {}", expected_count, expression);
+    assert_eq!(
+        expected_count,
+        result.get_number_of_nodes(),
+        "Expecting {} instances of {}",
+        expected_count,
+        expression
+    );
 }
 
 // Sets up a Mailgun mock server that will respond positively to every request on its endpoint.
