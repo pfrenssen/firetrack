@@ -10,6 +10,7 @@ Requirements
 * [Rust 2018 edition toolchain](https://www.rust-lang.org/tools/install)
 * [PostgreSQL](https://www.postgresql.org/)
 * [Diesel CLI](https://github.com/diesel-rs/diesel/tree/master/diesel_cli)
+* [Composer](https://getcomposer.org/)
 
 
 Installation
@@ -18,6 +19,7 @@ Installation
 ```
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack
+$ composer install
 $ cargo build --release
 $ sudo ln -s `pwd`/target/release/cli /usr/local/bin/firetrack
 ```
@@ -80,9 +82,6 @@ $ cargo test
 Before we can run the BDD test suite, we need to set up the test environment:
 
 ```
-# Install dependencies for the BDD test framework.
-$ composer install
-
 # Start the Mailgun mock server.
 $ cargo run -- mailgun-mock-server &> /dev/null &
 
