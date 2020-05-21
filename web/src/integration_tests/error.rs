@@ -18,5 +18,5 @@ async fn test_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
     assert_page_title(&body, "Page not found");
-    assert_navbar(&body);
+    assert_header(&body);
 }
