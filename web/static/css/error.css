@@ -1,6 +1,11 @@
-.error .status-code {
-    text-align: center;
-    font-size: 300px;
-    font-weight: bold;
-    color: #eee;
+.content .error-page {
+    width: max-content;
+}
+
+.error-page .error-content p {
+    margin: 0;
+}
+
+.error-page .error-content h3 {
+    padding-top: 20px;
 }

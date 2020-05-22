@@ -155,23 +155,21 @@
             </div>
         </div>
 
+        {% if alerts %}
+        <!-- Alerts -->
+        <div class="alerts">
+            {% for alert in alerts %}
+            <div class="alert alert-{{ alert.alert_type }}" role="alert">
+                {{ alert.message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Main content -->
         <div class="content">
-            <div class="container-fluid">
-                <div class="row">
-                    {% if alerts %}
-                    <div class="alerts">
-                        {% for alert in alerts %}
-                        <div class="alert alert-{{ alert.alert_type }}" role="alert">
-                            {{ alert.message }}
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% endif %}
-                    {% block content %}
-                    {% endblock content %}
-                </div>
-            </div>
+            {% block content %}
+            {% endblock content %}
         </div>
     </div>
 </div>

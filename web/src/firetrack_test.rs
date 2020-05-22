@@ -37,8 +37,8 @@ pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
 pub struct PageAssertOptions {
     // Optional title to check. When omitted, the page title is not checked.
     pub title: Option<String>,
-    // Whether or not this is an error page.
-    pub is_error_page: bool
+    // Whether this is an error page.
+    pub is_error_page: bool,
 }
 
 impl PageAssertOptions {
@@ -46,7 +46,7 @@ impl PageAssertOptions {
     pub fn default() -> PageAssertOptions {
         PageAssertOptions {
             title: None,
-            is_error_page: false
+            is_error_page: false,
         }
     }
 }
@@ -60,8 +60,7 @@ pub fn assert_page(body: &str, ops: PageAssertOptions) {
     // Error pages include an additional CSS file with styling.
     if ops.is_error_page {
         assert_stylesheet(body, "/css/error.css");
-    }
-    else {
+    } else {
         assert_no_stylesheet(body, "/css/error.css");
     }
 
