@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "user/base.html" %}
 {% import "user/user_macros.html" as macros %}
 {% import "js/js_macros.html" as js_macros %}
 
-{% block content %}
+{% block user_content %}
 <form class="form-activate" method="post" enctype="application/x-www-form-urlencoded" action="/user/activate" novalidate>
     {% if validation.form_is_validated %}
         {% if validation.activation_code %}
@@ -28,4 +28,4 @@
     <button class="btn btn-lg btn-primary btn-block" type="submit">Activate</button>
 </form>
 {{ js_macros::disable_invalid_form_submission(selector="form-activate") }}
-{% endblock content %}
+{% endblock user_content %}

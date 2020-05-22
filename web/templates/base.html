@@ -23,8 +23,6 @@
     <link rel="stylesheet" href="/third-party/fontawesome/css/all.min.css" />
     <link rel="stylesheet" href="/third-party/adminlte.min.css" />
     <link rel="stylesheet" href="/css/main.css" />
-    <!-- Todo: only include on the login forms -->
-    <link rel="stylesheet" href="/css/login.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" />
     {%- endblock stylesheets %}
     <link rel="apple-touch-icon" sizes="57x57" href="/images/icon/apple-icon-57x57.png" />
@@ -52,8 +50,7 @@
     <nav class="main-header navbar navbar-expand navbar-white navbar-light">
         {% if not authenticated %}
         <a href="/" class="brand-link">
-            <img src="/images/logo.png" alt="Firetrack logo" class="brand-image img-circle elevation-3"
-                style="opacity: .8" />
+            <img src="/images/logo.png" alt="Firetrack logo" class="brand-image" />
             <span class="brand-text font-weight-light">Firetrack</span>
         </a>
         {% endif %}
@@ -139,26 +136,19 @@
     </aside>
     {% endif %}
 
-    <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
-        <!-- Content Header (Page header) -->
+        {% block content_wrapper -%}
+        {% block content_header -%}
         <div class="content-header">
-            <div class="container-fluid">
-                <div class="row mb-2">
-                    <div class="col-sm-6">
-                        <h1 class="m-0 text-dark">{{ title }}</h1>
-                    </div>
-                    <div class="col-sm-6">
-                        <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="#">Home</a></li>
-                            <li class="breadcrumb-item active">Starter Page</li>
-                        </ol>
-                    </div>
+            <div class="row mb-1 ml-1">
+                <div class="col-12">
+                    <h1 class="m-0 text-dark">{{ title }}</h1>
                 </div>
             </div>
         </div>
+        {% endblock content_header -%}
 
-        {% if alerts %}
+        {% if alerts -%}
         <!-- Alerts -->
         <div class="alerts">
             {% for alert in alerts %}
@@ -167,13 +157,14 @@
             </div>
             {% endfor %}
         </div>
-        {% endif %}
+        {% endif -%}
 
         <!-- Main content -->
         <div class="content">
             {% block content %}
             {% endblock content %}
         </div>
+        {% endblock content_wrapper -%}
     </div>
 </div>
 

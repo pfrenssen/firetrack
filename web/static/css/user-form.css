@@ -1,9 +1,12 @@
-.form-login,
-.form-register {
-  width: 100%;
+.user-form-wrapper {
   max-width: 420px;
-  padding: 15px;
   margin: auto;
+}
+
+.user-form,
+.user-form-header {
+  width: 100%;
+  padding: 15px;
 }
 
 .form-label-group {
@@ -15,4 +18,3 @@
   height: 3.125rem;
   padding: .75rem;
 }
-

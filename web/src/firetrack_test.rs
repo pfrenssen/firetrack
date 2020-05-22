@@ -59,6 +59,8 @@ pub struct PageAssertOptions {
     pub has_sidebar: bool,
     // Whether this is an error page.
     pub is_error_page: bool,
+    // Whether this is a user login form or a related form such as sign up, activate, reset password...
+    pub is_user_form: bool,
 }
 
 impl PageAssertOptions {
@@ -68,6 +70,7 @@ impl PageAssertOptions {
             title: None,
             has_sidebar: true,
             is_error_page: false,
+            is_user_form: false,
         }
     }
 }
@@ -78,11 +81,17 @@ pub fn assert_page(body: &str, ops: PageAssertOptions) {
         assert_page_title(body, title.as_str());
     }
 
-    // Error pages include an additional CSS file with styling.
+    // Error pages and user forms include an additional stylesheet.
     if ops.is_error_page {
         assert_stylesheet(body, "/css/error.css");
     } else {
         assert_no_stylesheet(body, "/css/error.css");
+    }
+
+    if ops.is_user_form {
+        assert_stylesheet(body, "/css/user-form.css");
+    } else {
+        assert_no_stylesheet(body, "/css/user-form.css");
     }
 
     if ops.has_sidebar {
