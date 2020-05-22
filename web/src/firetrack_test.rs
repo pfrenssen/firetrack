@@ -24,7 +24,6 @@ static SIDEBAR_INVISIBLE_ELEMENTS: [&str; 2] = [
     "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/a[@href='/']/span[text()='Firetrack']",
 ];
 
-
 // Checks that the page returns a 200 OK response.
 pub fn assert_response_ok(response: &HttpResponse) {
     assert_eq!(

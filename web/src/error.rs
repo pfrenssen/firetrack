@@ -49,7 +49,12 @@ fn forbidden(res: ServiceResponse<Body>) -> Result<ErrorHandlerResponse<Body>> {
     ))
 }
 
-fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str, explanation: Option<&str>) -> Response<Body> {
+fn get_response<B>(
+    res: &ServiceResponse<B>,
+    title: &str,
+    message: &str,
+    explanation: Option<&str>,
+) -> Response<Body> {
     // Retrieve the current user identity from the request. Note that unlike route handlers this
     // does not return an `Identity` struct but rather the user email address as a string.
     let request = res.request();
