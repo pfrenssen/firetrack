@@ -7,18 +7,20 @@
 <!doctype html>
 <html lang="en">
 <head>
+    {% block head -%}
     <meta charset="utf-8" />
+    <meta name="generator" content="actix-web" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <meta name="generator" content="actix-web" />
 
     <title>Firetrack - {{ title }}</title>
 
+    {% block stylesheets -%}
     <link rel="stylesheet" href="/third-party/fontawesome/css/all.min.css" />
     <link rel="stylesheet" href="/third-party/adminlte.min.css" />
     <link rel="stylesheet" href="/css/login.css" />
-    <!-- Todo: only include when rendering the error page -->
-    <link rel="stylesheet" href="/css/error.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" />
+    {% endblock stylesheets -%}
 
     <link rel="apple-touch-icon" sizes="57x57" href="/images/icon/apple-icon-57x57.png" />
     <link rel="apple-touch-icon" sizes="60x60" href="/images/icon/apple-icon-60x60.png" />
@@ -37,8 +39,7 @@
     <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-TileImage" content="/images/icon/ms-icon-144x144.png" />
     <meta name="theme-color" content="#ffffff" />
-
-    <link href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700" rel="stylesheet" />
+    {% endblock -%}
 </head>
 <body class="hold-transition sidebar-mini{{ body_classes }}">
 <div class="wrapper">
