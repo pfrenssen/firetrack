@@ -6,6 +6,25 @@ use libxml::{parser::Parser, xpath::Context};
 use serde_json::json;
 use std::str;
 
+// A list of XPath locators to elements that are only present on the page when the sidebar is visible.
+static SIDEBAR_VISIBLE_ELEMENTS: [&str; 3] = [
+    // The logo, linking to the homepage.
+    "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/img[@src='/images/logo.png']",
+    // The site name, linking to the homepage.
+    "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/span[text()='Firetrack']",
+    // The button to toggle the sidebar.
+    "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/ul[@class='navbar-nav']/li[@class='nav-item']/a[@data-widget='pushmenu']",
+];
+
+// A list of XPath locators to elements that are only present on the page when the sidebar is invisible.
+static SIDEBAR_INVISIBLE_ELEMENTS: [&str; 2] = [
+    // The logo, linking to the homepage.
+    "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/a[@href='/']/img[@src='/images/logo.png']",
+    // The site name, linking to the homepage.
+    "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/a[@href='/']/span[text()='Firetrack']",
+];
+
+
 // Checks that the page returns a 200 OK response.
 pub fn assert_response_ok(response: &HttpResponse) {
     assert_eq!(
@@ -37,6 +56,8 @@ pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
 pub struct PageAssertOptions {
     // Optional title to check. When omitted, the page title is not checked.
     pub title: Option<String>,
+    // Whether or not the sidebar should be visible.
+    pub has_sidebar: bool,
     // Whether this is an error page.
     pub is_error_page: bool,
 }
@@ -46,6 +67,7 @@ impl PageAssertOptions {
     pub fn default() -> PageAssertOptions {
         PageAssertOptions {
             title: None,
+            has_sidebar: true,
             is_error_page: false,
         }
     }
@@ -62,6 +84,12 @@ pub fn assert_page(body: &str, ops: PageAssertOptions) {
         assert_stylesheet(body, "/css/error.css");
     } else {
         assert_no_stylesheet(body, "/css/error.css");
+    }
+
+    if ops.has_sidebar {
+        assert_sidebar(body);
+    } else {
+        assert_no_sidebar(body);
     }
 
     assert_page_header(body);
@@ -82,12 +110,6 @@ pub fn assert_page_title(body: &str, title: &str) {
 // Checks that the header elements are present.
 pub fn assert_page_header(body: &str) {
     let expressions = [
-        // The logo, linking to the homepage.
-        "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/img[@src='/images/logo.png']",
-        // The site name, linking to the homepage.
-        "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/span[text()='Firetrack']",
-        // The button to toggle the sidebar.
-        "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]/ul[@class='navbar-nav']/li[@class='nav-item']/a[@data-widget='pushmenu']",
         // The link to the registration page.
         "//body//nav[contains(concat(' ', normalize-space(@class), ' '), 'navbar')]//a[@href='/user/register']",
         // The link to the login page.
@@ -130,6 +152,26 @@ pub fn assert_stylesheet(body: &str, path: &str) {
 pub fn assert_no_stylesheet(body: &str, path: &str) {
     let xpath = format!("//head/link[@rel='stylesheet' and @href='{}']", path);
     assert_xpath_result_count(body, xpath.as_str(), 0);
+}
+
+// Checks that the sidebar is visible.
+pub fn assert_sidebar(body: &str) {
+    for expression in &SIDEBAR_VISIBLE_ELEMENTS {
+        assert_xpath_result_count(body, expression, 1);
+    }
+    for expression in &SIDEBAR_INVISIBLE_ELEMENTS {
+        assert_xpath_result_count(body, expression, 0);
+    }
+}
+
+// Checks that the sidebar is not visible.
+pub fn assert_no_sidebar(body: &str) {
+    for expression in &SIDEBAR_VISIBLE_ELEMENTS {
+        assert_xpath_result_count(body, expression, 0);
+    }
+    for expression in &SIDEBAR_INVISIBLE_ELEMENTS {
+        assert_xpath_result_count(body, expression, 1);
+    }
 }
 
 // Given an HttpResponse, returns the response body as a string.

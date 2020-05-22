@@ -16,6 +16,7 @@ async fn access_homepage() {
         &body,
         PageAssertOptions {
             title: Some("Home".to_string()),
+            has_sidebar: false,
             ..PageAssertOptions::default()
         },
     );

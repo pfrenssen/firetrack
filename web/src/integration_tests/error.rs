@@ -22,6 +22,7 @@ async fn test_404() {
         PageAssertOptions {
             title: Some("Page not found".to_string()),
             is_error_page: true,
+            has_sidebar: false,
             ..PageAssertOptions::default()
         },
     );

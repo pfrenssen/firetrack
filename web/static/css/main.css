@@ -1,0 +1,13 @@
+body.no-sidebar .main-header,
+body.no-sidebar .content-wrapper {
+    margin-left: 0;
+}
+
+body.no-sidebar .brand-link {
+    font-size: 1.75rem;
+    line-height: 1;
+}
+
+body.no-sidebar .brand-link:hover {
+    color: #0153ac;
+}

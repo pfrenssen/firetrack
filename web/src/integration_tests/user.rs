@@ -85,6 +85,7 @@ async fn test_login_handler() {
         &body,
         PageAssertOptions {
             title: Some("Log in".to_string()),
+            has_sidebar: false,
             ..PageAssertOptions::default()
         },
     );
@@ -105,6 +106,7 @@ async fn test_register_handler() {
         &body,
         PageAssertOptions {
             title: Some("Sign up".to_string()),
+            has_sidebar: false,
             ..PageAssertOptions::default()
         },
     );
