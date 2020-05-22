@@ -17,6 +17,12 @@ async fn test_404() {
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 
-    assert_page_title(&body, "Page not found");
-    assert_header(&body);
+    assert_page(
+        &body,
+        PageAssertOptions {
+            title: Some("Page not found".to_string()),
+            is_error_page: true,
+            ..PageAssertOptions::default()
+        },
+    );
 }

@@ -33,6 +33,41 @@ pub fn assert_response_see_other(response: &HttpResponse, location: &str) {
     );
 }
 
+// Defines options for checking the content of a page.
+pub struct PageAssertOptions {
+    // Optional title to check. When omitted, the page title is not checked.
+    pub title: Option<String>,
+    // Whether or not this is an error page.
+    pub is_error_page: bool
+}
+
+impl PageAssertOptions {
+    // Default values.
+    pub fn default() -> PageAssertOptions {
+        PageAssertOptions {
+            title: None,
+            is_error_page: false
+        }
+    }
+}
+
+// Checks the contents of the given HTML page, depending on the given options.
+pub fn assert_page(body: &str, ops: PageAssertOptions) {
+    if let Some(title) = ops.title {
+        assert_page_title(body, title.as_str());
+    }
+
+    // Error pages include an additional CSS file with styling.
+    if ops.is_error_page {
+        assert_stylesheet(body, "/css/error.css");
+    }
+    else {
+        assert_no_stylesheet(body, "/css/error.css");
+    }
+
+    assert_page_header(body);
+}
+
 // Checks that the page title and main header match the given string.
 pub fn assert_page_title(body: &str, title: &str) {
     let header_title = format!("Firetrack - {}", title);
@@ -46,7 +81,7 @@ pub fn assert_page_title(body: &str, title: &str) {
 }
 
 // Checks that the header elements are present.
-pub fn assert_header(body: &str) {
+pub fn assert_page_header(body: &str) {
     let expressions = [
         // The logo, linking to the homepage.
         "//body//aside[contains(concat(' ', normalize-space(@class), ' '), 'main-sidebar')]/a[@href='/']/img[@src='/images/logo.png']",
@@ -84,6 +119,18 @@ pub fn assert_form_submit(body: &str, label: &str) {
     // Check the input element.
     let xpath = format!("//body//button[@type='submit' and text()='{}']", label);
     assert_xpath_result_count(body, xpath.as_str(), 1);
+}
+
+// Checks that the stylesheet with the given path is included.
+pub fn assert_stylesheet(body: &str, path: &str) {
+    let xpath = format!("//head/link[@rel='stylesheet' and @href='{}']", path);
+    assert_xpath_result_count(body, xpath.as_str(), 1);
+}
+
+// Checks that the stylesheet with the given path is not included.
+pub fn assert_no_stylesheet(body: &str, path: &str) {
+    let xpath = format!("//head/link[@rel='stylesheet' and @href='{}']", path);
+    assert_xpath_result_count(body, xpath.as_str(), 0);
 }
 
 // Given an HttpResponse, returns the response body as a string.
