@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block stylesheets -%}
+{{ super() -}}
+    <link rel="stylesheet" href="/css/user-form.css" />
+{%- endblock stylesheets %}
+
+{% block content_wrapper %}
+        <div class="user-form-wrapper">
+{{ super() -}}
+        </div>
+{% endblock content_wrapper %}
+
+{% block content_header -%}
+        <div class="content-header user-form-header">
+            <div class="row mb-1 ml-1 mt-3">
+                <div class="col-12">
+                    <h1 class="m-0 text-dark">{{ title }}</h1>
+                </div>
+            </div>
+        </div>
+{% endblock content_header -%}
+
+{% block content %}
+            <div class="card user-form">
+                {% block user_content %}
+                {% endblock user_content %}
+            </div>
+{% endblock content %}

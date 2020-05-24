@@ -21,7 +21,8 @@ fn not_found<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
     let response = get_response(
         &res,
         "Page not found",
-        "Sorry, this page does not seem to exist.",
+        "Sorry, this page does not exist",
+        Some("We can't seem to find the page you're looking for."),
     );
     Ok(ErrorHandlerResponse::Response(
         res.into_response(response.into_body()),
@@ -42,13 +43,18 @@ fn forbidden(res: ServiceResponse<Body>) -> Result<ErrorHandlerResponse<Body>> {
         default_message
     };
 
-    let response = get_response(&res, "Access denied", message);
+    let response = get_response(&res, "Access denied", message, None);
     Ok(ErrorHandlerResponse::Response(
         res.into_response(response.into_body()),
     ))
 }
 
-fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Response<Body> {
+fn get_response<B>(
+    res: &ServiceResponse<B>,
+    title: &str,
+    message: &str,
+    explanation: Option<&str>,
+) -> Response<Body> {
     // Retrieve the current user identity from the request. Note that unlike route handlers this
     // does not return an `Identity` struct but rather the user email address as a string.
     let request = res.request();
@@ -69,6 +75,7 @@ fn get_response<B>(res: &ServiceResponse<B>, title: &str, message: &str) -> Resp
             let mut context = get_tera_context(title, identity);
             context.insert("body_classes", &vec!["error"]);
             context.insert("message", message);
+            context.insert("explanation", &explanation);
             context.insert("status_code", res.status().as_str());
             let content = tera.render("error.html", &context);
 

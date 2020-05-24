@@ -1,7 +1,7 @@
-{% extends "base.html" %}
+{% extends "user/base.html" %}
 {% import "js/js_macros.html" as js_macros %}
 
-{% block content %}
+{% block user_content %}
 {% set is_validated = "" %}
 {% if validation.form_is_validated %}
     {% set is_validated = " was-validated" %}
@@ -28,4 +28,4 @@
     <button class="btn btn-lg btn-primary btn-block" type="submit">{{ title }}</button>
 </form>
 {{ js_macros::disable_invalid_form_submission(selector="form-login") }}
-{% endblock content %}
+{% endblock user_content %}

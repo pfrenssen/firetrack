@@ -12,6 +12,12 @@ async fn access_homepage() {
     assert_response_ok(&response.response());
 
     let body = get_response_body(&response.response());
-    assert_page_title(&body, "Home");
-    assert_header(&body);
+    assert_page(
+        &body,
+        PageAssertOptions {
+            title: Some("Home".to_string()),
+            has_sidebar: false,
+            ..PageAssertOptions::default()
+        },
+    );
 }
