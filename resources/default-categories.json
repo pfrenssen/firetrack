@@ -1,0 +1,79 @@
+{
+    "Education": [
+        "Books",
+        "Conferences",
+        "Training",
+        "Trips",
+        "Tuition"
+    ],
+    "Entertainment": [
+        "Concerts",
+        "Dining",
+        "Electronics",
+        "Games",
+        "Gifts",
+        "Hobbies",
+        "Movies",
+        "Parties",
+        "Subscriptions",
+        "Toys",
+        "Vacations"
+    ],
+    "Food": [
+        "Alcohol",
+        "Groceries",
+        "Pet food"
+    ],
+    "Housing": [
+        "HOA fees",
+        "Home improvement",
+        "Home insurance",
+        "Maintenance & repairs",
+        "Mortgage \/ rent",
+        "Property taxes"
+    ],
+    "Healthcare": [
+        "Dentist",
+        "Doctor",
+        "Health insurance",
+        "Medication",
+        "Specialty care"
+    ],
+    "Household": [
+        "Appliances",
+        "Cleaning",
+        "Office equipment",
+        "Office supplies",
+        "Paper",
+        "Tools"
+    ],
+    "Personal": [
+        "Clothing",
+        "Dry cleaning",
+        "Gym",
+        "Salons",
+        "Shoes",
+        "Toiletries"
+    ],
+    "Transportation": [
+        "Annual fees",
+        "Car insurance",
+        "Car maintenance",
+        "Car repairs",
+        "Fuel",
+        "Parking",
+        "Public transportation",
+        "Tires",
+        "Toll roads",
+        "Vehicle replacement"
+    ],
+    "Utilities": [
+        "Electricity",
+        "Garbage",
+        "Heating",
+        "Internet",
+        "Phone",
+        "Television",
+        "Water"
+    ]
+}
