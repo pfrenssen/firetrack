@@ -39,6 +39,8 @@ pub enum CategoryErrorKind {
     NotFound(i32),
     // A category was passed that belongs to the wrong user.
     ParentCategoryHasWrongUser,
+    // A database error occurred while reading data.
+    ReadError(diesel::result::Error),
 }
 
 impl fmt::Display for CategoryErrorKind {
@@ -67,6 +69,9 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::NotFound(ref id) => write!(f, "Category {} not found", id),
             CategoryErrorKind::ParentCategoryHasWrongUser => {
                 write!(f, "Parent category should be for the same user",)
+            }
+            CategoryErrorKind::ReadError(ref err) => {
+                write!(f, "Database error when reading category data: {}", err)
             }
         }
     }
@@ -155,6 +160,17 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
     }
 
     Ok(())
+}
+
+/// Returns whether or not the given user has any categories.
+pub fn has_categories(
+    connection: &PgConnection,
+    user: &User,
+) -> Result<bool, CategoryErrorKind> {
+     use diesel::select;
+     use diesel::dsl::exists;
+    select(exists(dsl::categories.filter(dsl::user_id.eq(user.id))))
+        .get_result(connection).map_err(CategoryErrorKind::ReadError)
 }
 
 #[cfg(test)]
@@ -453,6 +469,23 @@ mod tests {
                 crate::category::CategoryErrorKind::HasChildren(cat.id, "expense".to_string()),
                 result.unwrap_err()
             );
+
+            Ok(())
+        });
+    }
+
+    // Tests super::has_categories().
+    #[test]
+    fn test_has_category() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create a category which contains an expense.
+            let user = create_test_user(&conn, &config);
+            assert_eq!(false, has_categories(&conn, &user).unwrap());
+            create_test_category(&conn, &user);
+            assert_eq!(true, has_categories(&conn, &user).unwrap());
 
             Ok(())
         });
