@@ -73,7 +73,7 @@ script:
   - cat actix.log
   - cat mailgun.log
   # Show how much data is cached.
-  - du -hs /home/travis/.cargo
+  - du -hd1 /home/travis/.cargo
   - du -hs /home/travis/build/pfrenssen/firetrack/target
   - du -hs /home/travis/.rustup
   - du -hs /home/travis/.cache/sccache
@@ -81,4 +81,4 @@ script:
 
 before_cache:
   - rm -rf /home/travis/.cargo/registry/src
-  - rm -rf /home/travis/build/pfrenssen/firetrack/target
+  - rm -rf /home/travis/build/pfrenssen/firetrack/target/*
