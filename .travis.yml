@@ -17,7 +17,7 @@ env:
     - SECRET_KEY=travis123
     - SESSION_KEY=0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
     - RUSTC_WRAPPER=sccache
-    - SCCACHE_VERSION-0.2.13
+    - SCCACHE_VERSION=0.2.13
 
 matrix:
   allow_failures:
@@ -44,7 +44,6 @@ before_install:
   - php composer.phar --version
   # Install sccache, but ensure to disable the rustc wrapper since sccache can't
   # be used until it is installed.
-  - which sccache
   - RUSTC_WRAPPER= cargo install sccache --version $SCCACHE_VERSION
   # Install Diesel.
   - cargo install diesel_cli --no-default-features --features "postgres" || true
