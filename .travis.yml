@@ -80,5 +80,5 @@ script:
   - du -hs $HOME/.cache/composer/files
 
 before_cache:
-  - rm -rf /home/travis/.cargo/registry
+  - rm -rf /home/travis/.cargo/registry/src
   - rm -rf /home/travis/build/pfrenssen/firetrack/target
