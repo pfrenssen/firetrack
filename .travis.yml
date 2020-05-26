@@ -16,6 +16,7 @@ env:
     - DATABASE_URL=postgres://postgres@localhost/firetrack
     - SECRET_KEY=travis123
     - SESSION_KEY=0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
+    - RUSTC_WRAPPER=sccache
 
 matrix:
   allow_failures:
@@ -44,6 +45,8 @@ before_install:
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
+  # Install sccache
+  - cargo install sccache
 
 install:
   - php composer.phar install --no-interaction
