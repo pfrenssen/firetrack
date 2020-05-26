@@ -41,8 +41,9 @@ before_install:
   - php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
   - php composer-setup.php
   - php composer.phar --version
-  # Install sccache
-  - cargo install sccache
+  # Install sccache, but ensure to disable the rustc wrapper since sccache can't
+  # be used until it is installed.
+  - RUSTC_WRAPPER= cargo install sccache
   # Install Diesel.
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
