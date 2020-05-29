@@ -5,6 +5,7 @@ use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
 use diesel::result::Error::DatabaseError;
+use diesel::{dsl::exists, select};
 use serde::Serialize;
 use std::fmt;
 
@@ -163,14 +164,10 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
 }
 
 /// Returns whether or not the given user has any categories.
-pub fn has_categories(
-    connection: &PgConnection,
-    user: &User,
-) -> Result<bool, CategoryErrorKind> {
-     use diesel::select;
-     use diesel::dsl::exists;
+pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, CategoryErrorKind> {
     select(exists(dsl::categories.filter(dsl::user_id.eq(user.id))))
-        .get_result(connection).map_err(CategoryErrorKind::ReadError)
+        .get_result(connection)
+        .map_err(CategoryErrorKind::ReadError)
 }
 
 #[cfg(test)]
