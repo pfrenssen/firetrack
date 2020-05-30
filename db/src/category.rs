@@ -176,7 +176,7 @@ pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, Ca
 
 /// Creates a set of default categories for the given user. The categories are sourced from a JSON file which is set in
 /// the app configuration.
-pub fn create_default_categories(
+pub fn populate_categories(
     connection: &PgConnection,
     user: &User,
     config: &AppConfig,
@@ -504,7 +504,7 @@ mod tests {
             create_test_category(&conn, &user);
             assert_eq!(
                 CategoryErrorKind::AlreadyPopulated,
-                create_default_categories(&conn, &user, &config).unwrap_err()
+                populate_categories(&conn, &user, &config).unwrap_err()
             );
 
             Ok(())

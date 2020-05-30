@@ -187,6 +187,11 @@ async fn main() {
                         SubCommand::with_name("delete")
                             .about("Deletes a category")
                             .arg(Arg::with_name("id").required(true).help("The category ID")),
+                        SubCommand::with_name("populate")
+                            .about("Populates the categories for a new user")
+                            .arg(Arg::with_name("email").required(true).help(
+                                "The email address of the account for which to populate the categories",
+                            )),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -350,6 +355,18 @@ async fn main() {
                 let id = assert_integer_argument(arguments.value_of("id"), "category ID").unwrap();
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
                 db::category::delete(&connection, id).unwrap_or_exit();
+            }
+            ("populate", Some(arguments)) => {
+                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let email = arguments.value_of("email").unwrap();
+                let user = db::user::read(&connection, email).unwrap_or_exit();
+
+                db::category::populate_categories(
+                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &user,
+                    &config,
+                )
+                .unwrap_or_exit();
             }
             ("", None) => {}
             _ => unreachable!(),
