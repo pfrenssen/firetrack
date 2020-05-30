@@ -1,6 +1,7 @@
 use super::schema::categories;
 use super::schema::categories::dsl;
 use super::user::User;
+use app::AppConfig;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
@@ -23,6 +24,8 @@ pub struct Category {
 // Possible errors thrown when handling categories.
 #[derive(Debug, PartialEq)]
 pub enum CategoryErrorKind {
+    // Default categories could not be created because the user already has categories.
+    AlreadyPopulated,
     // The category with the given name and parent already exists.
     CategoryAlreadyExists {
         name: String,
@@ -47,6 +50,7 @@ pub enum CategoryErrorKind {
 impl fmt::Display for CategoryErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
+            CategoryErrorKind::AlreadyPopulated => write!(f, "Categories are already populated",),
             CategoryErrorKind::CategoryAlreadyExists { name, parent } => match parent {
                 Some(p) => write!(
                     f,
@@ -168,6 +172,23 @@ pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, Ca
     select(exists(dsl::categories.filter(dsl::user_id.eq(user.id))))
         .get_result(connection)
         .map_err(CategoryErrorKind::ReadError)
+}
+
+/// Creates a set of default categories for the given user. The categories are sourced from a JSON file which is set in
+/// the app configuration.
+pub fn create_default_categories(
+    connection: &PgConnection,
+    user: &User,
+    config: &AppConfig,
+) -> Result<(), CategoryErrorKind> {
+    // Return an error if the user already has categories.
+    match has_categories(connection, user) {
+        Ok(true) => Err(CategoryErrorKind::AlreadyPopulated),
+        Ok(false) => Ok(()),
+        Err(e) => Err(e),
+    }?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -465,6 +486,25 @@ mod tests {
             assert_eq!(
                 crate::category::CategoryErrorKind::HasChildren(cat.id, "expense".to_string()),
                 result.unwrap_err()
+            );
+
+            Ok(())
+        });
+    }
+
+    // Tests that an error is returned if default categories are created for a user that already has categories.
+    #[test]
+    fn test_create_default_categories_with_existing_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // Create a category which contains an expense.
+            let user = create_test_user(&conn, &config);
+            create_test_category(&conn, &user);
+            assert_eq!(
+                CategoryErrorKind::AlreadyPopulated,
+                create_default_categories(&conn, &user, &config).unwrap_err()
             );
 
             Ok(())
