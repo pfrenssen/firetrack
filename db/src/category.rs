@@ -25,7 +25,7 @@ pub struct Category {
 #[derive(Debug, PartialEq)]
 pub enum CategoryErrorKind {
     // Default categories could not be created because the user already has categories.
-    AlreadyPopulated,
+    AlreadyPopulated(String),
     // The category with the given name and parent already exists.
     CategoryAlreadyExists {
         name: String,
@@ -50,7 +50,9 @@ pub enum CategoryErrorKind {
 impl fmt::Display for CategoryErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &*self {
-            CategoryErrorKind::AlreadyPopulated => write!(f, "Categories are already populated",),
+            CategoryErrorKind::AlreadyPopulated(ref email) => {
+                write!(f, "Categories for user {} are already populated", email)
+            }
             CategoryErrorKind::CategoryAlreadyExists { name, parent } => match parent {
                 Some(p) => write!(
                     f,
@@ -183,7 +185,7 @@ pub fn populate_categories(
 ) -> Result<(), CategoryErrorKind> {
     // Return an error if the user already has categories.
     match has_categories(connection, user) {
-        Ok(true) => Err(CategoryErrorKind::AlreadyPopulated),
+        Ok(true) => Err(CategoryErrorKind::AlreadyPopulated(user.email.clone())),
         Ok(false) => Ok(()),
         Err(e) => Err(e),
     }?;
@@ -503,7 +505,7 @@ mod tests {
             let user = create_test_user(&conn, &config);
             create_test_category(&conn, &user);
             assert_eq!(
-                CategoryErrorKind::AlreadyPopulated,
+                CategoryErrorKind::AlreadyPopulated(user.email.clone()),
                 populate_categories(&conn, &user, &config).unwrap_err()
             );
 
