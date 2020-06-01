@@ -37,6 +37,8 @@ pub enum CategoryErrorKind {
     DeletionFailed(diesel::result::Error),
     // A category could not be deleted because it has children.
     HasChildren(i32, String),
+    // The default category listing has malformed or unexpected JSON data.
+    MalformedCategoryList,
     // Some required data is missing.
     MissingData(String),
     // The category does not exist.
@@ -71,6 +73,10 @@ impl fmt::Display for CategoryErrorKind {
                 f,
                 "The category with ID {} could not be deleted because it contains at least one {}",
                 id, orphan_type
+            ),
+            CategoryErrorKind::MalformedCategoryList => write!(
+                f,
+                "Default categories could not be imported due to malformed data"
             ),
             CategoryErrorKind::MissingData(ref err) => write!(f, "Missing data for field: {}", err),
             CategoryErrorKind::NotFound(ref id) => write!(f, "Category {} not found", id),
@@ -201,6 +207,70 @@ mod tests {
     use app::AppConfig;
     use diesel::result::Error;
     use std::collections::{BTreeMap, HashMap};
+
+    #[test]
+    // Tests insert_child_categories().
+    fn test_insert_child_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        // Define a custom assertion to check if our created categories are valid.
+        let assert_cats = |cats: Vec<(&str, Option<&str>)>,
+                           parent_id: Option<i32>,
+                           result: Vec<i32>,
+                           user_id: i32| {
+            // We should get back the 2 IDs of the created categories.
+            assert_eq!(2, result.len());
+
+            // Check that the categories contain the right data.
+            for i in 0..2 {
+                let id = result.get(i).unwrap();
+                let (name, description) = cats.get(i).unwrap();
+                let category = read(&conn, *id).unwrap();
+                assert_category(&category, Some(*id), name, *description, user_id, parent_id);
+            }
+        };
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+
+            // Initially there are no categories in the database.
+            assert_category_count(&conn, 0);
+
+            // Try creating two root categories, one with a description and one without.
+            let root_cats = vec![
+                ("Healthcare", None),
+                ("Housing", Some("Expenses related to a residence")),
+            ];
+            let result = insert_child_categories(&conn, user.id, None, root_cats.clone()).unwrap();
+
+            // There should be 2 categories in the database now.
+            assert_category_count(&conn, 2);
+            assert_cats(root_cats, None, result.clone(), user.id);
+
+            // Create 2 child categories, one with a description and one without.
+            let parent_id = result.get(0).unwrap();
+
+            let child_cats = vec![
+                ("Dentist", None),
+                ("Doctor", Some("Visiting a general practitioner")),
+            ];
+            let result =
+                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone())
+                    .unwrap();
+
+            // There should be 4 categories in the database now.
+            assert_category_count(&conn, 4);
+            assert_cats(child_cats.clone(), Some(*parent_id), result, user.id);
+
+            // Inserting the same categories again should result in an error.
+            let result =
+                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone());
+            assert!(result.is_err());
+
+            Ok(())
+        });
+    }
 
     // Tests creation of root level categories.
     #[test]
