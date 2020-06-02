@@ -8,7 +8,8 @@ use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
 use diesel::result::Error::DatabaseError;
 use diesel::{dsl::exists, select};
 use serde::Serialize;
-use std::fmt;
+use serde_json::{from_reader, Value};
+use std::{fmt, fs::File};
 
 #[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize)]
 #[belongs_to(User, foreign_key = "id")]
@@ -37,6 +38,8 @@ pub enum CategoryErrorKind {
     DeletionFailed(diesel::result::Error),
     // A category could not be deleted because it has children.
     HasChildren(i32, String),
+    // An error occurred while reading the file containing the default category layout.
+    IoError(String, String),
     // The default category listing has malformed or unexpected JSON data.
     MalformedCategoryList,
     // Some required data is missing.
@@ -74,6 +77,9 @@ impl fmt::Display for CategoryErrorKind {
                 "The category with ID {} could not be deleted because it contains at least one {}",
                 id, orphan_type
             ),
+            CategoryErrorKind::IoError(ref path, ref err) => {
+                write!(f, "I/O error when reading {}: {}", path, err)
+            }
             CategoryErrorKind::MalformedCategoryList => write!(
                 f,
                 "Default categories could not be imported due to malformed data"
@@ -196,7 +202,62 @@ pub fn populate_categories(
         Err(e) => Err(e),
     }?;
 
-    Ok(())
+    let path = config.default_categories();
+    let file = File::open(path)
+        .map_err(|e| CategoryErrorKind::IoError(path.to_string(), e.to_string()))?;
+    let categories: Value =
+        from_reader(file).map_err(|_| CategoryErrorKind::MalformedCategoryList)?;
+
+    populate_categories_from_json(&connection, user.id, &categories, None)
+}
+
+// Creates child categories inside the given parent category using the given JSON data.
+// This is a recursive function intended for populating the initial set of categories for a new user, using the JSON
+// file that contains the category list.
+fn populate_categories_from_json(
+    connection: &PgConnection,
+    // The user for which to create the categories.
+    user_id: i32,
+    // The JSON data. Can be either:
+    // - a JSON object: in this case a set of categories will be created using the object keys as category names. For
+    //   each key we will recurse, passing the key as parent category and the values as children.
+    // - a JSON array: the array values will become category names. Any value other than strings will cause a
+    //   MalformedCategoryList error.
+    // - an other value: will cause a MalformedCategoryList error.
+    json: &Value,
+    // The ID of the category which will be the parent of the newly created categories. If `None` the categories will
+    // be created in the root.
+    parent_id: Option<i32>,
+) -> Result<(), CategoryErrorKind> {
+    match json {
+        Value::Object(o) => {
+            let categories = o.keys().map(|k| (k.as_str(), None)).collect();
+            let category_ids =
+                insert_child_categories(&connection, user_id, parent_id, categories)?;
+            let iter = category_ids.iter().zip(o.keys());
+            for (id, key) in iter {
+                let children = json
+                    .get(key)
+                    .ok_or(CategoryErrorKind::MalformedCategoryList)?;
+                populate_categories_from_json(&connection, user_id, children, Some(*id))?;
+            }
+            Ok(())
+        }
+        Value::Array(a) => {
+            // Convert the array into a vector of string slices, returning an error if it contains anything that cannot be transformed into a string slice.
+            let category_names = a
+                .iter()
+                .map(|c| c.as_str())
+                .collect::<Option<Vec<&str>>>()
+                .ok_or(CategoryErrorKind::MalformedCategoryList)?;
+
+            // Todo: add support for category descriptions.
+            let categories = category_names.iter().map(|c| (*c, None)).collect();
+            insert_child_categories(&connection, user_id, parent_id, categories)?;
+            Ok(())
+        }
+        _ => Err(CategoryErrorKind::MalformedCategoryList),
+    }
 }
 
 // Creates multiple child categories inside a parent category.
