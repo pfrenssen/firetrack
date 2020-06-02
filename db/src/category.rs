@@ -199,6 +199,35 @@ pub fn populate_categories(
     Ok(())
 }
 
+// Creates multiple child categories inside a parent category.
+// This is intended for initially populating the categories for a new user. No checks are done to ensure that the passed in parent category
+// belongs to the passed in user.
+fn insert_child_categories(
+    connection: &PgConnection,
+    user_id: i32,
+    // If the parent ID is omitted the categories will be created in the root.
+    parent_id: Option<i32>,
+    // A list of child categories consisting of a tuple containing the category name and an optional description.
+    categories: Vec<(&str, Option<&str>)>,
+) -> Result<Vec<i32>, CategoryErrorKind> {
+    let mut records = vec![];
+    for (name, description) in categories {
+        records.push((
+            dsl::name.eq(name),
+            dsl::description.eq(description),
+            dsl::user_id.eq(user_id),
+            dsl::parent_id.eq(parent_id),
+        ));
+    }
+
+    let result = diesel::insert_into(dsl::categories)
+        .values(&records)
+        .returning(dsl::id)
+        .get_results(connection);
+
+    result.map_err(CategoryErrorKind::CreationFailed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -207,70 +236,6 @@ mod tests {
     use app::AppConfig;
     use diesel::result::Error;
     use std::collections::{BTreeMap, HashMap};
-
-    #[test]
-    // Tests insert_child_categories().
-    fn test_insert_child_categories() {
-        let conn = establish_connection(&get_database_url()).unwrap();
-        let config = AppConfig::from_test_defaults();
-
-        // Define a custom assertion to check if our created categories are valid.
-        let assert_cats = |cats: Vec<(&str, Option<&str>)>,
-                           parent_id: Option<i32>,
-                           result: Vec<i32>,
-                           user_id: i32| {
-            // We should get back the 2 IDs of the created categories.
-            assert_eq!(2, result.len());
-
-            // Check that the categories contain the right data.
-            for i in 0..2 {
-                let id = result.get(i).unwrap();
-                let (name, description) = cats.get(i).unwrap();
-                let category = read(&conn, *id).unwrap();
-                assert_category(&category, Some(*id), name, *description, user_id, parent_id);
-            }
-        };
-
-        conn.test_transaction::<_, Error, _>(|| {
-            let user = create_test_user(&conn, &config);
-
-            // Initially there are no categories in the database.
-            assert_category_count(&conn, 0);
-
-            // Try creating two root categories, one with a description and one without.
-            let root_cats = vec![
-                ("Healthcare", None),
-                ("Housing", Some("Expenses related to a residence")),
-            ];
-            let result = insert_child_categories(&conn, user.id, None, root_cats.clone()).unwrap();
-
-            // There should be 2 categories in the database now.
-            assert_category_count(&conn, 2);
-            assert_cats(root_cats, None, result.clone(), user.id);
-
-            // Create 2 child categories, one with a description and one without.
-            let parent_id = result.get(0).unwrap();
-
-            let child_cats = vec![
-                ("Dentist", None),
-                ("Doctor", Some("Visiting a general practitioner")),
-            ];
-            let result =
-                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone())
-                    .unwrap();
-
-            // There should be 4 categories in the database now.
-            assert_category_count(&conn, 4);
-            assert_cats(child_cats.clone(), Some(*parent_id), result, user.id);
-
-            // Inserting the same categories again should result in an error.
-            let result =
-                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone());
-            assert!(result.is_err());
-
-            Ok(())
-        });
-    }
 
     // Tests creation of root level categories.
     #[test]
@@ -642,5 +607,69 @@ mod tests {
                 parent: parent.map(|p| p.name.clone())
             }
         );
+    }
+
+    #[test]
+    // Tests insert_child_categories().
+    fn test_insert_child_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        // Define a custom assertion for validating the categories created in the test.
+        let assert_cats = |cats: Vec<(&str, Option<&str>)>,
+                           parent_id: Option<i32>,
+                           result: Vec<i32>,
+                           user_id: i32| {
+            // We should get back the 2 IDs of the created categories.
+            assert_eq!(2, result.len());
+
+            // Check that the categories contain the right data.
+            for i in 0..2 {
+                let id = result.get(i).unwrap();
+                let (name, description) = cats.get(i).unwrap();
+                let category = read(&conn, *id).unwrap();
+                assert_category(&category, Some(*id), name, *description, user_id, parent_id);
+            }
+        };
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+
+            // Initially there are no categories in the database.
+            assert_category_count(&conn, 0);
+
+            // Try creating two root categories, one with a description and one without.
+            let root_cats = vec![
+                ("Healthcare", None),
+                ("Housing", Some("Expenses related to a residence")),
+            ];
+            let result = insert_child_categories(&conn, user.id, None, root_cats.clone()).unwrap();
+
+            // There should be 2 categories in the database now.
+            assert_category_count(&conn, 2);
+            assert_cats(root_cats, None, result.clone(), user.id);
+
+            // Create 2 child categories, one with a description and one without.
+            let parent_id = result.get(0).unwrap();
+
+            let child_cats = vec![
+                ("Dentist", None),
+                ("Doctor", Some("Visiting a general practitioner")),
+            ];
+            let result =
+                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone())
+                    .unwrap();
+
+            // There should be 4 categories in the database now.
+            assert_category_count(&conn, 4);
+            assert_cats(child_cats.clone(), Some(*parent_id), result, user.id);
+
+            // Inserting the same categories again should result in an error.
+            let result =
+                insert_child_categories(&conn, user.id, Some(*parent_id), child_cats.clone());
+            assert!(result.is_err());
+
+            Ok(())
+        });
     }
 }
