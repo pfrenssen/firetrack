@@ -296,6 +296,7 @@ mod tests {
     use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
+    use serde_json::json;
     use std::collections::{BTreeMap, HashMap};
 
     // Tests creation of root level categories.
@@ -626,48 +627,48 @@ mod tests {
         });
     }
 
-    // Checks that the given category matches the given values.
-    fn assert_category(
-        // The category to check.
-        category: &Category,
-        // The expected category ID. If None this will not be checked.
-        id: Option<i32>,
-        // The expected category name.
-        name: &str,
-        // The expected description.
-        description: Option<&str>,
-        // The expected user ID of the category owner.
-        user_id: i32,
-        // The expected parent category ID.
-        parent_id: Option<i32>,
-    ) {
-        if let Some(id) = id {
-            assert_eq!(id, category.id);
+    #[test]
+    // Tests that an error is returned when trying to populate default categories using malformed JSON.
+    fn test_populate_categories_from_malformed_json() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        let test_cases = vec![
+            json!("a string"),
+            json!(1.2),
+            json!(0),
+            json!(null),
+            json!(true),
+            json!(["an", "array", 0, "containing", "a", "non-string", "value"]),
+            json!({"Object with invalid value": "string"}),
+            json!({"Object with invalid value": 0}),
+            json!({"Object with invalid value": 1.2}),
+            json!({ "Object with invalid value": null }),
+            json!({"Object with invalid value": true}),
+            json!({"Object with invalid nested value": {"deeper": {"deeper": null}}}),
+            json!({
+                "Nested": ["object", "that"],
+                "Somewhere": {
+                    "Inside": ["it", "has"],
+                    "An": {
+                        "Invalid": ["value", null]
+                    }
+                },
+            }),
+        ];
+
+        for test_case in test_cases {
+            conn.test_transaction::<_, Error, _>(|| {
+                let user = create_test_user(&conn, &config);
+                let result = populate_categories_from_json(&conn, user.id, &test_case, None);
+                assert_eq!(
+                    result.unwrap_err(),
+                    CategoryErrorKind::MalformedCategoryList
+                );
+
+                Ok(())
+            });
         }
-        assert_eq!(name, category.name);
-        assert_eq!(description.map(|d| d.to_string()), category.description);
-        assert_eq!(user_id, category.user_id);
-        assert_eq!(parent_id, category.parent_id);
-    }
-
-    // Checks that the number of categories stored in the database matches the expected count.
-    fn assert_category_count(connection: &PgConnection, expected_count: i64) {
-        let actual_count: i64 = dsl::categories
-            .select(diesel::dsl::count_star())
-            .first(connection)
-            .unwrap();
-        assert_eq!(expected_count, actual_count);
-    }
-
-    // Checks that the given error is an CategoryErrorKind::CategoryAlreadyExists error.
-    fn assert_category_exists_err(error: CategoryErrorKind, name: &str, parent: Option<&Category>) {
-        assert_eq!(
-            error,
-            CategoryErrorKind::CategoryAlreadyExists {
-                name: name.to_string(),
-                parent: parent.map(|p| p.name.clone())
-            }
-        );
     }
 
     #[test]
@@ -732,5 +733,49 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    // Checks that the given category matches the given values.
+    fn assert_category(
+        // The category to check.
+        category: &Category,
+        // The expected category ID. If None this will not be checked.
+        id: Option<i32>,
+        // The expected category name.
+        name: &str,
+        // The expected description.
+        description: Option<&str>,
+        // The expected user ID of the category owner.
+        user_id: i32,
+        // The expected parent category ID.
+        parent_id: Option<i32>,
+    ) {
+        if let Some(id) = id {
+            assert_eq!(id, category.id);
+        }
+        assert_eq!(name, category.name);
+        assert_eq!(description.map(|d| d.to_string()), category.description);
+        assert_eq!(user_id, category.user_id);
+        assert_eq!(parent_id, category.parent_id);
+    }
+
+    // Checks that the number of categories stored in the database matches the expected count.
+    fn assert_category_count(connection: &PgConnection, expected_count: i64) {
+        let actual_count: i64 = dsl::categories
+            .select(diesel::dsl::count_star())
+            .first(connection)
+            .unwrap();
+        assert_eq!(expected_count, actual_count);
+    }
+
+    // Checks that the given error is an CategoryErrorKind::CategoryAlreadyExists error.
+    fn assert_category_exists_err(error: CategoryErrorKind, name: &str, parent: Option<&Category>) {
+        assert_eq!(
+            error,
+            CategoryErrorKind::CategoryAlreadyExists {
+                name: name.to_string(),
+                parent: parent.map(|p| p.name.clone())
+            }
+        );
     }
 }
