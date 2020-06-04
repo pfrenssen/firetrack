@@ -154,7 +154,8 @@ pub fn read(connection: &PgConnection, id: i32) -> Option<Category> {
 pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKind> {
     let result = diesel::delete(dsl::categories.filter(dsl::id.eq(id))).execute(connection);
 
-    // Convert a ForeignKeyViolation to a more informative error.
+    // Convert a ForeignKeyViolation to a more informative error. This error is thrown when trying
+    // to delete a category that still contains an expense or a child category.
     if let Err(DatabaseError(ForeignKeyViolation, info)) = result {
         let orphan_type = if info.message().contains("expenses_category_id_fkey") {
             "expense".to_string()
@@ -204,21 +205,22 @@ pub fn populate_categories(
 }
 
 // Creates child categories inside the given parent category using the given JSON data.
-// This is a recursive function intended for populating the initial set of categories for a new user, using the JSON
-// file that contains the category list.
+// This is a recursive function intended for populating the initial set of categories for a new
+// user, using the JSON file that contains the category list.
 fn populate_categories_from_json(
     connection: &PgConnection,
     // The user for which to create the categories.
     user_id: i32,
     // The JSON data. Can be either:
-    // - a JSON object: in this case a set of categories will be created using the object keys as category names. For
-    //   each key we will recurse, passing the key as parent category and the values as children.
-    // - a JSON array: the array values will become category names. Any value other than strings will cause a
-    //   MalformedCategoryList error.
+    // - a JSON object: in this case a set of categories will be created using the object keys as
+    //   category names. For each key we will recurse, passing the key as parent category and the
+    //   values as children.
+    // - a JSON array: the array values will become category names. Any value other than strings
+    //   will cause a MalformedCategoryList error.
     // - an other value: will cause a MalformedCategoryList error.
     json: &Value,
-    // The ID of the category which will be the parent of the newly created categories. If `None` the categories will
-    // be created in the root.
+    // The ID of the category which will be the parent of the newly created categories. If `None`
+    // the categories will be created in the root.
     parent_id: Option<i32>,
 ) -> Result<(), CategoryErrorKind> {
     match json {
@@ -236,7 +238,8 @@ fn populate_categories_from_json(
             Ok(())
         }
         Value::Array(a) => {
-            // Convert the array into a vector of string slices, returning an error if it contains anything that cannot be transformed into a string slice.
+            // Convert the array into a vector of string slices, returning an error if it contains
+            // anything that cannot be transformed into a string slice.
             let category_names = a
                 .iter()
                 .map(|c| c.as_str())
@@ -253,14 +256,15 @@ fn populate_categories_from_json(
 }
 
 // Creates multiple child categories inside a parent category.
-// This is intended for initially populating the categories for a new user. No checks are done to ensure that the passed in parent category
-// belongs to the passed in user.
+// This is intended for initially populating the categories for a new user. No checks are done to
+// ensure that the passed in parent category belongs to the passed in user.
 fn insert_child_categories(
     connection: &PgConnection,
     user_id: i32,
     // If the parent ID is omitted the categories will be created in the root.
     parent_id: Option<i32>,
-    // A list of child categories consisting of a tuple containing the category name and an optional description.
+    // A list of child categories consisting of a tuple containing the category name and an optional
+    // description.
     categories: Vec<(&str, Option<&str>)>,
 ) -> Result<Vec<i32>, CategoryErrorKind> {
     let mut records = vec![];
@@ -583,7 +587,8 @@ mod tests {
         });
     }
 
-    // Tests that an error is returned if default categories are created for a user that already has categories.
+    // Tests that an error is returned if default categories are created for a user that already has
+    // categories.
     #[test]
     fn test_create_default_categories_with_existing_categories() {
         let conn = establish_connection(&get_database_url()).unwrap();
@@ -620,7 +625,8 @@ mod tests {
     }
 
     #[test]
-    // Tests that an error is returned when trying to populate default categories using malformed JSON.
+    // Tests that an error is returned when trying to populate default categories using malformed
+    // JSON.
     fn test_populate_categories_from_malformed_json() {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
@@ -669,9 +675,9 @@ mod tests {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
-        // Each test case consists of a tuple, with the first element a JSON value, the second an integer representing
-        // the expected number of root categories, and the last element an integer representing the total number of
-        // expected categories.
+        // Each test case consists of a tuple, with the first element a JSON value, the second an
+        // integer representing the expected number of root categories, and the last element an
+        // integer representing the total number of expected categories.
         let test_cases = vec![
             (json!([]), 0, 0),
             (json!({}), 0, 0),
