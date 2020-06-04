@@ -664,6 +664,53 @@ mod tests {
     }
 
     #[test]
+    // Tests populate_categories_from_json().
+    fn test_populate_categories_from_json() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        // Each test case consists of a tuple, with the first element a JSON value, the second an integer representing
+        // the expected number of root categories, and the last element an integer representing the total number of
+        // expected categories.
+        let test_cases = vec![
+            (json!([]), 0, 0),
+            (json!({}), 0, 0),
+            (json!({"Education": []}), 1, 1),
+            (json!(["Books"]), 1, 1),
+            (json!({"Entertainment": ["Concerts", "Dining"]}), 1, 3),
+            (json!({"Financial": [], "Food": []}), 2, 2),
+            (
+                json!({
+                    "Food and drink": {
+                        "Drinks": ["Alcohol", "Water", "Coffee"],
+                        "Eating out": {
+                            "Restaurants": ["Italian", "Japanese"],
+                            "Quick bites": {
+                                "Breakfast": ["Coffee"],
+                                "Lunch": ["Coffee"],
+                            },
+                        }
+                    }
+                }),
+                1,
+                14,
+            ),
+        ];
+
+        for (test_case, expected_root_count, expected_total_count) in test_cases {
+            conn.test_transaction::<_, Error, _>(|| {
+                let user = create_test_user(&conn, &config);
+                let result = populate_categories_from_json(&conn, user.id, &test_case, None);
+                assert_eq!(result, Ok(()));
+                assert_root_category_count(&conn, expected_root_count);
+                assert_category_count(&conn, expected_total_count);
+
+                Ok(())
+            });
+        }
+    }
+
+    #[test]
     // Tests insert_child_categories().
     fn test_insert_child_categories() {
         let conn = establish_connection(&get_database_url()).unwrap();
@@ -755,6 +802,16 @@ mod tests {
     fn assert_category_count(connection: &PgConnection, expected_count: i64) {
         let actual_count: i64 = dsl::categories
             .select(diesel::dsl::count_star())
+            .first(connection)
+            .unwrap();
+        assert_eq!(expected_count, actual_count);
+    }
+
+    // Checks that the number of root categories stored in the database matches the expected count.
+    fn assert_root_category_count(connection: &PgConnection, expected_count: i64) {
+        let actual_count: i64 = dsl::categories
+            .select(diesel::dsl::count_star())
+            .filter(dsl::parent_id.is_null())
             .first(connection)
             .unwrap();
         assert_eq!(expected_count, actual_count);
