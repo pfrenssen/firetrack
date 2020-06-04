@@ -32,10 +32,8 @@ pub enum CategoryErrorKind {
         name: String,
         parent: Option<String>,
     },
-    // A category could not be created due to a database error.
-    CreationFailed(diesel::result::Error),
-    // A category could not be deleted due to a database error.
-    DeletionFailed(diesel::result::Error),
+    // A database error which occurred inside a transaction.
+    DatabaseError(diesel::result::Error),
     // A category could not be deleted because it has children.
     HasChildren(i32, String),
     // An error occurred while reading the file containing the default category layout.
@@ -48,8 +46,6 @@ pub enum CategoryErrorKind {
     NotFound(i32),
     // A category was passed that belongs to the wrong user.
     ParentCategoryHasWrongUser,
-    // A database error occurred while reading data.
-    ReadError(diesel::result::Error),
 }
 
 impl fmt::Display for CategoryErrorKind {
@@ -66,12 +62,7 @@ impl fmt::Display for CategoryErrorKind {
                 ),
                 None => write!(f, "The root category '{}' already exists", name),
             },
-            CategoryErrorKind::CreationFailed(ref err) => {
-                write!(f, "Database error when creating category: {}", err)
-            }
-            CategoryErrorKind::DeletionFailed(ref err) => {
-                write!(f, "Database error when deleting category: {}", err)
-            }
+            CategoryErrorKind::DatabaseError(ref err) => write!(f, "Database error: {}", err),
             CategoryErrorKind::HasChildren(ref id, orphan_type) => write!(
                 f,
                 "The category with ID {} could not be deleted because it contains at least one {}",
@@ -89,10 +80,13 @@ impl fmt::Display for CategoryErrorKind {
             CategoryErrorKind::ParentCategoryHasWrongUser => {
                 write!(f, "Parent category should be for the same user",)
             }
-            CategoryErrorKind::ReadError(ref err) => {
-                write!(f, "Database error when reading category data: {}", err)
-            }
         }
+    }
+}
+
+impl From<diesel::result::Error> for CategoryErrorKind {
+    fn from(e: diesel::result::Error) -> Self {
+        CategoryErrorKind::DatabaseError(e)
     }
 }
 
@@ -143,7 +137,7 @@ pub fn create(
         });
     }
 
-    result.map_err(CategoryErrorKind::CreationFailed)
+    result.map_err(CategoryErrorKind::DatabaseError)
 }
 
 /// Retrieves the category with the given ID.
@@ -171,10 +165,8 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
         return Err(CategoryErrorKind::HasChildren(id, orphan_type));
     }
 
-    let result = result.map_err(CategoryErrorKind::DeletionFailed)?;
-
     // Throw an error if nothing was deleted.
-    if result == 0 {
+    if result? == 0 {
         return Err(CategoryErrorKind::NotFound(id));
     }
 
@@ -185,7 +177,7 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), CategoryErrorKin
 pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, CategoryErrorKind> {
     select(exists(dsl::categories.filter(dsl::user_id.eq(user.id))))
         .get_result(connection)
-        .map_err(CategoryErrorKind::ReadError)
+        .map_err(CategoryErrorKind::DatabaseError)
 }
 
 /// Creates a set of default categories for the given user. The categories are sourced from a JSON file which is set in
@@ -284,9 +276,9 @@ fn insert_child_categories(
     let result = diesel::insert_into(dsl::categories)
         .values(&records)
         .returning(dsl::id)
-        .get_results(connection);
+        .get_results(connection)?;
 
-    result.map_err(CategoryErrorKind::CreationFailed)
+    Ok(result)
 }
 
 #[cfg(test)]
