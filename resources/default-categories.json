@@ -8,7 +8,6 @@
     ],
     "Entertainment": [
         "Concerts",
-        "Dining",
         "Electronics",
         "Games",
         "Gifts",
@@ -23,8 +22,10 @@
         "Bank fees",
         "Loans"
     ],
-    "Food": [
+    "Food and drink": [
         "Alcohol",
+        "Coffee",
+        "Dining",
         "Groceries",
         "Pet food"
     ],
