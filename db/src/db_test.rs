@@ -23,7 +23,16 @@ pub fn create_test_user(conn: &PgConnection, config: &AppConfig) -> User {
 
 /// Creates a test category using a random name.
 pub fn create_test_category(conn: &PgConnection, user: &User) -> Category {
-    crate::category::create(&conn, &user, random_string(10).as_str(), None, None).unwrap()
+    create_test_category_with_parent(&conn, &user, None)
+}
+
+/// Creates a test child category using a random name.
+pub fn create_test_category_with_parent(
+    conn: &PgConnection,
+    user: &User,
+    parent_cat: Option<&Category>,
+) -> Category {
+    crate::category::create(&conn, &user, random_string(10).as_str(), None, parent_cat).unwrap()
 }
 
 /// Creates a test expense containing a random amount.

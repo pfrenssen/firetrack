@@ -181,8 +181,18 @@ pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, Ca
         .map_err(CategoryErrorKind::DatabaseError)
 }
 
-/// Creates a set of default categories for the given user. The categories are sourced from a JSON file which is set in
-/// the app configuration.
+/// Returns the given user's categories.
+pub fn get_categories(
+    connection: &PgConnection,
+    user: &User,
+) -> Result<Vec<Category>, CategoryErrorKind> {
+    Ok(dsl::categories
+        .filter(dsl::user_id.eq(user.id))
+        .load::<Category>(connection)?)
+}
+
+/// Creates a set of default categories for the given user. The categories are sourced from a JSON
+/// file which is set in the app configuration.
 pub fn populate_categories(
     connection: &PgConnection,
     user: &User,
@@ -624,6 +634,81 @@ mod tests {
             create_test_category(&conn, &user2);
             assert_eq!(true, has_categories(&conn, &user1).unwrap());
             assert_eq!(true, has_categories(&conn, &user2).unwrap());
+
+            Ok(())
+        });
+    }
+
+    // Tests super::get_categories().
+    #[test]
+    fn test_get_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user1 = create_test_user(&conn, &config);
+            let user2 = create_test_user(&conn, &config);
+
+            // Initially both users don't have any categories.
+            let no_cats: Vec<Category> = vec![];
+            assert_eq!(no_cats, get_categories(&conn, &user1).unwrap());
+            assert_eq!(no_cats, get_categories(&conn, &user2).unwrap());
+
+            // Create a root category for user 1 and check that it is returned correctly.
+            let user1_cat1 = create_test_category(&conn, &user1);
+            assert_eq!(
+                vec![user1_cat1.clone()],
+                get_categories(&conn, &user1).unwrap()
+            );
+            assert_eq!(no_cats, get_categories(&conn, &user2).unwrap());
+
+            // Create a root category for user 2.
+            let user2_cat1 = create_test_category(&conn, &user2);
+            assert_eq!(
+                vec![user1_cat1.clone()],
+                get_categories(&conn, &user1).unwrap()
+            );
+            assert_eq!(
+                vec![user2_cat1.clone()],
+                get_categories(&conn, &user2).unwrap()
+            );
+
+            // Create a child category for user 1.
+            let user1_cat2 = create_test_category_with_parent(&conn, &user1, Some(&user1_cat1));
+            assert_eq!(
+                vec![user1_cat1.clone(), user1_cat2.clone()],
+                get_categories(&conn, &user1).unwrap()
+            );
+            assert_eq!(
+                vec![user2_cat1.clone()],
+                get_categories(&conn, &user2).unwrap()
+            );
+
+            // Create some more root and child categories for user 1.
+            let user1_cat3 = create_test_category(&conn, &user1);
+            assert_eq!(
+                vec![user1_cat1.clone(), user1_cat2.clone(), user1_cat3.clone()],
+                get_categories(&conn, &user1).unwrap()
+            );
+            assert_eq!(
+                vec![user2_cat1.clone()],
+                get_categories(&conn, &user2).unwrap()
+            );
+
+            let user1_cat4 = create_test_category_with_parent(&conn, &user1, Some(&user1_cat2));
+            assert_eq!(
+                vec![
+                    user1_cat1.clone(),
+                    user1_cat2.clone(),
+                    user1_cat3.clone(),
+                    user1_cat4.clone()
+                ],
+                get_categories(&conn, &user1).unwrap()
+            );
+            assert_eq!(
+                vec![user2_cat1.clone()],
+                get_categories(&conn, &user2).unwrap()
+            );
 
             Ok(())
         });
