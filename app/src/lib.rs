@@ -68,7 +68,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
-    /// # let default_categories = "../resources/test/test-categories.json";
+    /// # let default_categories = "../resources/fixtures/default-categories.json";
     /// # let mailgun_api_endpoint = mockito::server_url();
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -110,7 +110,7 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
-            default_categories: "../resources/test/test-categories.json".to_string(),
+            default_categories: "../resources/fixtures/default-categories.json".to_string(),
             mailgun_api_endpoint: mockito::server_url(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
             mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
@@ -139,7 +139,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
     /// # let hasher_iterations = 4096;
-    /// # let default_categories = "resources/test/test-categories.json";
+    /// # let default_categories = "resources/fixtures/default-categories.json";
     /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -347,7 +347,7 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.default_categories(), "../resources/test/test-categories.json");
+    /// assert_eq!(config.default_categories(), "../resources/fixtures/default-categories.json");
     /// ```
     pub fn default_categories(&self) -> &str {
         self.default_categories.as_str()
@@ -379,12 +379,6 @@ impl AppConfig {
     /// ```
     pub fn mailgun_api_key(&self) -> &str {
         self.mailgun_api_key.as_str()
-    }
-
-    // Todo: this should only be used for testing. Adding #[cfg(test)] doesn't work if the test code
-    // is in another crate, because the method will not be found. Define a newtype in the test?
-    pub fn set_mailgun_api_key(&mut self, mailgun_api_key: String) {
-        self.mailgun_api_key = mailgun_api_key;
     }
 
     /// Returns the domain used for sending notifications.
@@ -427,6 +421,17 @@ impl AppConfig {
     /// ```
     pub fn mailgun_mock_server_port(&self) -> u16 {
         self.mailgun_mock_server_port
+    }
+
+    // Todo: this should only be used for testing. Adding #[cfg(test)] doesn't work if the test code
+    // is in another crate, because the method will not be found. Define a newtype in the test?
+    pub fn set_default_categories(&mut self, default_categories: String) {
+        self.default_categories = default_categories;
+    }
+
+    // Todo: this should only be used for testing.
+    pub fn set_mailgun_api_key(&mut self, mailgun_api_key: String) {
+        self.mailgun_api_key = mailgun_api_key;
     }
 }
 

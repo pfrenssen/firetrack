@@ -1,0 +1,11 @@
+{
+    "Food": [
+        "Alcohol",
+        "Groceries"
+    ],
+    "Utilities": [
+        "Electricity": ["Solar", "Wind", "Hydro"],
+        "Internet" ["Fiber", "Mobile"],
+        "Water": [null]
+    ]
+}

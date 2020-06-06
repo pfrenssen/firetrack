@@ -211,7 +211,9 @@ pub fn populate_categories(
     let categories: Value =
         from_reader(file).map_err(|_| CategoryErrorKind::MalformedCategoryList)?;
 
-    populate_categories_from_json(&connection, user.id, &categories, None)
+    connection.transaction::<(), CategoryErrorKind, _>(|| {
+        populate_categories_from_json(&connection, user.id, &categories, None)
+    })
 }
 
 // Creates child categories inside the given parent category using the given JSON data.
@@ -600,7 +602,7 @@ mod tests {
     // Tests that an error is returned if default categories are created for a user that already has
     // categories.
     #[test]
-    fn test_create_default_categories_with_existing_categories() {
+    fn test_populate_categories_with_existing_categories() {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
@@ -615,6 +617,34 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    #[test]
+    // Tests that an error is returned when populating categories using a malformed JSON file.
+    fn test_populate_categories_using_malformed_json() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let mut config = AppConfig::from_test_defaults();
+
+        let test_files = vec![
+            "../resources/fixtures/malformed-default-categories.json",
+            "../resources/fixtures/malformed-default-categories2.json",
+        ];
+
+        for test_file in test_files {
+            conn.test_transaction::<_, Error, _>(|| {
+                config.set_default_categories(test_file.to_string());
+                let user = create_test_user(&conn, &config);
+                let result = populate_categories(&conn, &user, &config);
+
+                // An error should be returned.
+                assert_eq!(result, Err(CategoryErrorKind::MalformedCategoryList));
+
+                // No categories should have been created.
+                assert_category_count(&conn, 0);
+
+                Ok(())
+            });
+        }
     }
 
     // Tests super::has_categories().
