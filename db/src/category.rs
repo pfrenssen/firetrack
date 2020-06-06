@@ -670,7 +670,7 @@ mod tests {
     }
 
     #[test]
-    // Tests populate_categories_from_json().
+    // Tests super::populate_categories_from_json().
     fn test_populate_categories_from_json() {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
@@ -717,7 +717,7 @@ mod tests {
     }
 
     #[test]
-    // Tests insert_child_categories().
+    // Tests super::insert_child_categories().
     fn test_insert_child_categories() {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
