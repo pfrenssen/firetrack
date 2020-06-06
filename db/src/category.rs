@@ -609,16 +609,21 @@ mod tests {
 
     // Tests super::has_categories().
     #[test]
-    fn test_has_category() {
+    fn test_has_categories() {
         let conn = establish_connection(&get_database_url()).unwrap();
         let config = AppConfig::from_test_defaults();
 
         conn.test_transaction::<_, Error, _>(|| {
-            // Create a category which contains an expense.
-            let user = create_test_user(&conn, &config);
-            assert_eq!(false, has_categories(&conn, &user).unwrap());
-            create_test_category(&conn, &user);
-            assert_eq!(true, has_categories(&conn, &user).unwrap());
+            let user1 = create_test_user(&conn, &config);
+            let user2 = create_test_user(&conn, &config);
+            assert_eq!(false, has_categories(&conn, &user1).unwrap());
+            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            create_test_category(&conn, &user1);
+            assert_eq!(true, has_categories(&conn, &user1).unwrap());
+            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            create_test_category(&conn, &user2);
+            assert_eq!(true, has_categories(&conn, &user1).unwrap());
+            assert_eq!(true, has_categories(&conn, &user2).unwrap());
 
             Ok(())
         });
