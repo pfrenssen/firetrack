@@ -68,7 +68,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
-    /// # let default_categories = "../resources/test-categories.json";
+    /// # let default_categories = "../resources/test/test-categories.json";
     /// # let mailgun_api_endpoint = mockito::server_url();
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -110,7 +110,7 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
-            default_categories: "../resources/test-categories.json".to_string(),
+            default_categories: "../resources/test/test-categories.json".to_string(),
             mailgun_api_endpoint: mockito::server_url(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
             mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
@@ -139,7 +139,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
     /// # let hasher_iterations = 4096;
-    /// # let default_categories = "resources/test-categories.json";
+    /// # let default_categories = "resources/test/test-categories.json";
     /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -347,7 +347,7 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.default_categories(), "../resources/test-categories.json");
+    /// assert_eq!(config.default_categories(), "../resources/test/test-categories.json");
     /// ```
     pub fn default_categories(&self) -> &str {
         self.default_categories.as_str()
