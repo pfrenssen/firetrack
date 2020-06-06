@@ -727,18 +727,10 @@ mod tests {
 
             let user1_cat4 = create_test_category_with_parent(&conn, &user1, Some(&user1_cat2));
             assert_eq!(
-                vec![
-                    user1_cat1.clone(),
-                    user1_cat2.clone(),
-                    user1_cat3.clone(),
-                    user1_cat4.clone()
-                ],
+                vec![user1_cat1, user1_cat2, user1_cat3, user1_cat4],
                 get_categories(&conn, &user1).unwrap()
             );
-            assert_eq!(
-                vec![user2_cat1.clone()],
-                get_categories(&conn, &user2).unwrap()
-            );
+            assert_eq!(vec![user2_cat1], get_categories(&conn, &user2).unwrap());
 
             Ok(())
         });
