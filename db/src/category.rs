@@ -647,6 +647,61 @@ mod tests {
         }
     }
 
+    #[test]
+    // Tests super::populate_categories().
+    fn test_populate_categories() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+            let result = populate_categories(&conn, &user, &config);
+
+            // No error should be returned.
+            assert_eq!(result, Ok(()));
+
+            // The test file contains 7 categories. All should be created.
+            assert_category_count(&conn, 7);
+
+            // Verify that the categories were created with the correct parents.
+            let expected_parent_cat_names: Vec<(&str, Option<&str>)> = vec![
+                ("Food", None),
+                ("Utilities", None),
+                ("Alcohol", Some("Food")),
+                ("Groceries", Some("Food")),
+                ("Electricity", Some("Utilities")),
+                ("Internet", Some("Utilities")),
+                ("Water", Some("Utilities")),
+            ];
+
+            let cats = get_categories(&conn, &user).unwrap();
+            for (cat_name, expected_parent_cat_name) in expected_parent_cat_names {
+                // Check that there is exactly 1 category with the expected category name.
+                let cats_with_cat_name = cats
+                    .iter()
+                    .filter(|c| c.name.eq(cat_name))
+                    .collect::<Vec<&Category>>();
+                assert_eq!(cats_with_cat_name.len(), 1);
+                let cat = *cats_with_cat_name.first().unwrap();
+
+                // Check that the parent category matches.
+                match cat.parent_id {
+                    None => assert!(expected_parent_cat_name.is_none()),
+                    Some(id) => {
+                        let parent_cat = cats
+                            .iter()
+                            .filter(|c| c.id.eq(&id))
+                            .collect::<Vec<&Category>>();
+                        let parent_cat = parent_cat.first().unwrap();
+                        assert_eq!(parent_cat.name, expected_parent_cat_name.unwrap());
+                    }
+                }
+            }
+
+            Ok(())
+        });
+    }
+
     // Tests super::has_categories().
     #[test]
     fn test_has_categories() {
