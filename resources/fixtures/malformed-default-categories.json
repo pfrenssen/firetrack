@@ -3,9 +3,9 @@
         "Alcohol",
         "Groceries"
     ],
-    "Utilities": [
+    "Utilities": {
         "Electricity": ["Solar", "Wind", "Hydro"],
-        "Internet" ["Fiber", "Mobile"],
+        "Internet": ["Fiber", "Mobile"],
         "Water": [null]
-    ]
+    }
 }
