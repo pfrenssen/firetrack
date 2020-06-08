@@ -216,7 +216,7 @@ impl AppConfig {
                 .parse()
                 .expect("HASHER_ITERATIONS environment variable should be an integer value."),
             default_categories_json_path: var("DEFAULT_CATEGORIES_JSON_PATH")
-                .expect("DEFAULT_CATEGORIES environment variable is not set."),
+                .expect("DEFAULT_CATEGORIES_JSON_PATH environment variable is not set."),
             mailgun_api_endpoint: var("MAILGUN_API_ENDPOINT")
                 .expect("MAILGUN_API_ENDPOINT environment variable is not set."),
             mailgun_api_key: var("MAILGUN_API_KEY")
