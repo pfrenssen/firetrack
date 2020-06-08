@@ -32,7 +32,7 @@ pub enum CategoryErrorKind {
         name: String,
         parent: Option<String>,
     },
-    // A database error which occurred inside a transaction.
+    // A database error occurred.
     DatabaseError(diesel::result::Error),
     // A category could not be deleted because it has children.
     HasChildren(i32, String),
@@ -228,7 +228,7 @@ fn populate_categories_from_json(
     //   category names. For each key we will recurse, passing the key as parent category and the
     //   values as children.
     // - a JSON array: the array values will become category names. Any value other than strings
-    //   will cause a MalformedCategoryList error.
+    //   will cause a MalformedCategoryList error to be returned.
     // - an other value: will cause a MalformedCategoryList error.
     json: &Value,
     // The ID of the category which will be the parent of the newly created categories. If `None`
@@ -607,7 +607,7 @@ mod tests {
         let config = AppConfig::from_test_defaults();
 
         conn.test_transaction::<_, Error, _>(|| {
-            // Create a category which contains an expense.
+            // Create a test user which has a category.
             let user = create_test_user(&conn, &config);
             create_test_category(&conn, &user);
             assert_eq!(
