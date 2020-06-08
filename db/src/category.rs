@@ -205,7 +205,7 @@ pub fn populate_categories(
         Err(e) => Err(e),
     }?;
 
-    let path = config.default_categories();
+    let path = config.default_categories_json_path();
     let file = File::open(path)
         .map_err(|e| CategoryErrorKind::IoError(path.to_string(), e.to_string()))?;
     let categories: Value =
@@ -632,7 +632,7 @@ mod tests {
 
         for test_file in test_files {
             conn.test_transaction::<_, Error, _>(|| {
-                config.set_default_categories(test_file.to_string());
+                config.set_default_categories_json_path(test_file.to_string());
                 let user = create_test_user(&conn, &config);
                 let result = populate_categories(&conn, &user, &config);
 

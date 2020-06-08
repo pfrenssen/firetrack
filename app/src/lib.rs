@@ -30,7 +30,7 @@ pub struct AppConfig {
     hasher_iterations: u32,
 
     // The path to the JSON file which lists the default categories for new users.
-    default_categories: String,
+    default_categories_json_path: String,
 
     // The Mailgun API endpoint.
     mailgun_api_endpoint: String,
@@ -68,7 +68,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 512;
     /// # let hasher_iterations = 1;
-    /// # let default_categories = "../resources/fixtures/default-categories.json";
+    /// # let default_categories_json_path = "../resources/fixtures/default-categories.json";
     /// # let mailgun_api_endpoint = mockito::server_url();
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -88,7 +88,7 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
-    /// # assert_eq!(config.default_categories(), default_categories);
+    /// # assert_eq!(config.default_categories_json_path(), default_categories_json_path);
     /// # assert_eq!(config.mailgun_api_endpoint(), mailgun_api_endpoint);
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
     /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
@@ -110,7 +110,8 @@ impl AppConfig {
             secret_key: "my_secret".to_string(),
             hasher_memory_size: 512,
             hasher_iterations: 1,
-            default_categories: "../resources/fixtures/default-categories.json".to_string(),
+            default_categories_json_path: "../resources/fixtures/default-categories.json"
+                .to_string(),
             mailgun_api_endpoint: mockito::server_url(),
             mailgun_api_key: "0123456789abcdef0123456789abcdef-01234567-89abcdef".to_string(),
             mailgun_user_domain: "sandbox0123456789abcdef0123456789abcdef.mailgun.org".to_string(),
@@ -139,7 +140,7 @@ impl AppConfig {
     /// # let secret_key = "my_secret";
     /// # let hasher_memory_size = 65536;
     /// # let hasher_iterations = 4096;
-    /// # let default_categories = "resources/fixtures/default-categories.json";
+    /// # let default_categories_json_path = "resources/fixtures/default-categories.json";
     /// # let mailgun_api_endpoint = "https://api.mailgun.net/v3";
     /// # let mailgun_api_key = "0123456789abcdef0123456789abcdef-01234567-89abcdef";
     /// # let mailgun_user_domain = "sandbox0123456789abcdef0123456789abcdef.mailgun.org";
@@ -152,7 +153,7 @@ impl AppConfig {
     /// # env::set_var("SECRET_KEY", secret_key);
     /// # env::set_var("HASHER_MEMORY_SIZE", hasher_memory_size.to_string());
     /// # env::set_var("HASHER_ITERATIONS", hasher_iterations.to_string());
-    /// # env::set_var("DEFAULT_CATEGORIES", default_categories.to_string());
+    /// # env::set_var("DEFAULT_CATEGORIES_JSON_PATH", default_categories_json_path.to_string());
     /// # env::set_var("MAILGUN_API_ENDPOINT", mailgun_api_endpoint.to_string());
     /// # env::set_var("MAILGUN_API_KEY", mailgun_api_key.to_string());
     /// # env::set_var("MAILGUN_USER_DOMAIN", mailgun_user_domain.to_string());
@@ -168,7 +169,7 @@ impl AppConfig {
     /// # assert_eq!(config.secret_key(), secret_key);
     /// # assert_eq!(config.hasher_memory_size(), hasher_memory_size);
     /// # assert_eq!(config.hasher_iterations(), hasher_iterations);
-    /// # assert_eq!(config.default_categories(), default_categories);
+    /// # assert_eq!(config.default_categories_json_path(), default_categories_json_path);
     /// # assert_eq!(config.mailgun_api_endpoint(), mailgun_api_endpoint);
     /// # assert_eq!(config.mailgun_api_key(), mailgun_api_key);
     /// # assert_eq!(config.mailgun_user_domain(), mailgun_user_domain);
@@ -214,7 +215,7 @@ impl AppConfig {
                 .expect("HASHER_ITERATIONS environment variable is not set.")
                 .parse()
                 .expect("HASHER_ITERATIONS environment variable should be an integer value."),
-            default_categories: var("DEFAULT_CATEGORIES")
+            default_categories_json_path: var("DEFAULT_CATEGORIES_JSON_PATH")
                 .expect("DEFAULT_CATEGORIES environment variable is not set."),
             mailgun_api_endpoint: var("MAILGUN_API_ENDPOINT")
                 .expect("MAILGUN_API_ENDPOINT environment variable is not set."),
@@ -347,10 +348,10 @@ impl AppConfig {
     /// use app::AppConfig;
     ///
     /// let config = AppConfig::from_test_defaults();
-    /// assert_eq!(config.default_categories(), "../resources/fixtures/default-categories.json");
+    /// assert_eq!(config.default_categories_json_path(), "../resources/fixtures/default-categories.json");
     /// ```
-    pub fn default_categories(&self) -> &str {
-        self.default_categories.as_str()
+    pub fn default_categories_json_path(&self) -> &str {
+        self.default_categories_json_path.as_str()
     }
 
     /// Returns the Mailgun API endpoint.
@@ -425,8 +426,8 @@ impl AppConfig {
 
     // Todo: this should only be used for testing. Adding #[cfg(test)] doesn't work if the test code
     // is in another crate, because the method will not be found. Define a newtype in the test?
-    pub fn set_default_categories(&mut self, default_categories: String) {
-        self.default_categories = default_categories;
+    pub fn set_default_categories_json_path(&mut self, default_categories_json_path: String) {
+        self.default_categories_json_path = default_categories_json_path;
     }
 
     // Todo: this should only be used for testing.
