@@ -10,10 +10,10 @@ use rust_decimal::Decimal;
 use std::iter;
 
 /// Creates a test user using a random email address.
-pub fn create_test_user(connection: &PgConnection, config: &AppConfig) -> User {
+pub fn create_test_user(conn: &PgConnection, config: &AppConfig) -> User {
     let username = random_string(10);
     user::create(
-        &connection,
+        &conn,
         format!("{}@example.com", username).as_str(),
         "letmein",
         &config,
@@ -22,14 +22,23 @@ pub fn create_test_user(connection: &PgConnection, config: &AppConfig) -> User {
 }
 
 /// Creates a test category using a random name.
-pub fn create_test_category(connection: &PgConnection, user: &User) -> Category {
-    crate::category::create(&connection, &user, random_string(10).as_str(), None, None).unwrap()
+pub fn create_test_category(conn: &PgConnection, user: &User) -> Category {
+    create_test_category_with_parent(&conn, &user, None)
+}
+
+/// Creates a test child category using a random name.
+pub fn create_test_category_with_parent(
+    conn: &PgConnection,
+    user: &User,
+    parent_cat: Option<&Category>,
+) -> Category {
+    crate::category::create(&conn, &user, random_string(10).as_str(), None, parent_cat).unwrap()
 }
 
 /// Creates a test expense containing a random amount.
-pub fn create_test_expense(connection: &PgConnection, user: &User, cat: &Category) -> Expense {
+pub fn create_test_expense(conn: &PgConnection, user: &User, cat: &Category) -> Expense {
     let amount = Decimal::new(thread_rng().gen_range(1, 1_000_000_000), 2);
-    crate::expense::create(&connection, &user, &amount, cat, None, None).unwrap()
+    crate::expense::create(&conn, &user, &amount, cat, None, None).unwrap()
 }
 
 // Returns a random alphanumeric string of the given length.
