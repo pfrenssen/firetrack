@@ -2781,9 +2781,9 @@ dependencies = [
 
 [[package]]
 name = "urlencoding"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3df3561629a8bb4c57e5a2e4c43348d9e29c7c29d9b1c4c1f47166deca8f37ed"
+checksum = "1bc81aa2abb51f47653952060bce3ce15181accb7cef1ba36e5c42b7e250f182"
 
 [[package]]
 name = "v_escape"
