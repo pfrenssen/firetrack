@@ -126,7 +126,13 @@ pub async fn login_submit(
     }
 
     // The user has been validated, create a session.
-    id.remember(input.email.to_owned());
+    start_session(id, input.email.to_owned())
+}
+
+// Initiates a session for the user with the given email and redirects to the homepage.
+fn start_session(id: Identity, email: String) -> Result<HttpResponse, Error> {
+    // Start the session.
+    id.remember(email);
 
     // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
     // request.
