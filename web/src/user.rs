@@ -5,6 +5,7 @@ use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
 use db::activation_code::ActivationCodeErrorKind;
+use db::user::UserErrorKind;
 use diesel::PgConnection;
 use validator::validate_email;
 
@@ -221,6 +222,17 @@ pub async fn register_submit(
 
     // Create the user account.
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    let result = db::user::create(&connection, &input.email, &input.password, &config);
+    match result {
+        Err(UserErrorKind::UserWithEmailAlreadyExists(_)) => {
+            return if db::user::verify_password(&connection, &input.email, &input.password, &config).is_ok() {
+                start_session(id, input.email.to_owned())
+            } else {
+                Err(format!("email {} already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68", input.email)).map_err(error::ErrorInternalServerError)
+            }
+        },
+        _ => {}
+    }
     let user = db::user::create(&connection, &input.email, &input.password, &config)
         .map_err(error::ErrorInternalServerError)?;
 
