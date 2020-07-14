@@ -227,19 +227,18 @@ pub async fn register_submit(
     // Check if a user account already exists with the given email address. The user might have
     // forgotten that they already have an account, or they might have intended to log in instead of
     // register.
-    match result {
-        Err(UserErrorKind::UserWithEmailAlreadyExists(_)) => {
-            return if db::user::verify_password(&connection, &input.email, &input.password, &config).is_ok() {
-                // If the supplied credentials are correct, just transparently log in the user.
-                start_session(id, input.email.to_owned())
-            } else {
-                // If the supplied credentials are incorrect, inform the user by email that someone
-                // is trying to register using their email.
-                // Todo to be implemented. Ref issue #68.
-                Err(format!("email {} already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68", input.email)).map_err(error::ErrorInternalServerError)
-            }
-        },
-        _ => {}
+    if let Err(UserErrorKind::UserWithEmailAlreadyExists(_)) = result {
+        return if db::user::verify_password(&connection, &input.email, &input.password, &config)
+            .is_ok()
+        {
+            // If the supplied credentials are correct, just transparently log in the user.
+            start_session(id, input.email.to_owned())
+        } else {
+            // If the supplied credentials are incorrect, inform the user by email that someone
+            // is trying to register using their email.
+            // Todo to be implemented. Ref issue #68.
+            Err(format!("email {} already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68", input.email)).map_err(error::ErrorInternalServerError)
+        };
     }
     let user = db::user::create(&connection, &input.email, &input.password, &config)
         .map_err(error::ErrorInternalServerError)?;
