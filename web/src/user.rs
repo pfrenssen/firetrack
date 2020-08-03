@@ -240,8 +240,7 @@ pub async fn register_submit(
             Err(format!("email {} already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68", input.email)).map_err(error::ErrorInternalServerError)
         };
     }
-    let user = db::user::create(&connection, &input.email, &input.password, &config)
-        .map_err(error::ErrorInternalServerError)?;
+    let user = result.map_err(error::ErrorInternalServerError)?;
 
     // Send an activation email.
     let activation_code =

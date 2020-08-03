@@ -53,8 +53,25 @@ async fn register_with_valid_data() {
     assert!(user.created < now);
     assert!(user.created > two_seconds_ago);
 
-    // Try to create the user a second time.
+    // Try to register the user a second time using the same credentials. This should be treated
+    // like a login and the user should be redirected to the activation form.
+    let req = test::TestRequest::post()
+        .uri("/user/register")
+        .set_form(&payload)
+        .to_request();
+
+    let response = app.call(req).await.unwrap();
+    // Todo: Since the user is not activated yet the user should be redirected to the activation
+    // form.
+    // See https://github.com/pfrenssen/firetrack/issues/148
+    // assert_response_see_other(&response.response(), "/user/activate");
+    assert_response_see_other(&response.response(), "/");
+
+    // Try to register an account using the user's email address and an invalid password.
     // Todo This should not result in an error and should not disclose that the user exists.
+    // https://github.com/pfrenssen/firetrack/issues/68
+    let password = "some-other-password";
+    let payload = user::UserForm::new(email.to_string(), password.to_string());
     let req = test::TestRequest::post()
         .uri("/user/register")
         .set_form(&payload)
@@ -62,11 +79,10 @@ async fn register_with_valid_data() {
 
     let response = app.call(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR,);
-
     let body = get_response_body(&response.response());
     assert_eq!(
         body.as_str(),
-        "A user with email test@example.com already exists"
+        "email test@example.com already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68"
     );
 }
 
