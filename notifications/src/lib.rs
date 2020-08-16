@@ -186,19 +186,19 @@ mod tests {
             .match_body(Matcher::AllOf(vec![
                 Matcher::UrlEncoded(
                     "subject".to_string(),
-                    format!("Activation+code+for+{}", app::APPLICATION_NAME),
+                    format!("Activation code for {}", app::APPLICATION_NAME),
                 ),
                 Matcher::UrlEncoded(
                     "from".to_string(),
                     format!(
-                        "Firetrack+team+<{}@{}>",
+                        "Firetrack team <{}@{}>",
                         config.mailgun_user_name(),
                         config.mailgun_user_domain()
                     ),
                 ),
                 Matcher::UrlEncoded(
                     "text".to_string(),
-                    format!("Activation+code:+{}", activation_code.code),
+                    format!("Activation code: {}", activation_code.code),
                 ),
                 Matcher::UrlEncoded("to".to_string(), user.email.clone()),
             ]))

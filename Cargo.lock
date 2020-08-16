@@ -339,7 +339,7 @@ version = "0.1.0-dev"
 dependencies = [
  "dotenv",
  "env_logger 0.7.1",
- "mockito",
+ "mockito 0.27.0",
  "regex",
 ]
 
@@ -1594,9 +1594,9 @@ dependencies = [
 
 [[package]]
 name = "mockito"
-version = "0.25.2"
+version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c5f371fb8ef7a0b622d206abf76ed158e5f77899b743c349b02f7356703223e"
+checksum = "5a3ae325bcceb48a24302ac57e1055f9173f5fd53be535603ea0ed41dea92db5"
 dependencies = [
  "assert-json-diff",
  "colored",
@@ -1604,10 +1604,28 @@ dependencies = [
  "httparse",
  "lazy_static",
  "log",
- "percent-encoding",
  "rand 0.7.3",
  "regex",
  "serde_json",
+ "serde_urlencoded",
+]
+
+[[package]]
+name = "mockito"
+version = "0.27.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a634720d366bcbce30fb05871a35da229cef101ad0b2ea4e46cf5abf031a273"
+dependencies = [
+ "assert-json-diff",
+ "colored",
+ "difference",
+ "httparse",
+ "lazy_static",
+ "log",
+ "rand 0.7.3",
+ "regex",
+ "serde_json",
+ "serde_urlencoded",
 ]
 
 [[package]]
@@ -1660,7 +1678,7 @@ dependencies = [
  "db",
  "log",
  "mailgun_v3",
- "mockito",
+ "mockito 0.25.3",
  "reqwest",
  "serde_json",
 ]
@@ -3037,7 +3055,7 @@ dependencies = [
  "diesel",
  "dotenv",
  "libxml",
- "mockito",
+ "mockito 0.27.0",
  "notifications",
  "r2d2",
  "regex",
