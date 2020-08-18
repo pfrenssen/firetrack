@@ -3,7 +3,7 @@ Feature: User login
   As a user
   I want to log in using my credentials
 
-  Scenario: Log in using valid credentials
+  Scenario: Register, activate account and log in using valid credentials
     Given I am on the user registration form
     When I fill in "Email address" with "myra_paige@example.com"
     And I fill in "Password" with "thunder"

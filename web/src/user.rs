@@ -5,6 +5,7 @@ use actix_session::Session;
 use actix_web::{error, web, Error, HttpResponse};
 use app::AppConfig;
 use db::activation_code::ActivationCodeErrorKind;
+use db::user::UserErrorKind;
 use diesel::PgConnection;
 use validator::validate_email;
 
@@ -126,7 +127,13 @@ pub async fn login_submit(
     }
 
     // The user has been validated, create a session.
-    id.remember(input.email.to_owned());
+    start_session(id, input.email.to_owned())
+}
+
+// Initiates a session for the user with the given email and redirects to the homepage.
+fn start_session(id: Identity, email: String) -> Result<HttpResponse, Error> {
+    // Start the session.
+    id.remember(email);
 
     // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
     // request.
@@ -215,8 +222,25 @@ pub async fn register_submit(
 
     // Create the user account.
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
-    let user = db::user::create(&connection, &input.email, &input.password, &config)
-        .map_err(error::ErrorInternalServerError)?;
+    let result = db::user::create(&connection, &input.email, &input.password, &config);
+
+    // Check if a user account already exists with the given email address. The user might have
+    // forgotten that they already have an account, or they might have intended to log in instead of
+    // register.
+    if let Err(UserErrorKind::UserWithEmailAlreadyExists(_)) = result {
+        return if db::user::verify_password(&connection, &input.email, &input.password, &config)
+            .is_ok()
+        {
+            // If the supplied credentials are correct, just transparently log in the user.
+            start_session(id, input.email.to_owned())
+        } else {
+            // If the supplied credentials are incorrect, inform the user by email that someone
+            // is trying to register using their email.
+            // Todo to be implemented. Ref issue #68.
+            Err(format!("email {} already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68", input.email)).map_err(error::ErrorInternalServerError)
+        };
+    }
+    let user = result.map_err(error::ErrorInternalServerError)?;
 
     // Send an activation email.
     let activation_code =
