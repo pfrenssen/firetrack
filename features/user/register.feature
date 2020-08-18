@@ -42,3 +42,15 @@ Feature: Account registration
     Then I should be on "/user/register"
     And I should see the heading "Sign up"
     And I should see the form validation error "Please enter a password."
+
+  # A user might mistake the registration form for the login form. Transparently log in the user.
+  Scenario: Log in by entering valid credentials in the registration form
+    Given user "reuben-Tomas@demonic.demon.co.uk" with password "qwertyuiop"
+    And I am on the user registration form
+    When I fill in "Email address" with "reuben-Tomas@demonic.demon.co.uk"
+    And I fill in "Password" with "qwertyuiop"
+    And I press "Sign up"
+    Then I should be on the homepage
+    And I should see the link "Log out"
+    But I should not see the link "Sign up"
+    And I should not see the link "Log in"
