@@ -148,3 +148,22 @@ fn compile_templates() -> tera::Tera {
     };
     tera::Tera::new(path).unwrap()
 }
+
+// Checks that the user is authenticated.
+fn assert_authenticated(id: &Identity) -> Result<(), Error> {
+    if id.identity().is_none() {
+        return Err(actix_http::error::ErrorForbidden(
+            "You need to be logged in to access this page.",
+        ));
+    }
+    Ok(())
+}
+
+// Checks that the user is not authenticated. Used to control access on login and registration
+// forms.
+fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
+    if id.identity().is_some() {
+        return Err(actix_http::error::ErrorForbidden("You are already logged in."));
+    }
+    Ok(())
+}

@@ -98,7 +98,7 @@ pub async fn login_handler(
     session: Session,
     tera: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     let input = UserForm::new("".to_string(), "".to_string());
     let validation_state = UserFormValidation::default();
@@ -114,7 +114,7 @@ pub async fn login_submit(
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
 
@@ -178,7 +178,7 @@ fn render_login(
 
 // Request handler for logging out.
 pub async fn logout_handler(id: Identity, session: Session) -> Result<HttpResponse, Error> {
-    assert_authenticated(&id)?;
+    crate::assert_authenticated(&id)?;
 
     id.forget();
     session.purge();
@@ -192,7 +192,7 @@ pub async fn register_handler(
     id: Identity,
     tera: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     // This returns the initial GET request for the registration form. The form fields are empty and
     // there are no validation errors.
@@ -210,7 +210,7 @@ pub async fn register_submit(
     pool: web::Data<db::ConnectionPool>,
     config: web::Data<AppConfig>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     // Validate the form input.
     let validation_state = UserFormValidation::validate_registration(&input);
@@ -329,7 +329,7 @@ pub async fn activate_handler(
     tera: web::Data<tera::Tera>,
     pool: web::Data<db::ConnectionPool>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     // The email address is passed in the session by the registration / login form. Return an error
     // if it is not set or does not correspond with an existing, non-activated user.
@@ -356,7 +356,7 @@ pub async fn activate_submit(
     input: web::Form<ActivationFormInput>,
     pool: web::Data<db::ConnectionPool>,
 ) -> Result<HttpResponse, Error> {
-    assert_not_authenticated(&id)?;
+    crate::assert_not_authenticated(&id)?;
 
     let activation_code = input.activation_code.clone();
 
@@ -445,25 +445,6 @@ fn render_activate(
         .render("user/activate.html", &context)
         .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
-}
-
-// Checks that the user is not authenticated. Used to control access on login and registration
-// forms.
-fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
-    if id.identity().is_some() {
-        return Err(error::ErrorForbidden("You are already logged in."));
-    }
-    Ok(())
-}
-
-// Checks that the user is authenticated.
-fn assert_authenticated(id: &Identity) -> Result<(), Error> {
-    if id.identity().is_none() {
-        return Err(error::ErrorForbidden(
-            "You need to be logged in to access this page.",
-        ));
-    }
-    Ok(())
 }
 
 #[cfg(test)]
