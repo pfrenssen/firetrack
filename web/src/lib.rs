@@ -165,7 +165,9 @@ fn assert_authenticated(id: &Identity) -> Result<(), Error> {
 // forms.
 fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
     if id.identity().is_some() {
-        return Err(actix_http::error::ErrorForbidden("You are already logged in."));
+        return Err(actix_http::error::ErrorForbidden(
+            "You are already logged in.",
+        ));
     }
     Ok(())
 }
