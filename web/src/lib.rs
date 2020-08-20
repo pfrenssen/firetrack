@@ -11,6 +11,7 @@ use crate::firetrack_test::*;
 
 mod bootstrap_components;
 mod error;
+mod expense;
 mod user;
 
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
@@ -125,6 +126,7 @@ pub fn configure_application(
                         .secure(false),
                 ))
                 .route("/", web::get().to(index))
+                .route("/expenses", web::get().to(expense::index_handler))
                 .route("/favicon.ico", web::get().to(index))
                 .route("/user/activate", web::get().to(user::activate_handler))
                 .route("/user/activate", web::post().to(user::activate_submit))
