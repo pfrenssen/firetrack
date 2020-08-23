@@ -13,7 +13,7 @@ pub async fn overview_handler(
 
     let content = template
         .render("expenses/overview.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 // Request handler for the add form.
@@ -27,6 +27,6 @@ pub async fn add_handler(
 
     let content = template
         .render("expenses/add.html", &context)
-        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
+        .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }

@@ -1,4 +1,34 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-3">
+            <div class="card card-primary expense-form">
+                <div class="card-header">
+                    <h3 class="card-title">Expense</h3>
+                </div>
+                <form class="form-add-expense" method="post" enctype="application/x-www-form-urlencoded" action="/expense/add" novalidate>
+                    <div class="card-body">
+                        <div class="form-label-group">
+                            <label for="amount">Amount</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">&euro;</span>
+                                </div>
+                                <input type="number" step="0.01" name="amount" id="amount" class="form-control ---amount_validation---" placeholder="0.00" value="---input.email---" required autofocus="">
+                            </div>
+                            <div class="invalid-feedback">Please enter a valid amount.</div>
+                        </div>
+                        <!-- https://stackoverflow.com/questions/25690778/jinja2-to-put-a-whole-element-in-option -->
+
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-primary" type="submit">Add</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock content %}
