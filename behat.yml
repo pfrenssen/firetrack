@@ -5,7 +5,9 @@ default:
         - ActivationCodeContext
         - BootstrapContext
         - FeatureContext
-        - HtmlContext
+        - HtmlContext:
+            region_map:
+              sidebar navigation: '.sidebar nav'
         - MailgunContext
         - UserContext
         - Behat\MinkExtension\Context\MinkContext
