@@ -21,3 +21,12 @@ body.no-sidebar .brand-image {
 body.layout-boxed {
     background-color: #435b59;
 }
+
+/* Header */
+.content-header.content-header-with-cta {
+    padding: 15px 1rem 15px .5rem;
+}
+
+.content-header-with-cta .btn i {
+    margin-right: .5rem;
+}

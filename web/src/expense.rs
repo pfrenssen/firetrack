@@ -10,14 +10,14 @@ use diesel::PgConnection;
 use validator::validate_email;
 
 // Request handler for the expenses overview.
-pub async fn overview_handler(
-    id: Identity,
-    session: Session,
-    tera: web::Data<tera::Tera>,
-) -> Result<HttpResponse, Error> {
+pub async fn overview_handler(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
     assert_authenticated(&id)?;
 
-    let content = "Expenses".to_string();
+    let context = get_tera_context("Expenses", id);
+
+    let content = template
+        .render("expenses/overview.html", &context)
+        .map_err(|_| error::ErrorInternalServerError("Template error"))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 // Request handler for the add form.

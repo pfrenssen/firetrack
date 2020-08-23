@@ -52,7 +52,7 @@ async fn index(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResp
 
     let content = template
         .render("index.html", &context)
-        .map_err(|_| ErrorInternalServerError("Template error"))?;
+        .map_err(|err| ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
