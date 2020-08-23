@@ -3,7 +3,10 @@ use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
 
 // Request handler for the expenses overview.
-pub async fn overview_handler(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResponse, Error> {
+pub async fn overview_handler(
+    id: Identity,
+    template: web::Data<tera::Tera>,
+) -> Result<HttpResponse, Error> {
     assert_authenticated(&id)?;
 
     let context = get_tera_context("Expenses", id);
@@ -16,7 +19,7 @@ pub async fn overview_handler(id: Identity, template: web::Data<tera::Tera>) -> 
 // Request handler for the add form.
 pub async fn add_handler(
     id: Identity,
-    template: web::Data<tera::Tera>
+    template: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
     assert_authenticated(&id)?;
 
