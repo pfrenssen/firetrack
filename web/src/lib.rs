@@ -14,6 +14,7 @@ mod error;
 mod expense;
 mod user;
 
+use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
 use actix_web::error::ErrorInternalServerError;
@@ -119,10 +120,15 @@ pub fn configure_application(
                 .wrap(error::error_handlers())
                 // Todo: Allow to toggle the secure flag on both the session and identity providers.
                 // Ref. https://github.com/pfrenssen/firetrack/issues/96
-                .wrap(CookieSession::signed(&session_key).secure(false))
+                .wrap(
+                    CookieSession::signed(&session_key)
+                        .same_site(SameSite::Lax)
+                        .secure(false),
+                )
                 .wrap(IdentityService::new(
                     CookieIdentityPolicy::new(&session_key)
                         .name("auth")
+                        .same_site(SameSite::Lax)
                         .secure(false),
                 ))
                 .route("/", web::get().to(index))
