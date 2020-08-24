@@ -159,13 +159,13 @@ fn compile_templates() -> tera::Tera {
 }
 
 // Checks that the user is authenticated.
-fn assert_authenticated(id: &Identity) -> Result<(), Error> {
-    if id.identity().is_none() {
-        return Err(actix_http::error::ErrorForbidden(
-            "You need to be logged in to access this page.",
-        ));
+fn assert_authenticated(id: &Identity) -> Result<String, Error> {
+    if let Some(email) = id.identity() {
+        return Ok(email);
     }
-    Ok(())
+    Err(actix_http::error::ErrorForbidden(
+        "You need to be logged in to access this page.",
+    ))
 }
 
 // Checks that the user is not authenticated. Used to control access on login and registration
