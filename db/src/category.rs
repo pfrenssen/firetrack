@@ -22,6 +22,25 @@ pub struct Category {
     pub parent_id: Option<i32>,
 }
 
+#[derive(Debug)]
+pub struct Categories {
+    pub category: Option<Category>,
+    pub children: Vec<Categories>,
+}
+
+// Converts a flat list of Category objects into a structured Categories object.
+impl From<Vec<Category>> for Categories {
+    fn from(mut list: Vec<Category>) -> Self {
+        let categories = Categories {
+            category: None,
+            children: vec![]
+        };
+        // Ref drain_filter() example.
+
+        categories
+    }
+}
+
 // Possible errors thrown when handling categories.
 #[derive(Debug, PartialEq)]
 pub enum CategoryErrorKind {
@@ -189,6 +208,17 @@ pub fn get_categories(
     Ok(dsl::categories
         .filter(dsl::user_id.eq(user.id))
         .load::<Category>(connection)?)
+}
+
+/// Returns the given user's categories.
+pub fn get_categories_hierarchy(
+    connection: &PgConnection,
+    user: &User,
+) -> Result<Categories, CategoryErrorKind> {
+    let categories: Vec<Category> = dsl::categories
+        .filter(dsl::user_id.eq(user.id))
+        .load::<Category>(connection)?;
+    Ok(Categories::from(categories))
 }
 
 /// Creates a set of default categories for the given user. The categories are sourced from a JSON
