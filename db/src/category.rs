@@ -31,14 +31,47 @@ pub struct Categories {
 // Converts a flat list of Category objects into a structured Categories object.
 impl From<Vec<Category>> for Categories {
     fn from(mut list: Vec<Category>) -> Self {
-        let categories = Categories {
+        let mut categories = Categories {
             category: None,
-            children: vec![]
+            children: vec![],
         };
-        // Ref drain_filter() example.
+
+        let (children, remaining_list) = get_child_categories_from_flat_list(None, list);
+        categories.children = children;
+
+        // Todo: log a warning if there are orphaned categories.
+        dbg!(remaining_list);
 
         categories
     }
+}
+
+fn get_child_categories_from_flat_list(
+    parent_id: Option<i32>,
+    mut list: Vec<Category>,
+) -> (Vec<Categories>, Vec<Category>) {
+    let mut categories = vec![];
+
+    let mut i = 0;
+    while i != list.len() {
+        let cat = &mut list[i];
+        // Todo: Avoid having to return the list.
+        list = if cat.parent_id == parent_id {
+            let category = list.remove(i);
+            let (children, list) = get_child_categories_from_flat_list(Some(category.id), list);
+            let child_categories = Categories {
+                category: Some(category),
+                children,
+            };
+            categories.push(child_categories);
+            i = 0;
+            list
+        } else {
+            i += 1;
+            list
+        };
+    }
+    (categories, list)
 }
 
 // Possible errors thrown when handling categories.

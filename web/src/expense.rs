@@ -29,7 +29,8 @@ pub async fn add_handler(
     // Retrieve the categories for the current user.
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
     let user = read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
-    let categories = get_categories_hierarchy(&connection, &user).map_err(error::ErrorInternalServerError)?;
+    let categories =
+        get_categories_hierarchy(&connection, &user).map_err(error::ErrorInternalServerError)?;
     dbg!(categories);
 
     let context = get_tera_context("Add expense", id);
