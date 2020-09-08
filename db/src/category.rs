@@ -46,6 +46,7 @@ impl From<Vec<Category>> for Categories {
     }
 }
 
+// Todo: test and document.
 fn get_child_categories_from_flat_list(
     parent_id: Option<i32>,
     mut list: Vec<Category>,
@@ -55,20 +56,25 @@ fn get_child_categories_from_flat_list(
     let mut i = 0;
     while i != list.len() {
         let cat = &mut list[i];
-        // Todo: Avoid having to return the list.
-        list = if cat.parent_id == parent_id {
+
+        if cat.parent_id == parent_id {
+            // We found a category that is a child of the passed in parent. Retrieve the children of
+            // this category recursively, and build a Categories struct with the result.
             let category = list.remove(i);
-            let (children, list) = get_child_categories_from_flat_list(Some(category.id), list);
+            let (children, updated_list) =
+                get_child_categories_from_flat_list(Some(category.id), list);
+            list = updated_list;
+
             let child_categories = Categories {
                 category: Some(category),
                 children,
             };
             categories.push(child_categories);
+
+            // Start counting again from the beginning, since the list has been reshuffled.
             i = 0;
-            list
         } else {
             i += 1;
-            list
         };
     }
     (categories, list)
