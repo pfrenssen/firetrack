@@ -39,8 +39,21 @@ impl From<Vec<Category>> for Categories {
         let (children, remaining_list) = get_child_categories_from_flat_list(None, list);
         categories.children = children;
 
-        // Todo: log a warning if there are orphaned categories.
-        dbg!(remaining_list);
+        // Log a warning if there are orphaned categories.
+        let orphan_count = remaining_list.len();
+        if orphan_count > 0 {
+            let user_id = remaining_list.first().map(|c| c.user_id).unwrap_or(0);
+            warn!(
+                "User {} has {} orphaned {}",
+                user_id,
+                orphan_count,
+                if orphan_count > 1 {
+                    "categories"
+                } else {
+                    "category"
+                }
+            );
+        }
 
         categories
     }
