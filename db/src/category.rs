@@ -30,7 +30,7 @@ pub struct Categories {
 
 // Converts a flat list of Category objects into a structured Categories object.
 impl From<Vec<Category>> for Categories {
-    fn from(mut list: Vec<Category>) -> Self {
+    fn from(list: Vec<Category>) -> Self {
         let mut categories = Categories {
             category: None,
             children: vec![],
