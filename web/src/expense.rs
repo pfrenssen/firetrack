@@ -1,7 +1,7 @@
 use super::{assert_authenticated, get_tera_context};
 use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
-use db::category::{get_categories, get_categories_hierarchy};
+use db::category::get_categories_tree;
 use db::user::read;
 
 // Request handler for the expenses overview.
@@ -30,7 +30,7 @@ pub async fn add_handler(
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
     let user = read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
     let categories =
-        get_categories_hierarchy(&connection, &user).map_err(error::ErrorInternalServerError)?;
+        get_categories_tree(&connection, &user).map_err(error::ErrorInternalServerError)?;
     dbg!(categories);
 
     let context = get_tera_context("Add expense", id);

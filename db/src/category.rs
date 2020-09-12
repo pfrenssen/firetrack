@@ -265,7 +265,7 @@ pub fn get_categories(
 }
 
 /// Returns the given user's categories as a tree.
-pub fn get_categories_hierarchy(
+pub fn get_categories_tree(
     connection: &PgConnection,
     user: &User,
 ) -> Result<Categories, CategoryErrorKind> {
