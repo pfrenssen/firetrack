@@ -744,14 +744,15 @@ mod tests {
             // No error should be returned.
             assert_eq!(result, Ok(()));
 
-            // The test file contains 7 categories. All should be created.
-            assert_category_count(&conn, 7);
+            // The test file contains 8 categories. All should be created.
+            assert_category_count(&conn, 8);
 
             // Verify that the categories were created with the correct parents.
             let expected_parent_cat_names: Vec<(&str, Option<&str>)> = vec![
                 ("Food", None),
                 ("Utilities", None),
                 ("Alcohol", Some("Food")),
+                ("Rakia", Some("Alcohol")),
                 ("Groceries", Some("Food")),
                 ("Electricity", Some("Utilities")),
                 ("Internet", Some("Utilities")),
@@ -873,6 +874,115 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    // Simplified version of the Categories struct, used for testing.
+    struct ExpectedCategories {
+        pub category: Option<String>,
+        pub children: Vec<ExpectedCategories>,
+    }
+
+    #[test]
+    // Tests super::get_categories_tree.
+    fn test_get_categories_tree() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+            populate_categories(&conn, &user, &config).unwrap();
+
+            let expected_cat_tree = ExpectedCategories {
+                category: None,
+                children: vec![
+                    ExpectedCategories {
+                        category: Some("Food".to_string()),
+                        children: vec![
+                            ExpectedCategories {
+                                category: Some("Alcohol".to_string()),
+                                children: vec![ExpectedCategories {
+                                    category: Some("Rakia".to_string()),
+                                    children: vec![],
+                                }],
+                            },
+                            ExpectedCategories {
+                                category: Some("Groceries".to_string()),
+                                children: vec![],
+                            },
+                        ],
+                    },
+                    ExpectedCategories {
+                        category: Some("Utilities".to_string()),
+                        children: vec![
+                            // Child categories are defined with an arbitrary sorting order in the
+                            // fixtures file but they should be sorted in alphabetical order.
+                            ExpectedCategories {
+                                category: Some("Electricity".to_string()),
+                                children: vec![],
+                            },
+                            ExpectedCategories {
+                                category: Some("Internet".to_string()),
+                                children: vec![],
+                            },
+                            ExpectedCategories {
+                                category: Some("Water".to_string()),
+                                children: vec![],
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            let cat_tree = get_categories_tree(&conn, &user).unwrap();
+            assert_category_tree(&expected_cat_tree, &cat_tree, user.id, None);
+
+            Ok(())
+        });
+    }
+
+    // Checks recursively that the passed in Categories tree matches the ExpectedCategories tree.
+    // Each category is checked that it belongs to the correct user and has the expected parent ID.
+    fn assert_category_tree(
+        expected_cat_tree: &ExpectedCategories,
+        cat_tree: &Categories,
+        expected_user_id: i32,
+        expected_parent_id: Option<i32>,
+    ) {
+        assert_eq!(
+            expected_cat_tree.category,
+            cat_tree.category.as_ref().map(|c| c.name.clone())
+        );
+        if let Some(cat) = cat_tree.category.clone() {
+            assert_eq!(expected_user_id, cat.user_id);
+            assert_eq!(expected_parent_id, cat.parent_id);
+        }
+
+        // Check that the child categories are in the expected order.
+        let expected_child_count = expected_cat_tree.children.len();
+        assert_eq!(expected_child_count, cat_tree.children.len());
+        if expected_child_count > 0 {
+            // Pass on the ID of the current category when recursing, so that we can check that the
+            // children have the parent ID set correctly.
+            let parent_id = match &cat_tree.category {
+                None => None,
+                Some(c) => Some(c.id),
+            };
+
+            for i in 0..expected_child_count {
+                let expected_child_cat = &expected_cat_tree.children[i];
+                let actual_child_cat = &cat_tree.children[i];
+                assert_eq!(
+                    expected_child_cat.category,
+                    actual_child_cat.category.as_ref().map(|c| c.name.clone())
+                );
+                assert_category_tree(
+                    expected_child_cat,
+                    actual_child_cat,
+                    expected_user_id,
+                    parent_id,
+                );
+            }
+        }
     }
 
     #[test]
