@@ -28,7 +28,8 @@ pub struct Categories {
     pub children: Vec<Categories>,
 }
 
-// Converts a flat list of Category objects into a structured Categories object.
+// Converts a flat list of Category objects into a Categories tree.
+// Todo: test.
 impl From<Vec<Category>> for Categories {
     fn from(list: Vec<Category>) -> Self {
         let mut categories = Categories {
@@ -39,7 +40,8 @@ impl From<Vec<Category>> for Categories {
         let (children, remaining_list) = get_child_categories_from_flat_list(None, list);
         categories.children = children;
 
-        // Log a warning if there are orphaned categories.
+        // Log a warning if there are orphaned categories. This shouldn't happen in practice since
+        // the database should maintain the integrity of the relationships.
         let orphan_count = remaining_list.len();
         if orphan_count > 0 {
             let user_id = remaining_list.first().map(|c| c.user_id).unwrap_or(0);
@@ -252,7 +254,7 @@ pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, Ca
         .map_err(CategoryErrorKind::DatabaseError)
 }
 
-/// Returns the given user's categories.
+/// Returns the given user's categories as a flat list.
 pub fn get_categories(
     connection: &PgConnection,
     user: &User,
@@ -262,7 +264,7 @@ pub fn get_categories(
         .load::<Category>(connection)?)
 }
 
-/// Returns the given user's categories.
+/// Returns the given user's categories as a tree.
 pub fn get_categories_hierarchy(
     connection: &PgConnection,
     user: &User,
