@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3a8e3b5abab94819c9a0f8e71cb9b334",
+    "content-hash": "d148c54be5a508daf99fd52cf81fd754",
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
@@ -44,6 +44,18 @@
                 "web"
             ],
             "time": "2020-05-19T20:41:11+00:00"
+        },
+        {
+            "name": "npm-asset/hierarchy-select",
+            "version": "2.3.0",
+            "dist": {
+                "type": "tar",
+                "url": "https://registry.npmjs.org/hierarchy-select/-/hierarchy-select-2.3.0.tgz"
+            },
+            "type": "npm-asset",
+            "license": [
+                "MIT"
+            ]
         }
     ],
     "packages-dev": [
@@ -2317,5 +2329,6 @@
     "platform": {
         "php": ">=7.4.0"
     },
-    "platform-dev": []
+    "platform-dev": [],
+    "plugin-api-version": "1.1.0"
 }

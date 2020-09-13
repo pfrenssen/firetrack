@@ -11,7 +11,8 @@
     "prefer-stable": true,
     "require": {
         "php": ">=7.4.0",
-        "almasaeed2010/adminlte": "^3.0"
+        "almasaeed2010/adminlte": "^3.0",
+        "npm-asset/hierarchy-select": "~2"
     },
     "require-dev": {
         "behat/behat": "^3.5",
@@ -23,5 +24,11 @@
         "psr-4": {
             "Firetrack\\Tests\\": "features/src"
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://asset-packagist.org"
+        }
+    ]
 }
