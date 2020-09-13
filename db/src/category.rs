@@ -908,7 +908,7 @@ mod tests {
             let user = create_test_user(&conn, &config);
             populate_categories(&conn, &user, &config).unwrap();
 
-            let expected_cat_tree = ExpectedCategories {
+            let expected_categories = ExpectedCategories {
                 category: None,
                 children: vec![
                     ExpectedCategories {
@@ -950,7 +950,7 @@ mod tests {
             };
 
             let cat_tree = get_categories_tree(&conn, &user).unwrap();
-            assert_category_tree(&expected_cat_tree, &cat_tree, user.id, None);
+            assert_category_tree(&expected_categories, &cat_tree, user.id, None);
 
             Ok(())
         });
@@ -959,34 +959,34 @@ mod tests {
     // Checks recursively that the passed in Categories tree matches the ExpectedCategories tree.
     // Each category is checked that it belongs to the correct user and has the expected parent ID.
     fn assert_category_tree(
-        expected_cat_tree: &ExpectedCategories,
-        cat_tree: &Categories,
+        expected_categories: &ExpectedCategories,
+        categories: &Categories,
         expected_user_id: i32,
         expected_parent_id: Option<i32>,
     ) {
         assert_eq!(
-            expected_cat_tree.category,
-            cat_tree.category.as_ref().map(|c| c.name.clone())
+            expected_categories.category,
+            categories.category.as_ref().map(|c| c.name.clone())
         );
-        if let Some(cat) = cat_tree.category.clone() {
+        if let Some(cat) = categories.category.clone() {
             assert_eq!(expected_user_id, cat.user_id);
             assert_eq!(expected_parent_id, cat.parent_id);
         }
 
         // Check that the child categories are in the expected order.
-        let expected_child_count = expected_cat_tree.children.len();
-        assert_eq!(expected_child_count, cat_tree.children.len());
+        let expected_child_count = expected_categories.children.len();
+        assert_eq!(expected_child_count, categories.children.len());
         if expected_child_count > 0 {
             // Pass on the ID of the current category when recursing, so that we can check that the
             // children have the parent ID set correctly.
-            let parent_id = match &cat_tree.category {
+            let parent_id = match &categories.category {
                 None => None,
                 Some(c) => Some(c.id),
             };
 
             for i in 0..expected_child_count {
-                let expected_child_cat = &expected_cat_tree.children[i];
-                let actual_child_cat = &cat_tree.children[i];
+                let expected_child_cat = &expected_categories.children[i];
+                let actual_child_cat = &categories.children[i];
                 assert_eq!(
                     expected_child_cat.category,
                     actual_child_cat.category.as_ref().map(|c| c.name.clone())
