@@ -28,8 +28,8 @@ pub struct Categories {
     pub children: Vec<Categories>,
 }
 
-// Converts a flat list of Category objects into a Categories tree.
-// Todo: test.
+// Converts a flat list of Category objects into a Categories tree. This can be used to convert the
+// flat list of objects that is returned by the database.
 impl From<Vec<Category>> for Categories {
     fn from(list: Vec<Category>) -> Self {
         let mut categories = Categories {
@@ -61,7 +61,9 @@ impl From<Vec<Category>> for Categories {
     }
 }
 
-// Todo: test and document.
+// Recursive function which iterates over the given flat list of Category objects, finds the child
+// categories of the given parent category and return them as a Categories tree. Any categories that
+// are not a descendant of the parent category are also returned as a new flat list.
 fn get_child_categories_from_flat_list(
     parent_id: Option<i32>,
     mut list: Vec<Category>,
@@ -404,6 +406,7 @@ mod tests {
     use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
+    use log::Level;
     use serde_json::json;
     use std::collections::{BTreeMap, HashMap};
 
@@ -954,6 +957,132 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    #[test]
+    // Tests the conversion of Vec<Category> into Categories.
+    fn test_categories_from_vec_category() {
+        let user_id = rand::random::<i32>();
+        let (vec_category, expected_categories) =
+            get_test_vec_category_and_expected_categories(user_id);
+        let cat_tree = Categories::from(vec_category);
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+    }
+
+    #[test]
+    // Tests that a possible orphaned category is excluded from the return value when converting a
+    // list of Vec<Category> into Categories. A warning should be logged.
+    fn test_categories_from_vec_category_logs_warning_if_category_is_orphaned() {
+        testing_logger::setup();
+
+        let user_id = rand::random::<i32>();
+        let (mut vec_category, expected_categories) =
+            get_test_vec_category_and_expected_categories(user_id);
+        // Append a category that has a parent ID that points to a non-existing category. We don't
+        // append this to the `expected_categories` since the orphaned category should not be
+        // returned by the function. Instead it should log a warning.
+        vec_category.push(Category {
+            id: user_id,
+            name: "Orphan".to_string(),
+            description: None,
+            user_id,
+            parent_id: Some(98765),
+        });
+        let cat_tree = Categories::from(vec_category.clone());
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+
+        // Check that a warning was logged.
+        testing_logger::validate(|captured_logs| {
+            assert_eq!(captured_logs.len(), 1);
+            assert_eq!(
+                captured_logs[0].body,
+                format!("User {} has 1 orphaned category", user_id)
+            );
+            assert_eq!(captured_logs[0].level, Level::Warn);
+        });
+
+        // Add another orphaned category to check that the warning shows the updated count.
+        vec_category.push(Category {
+            id: user_id,
+            name: "Another orphan".to_string(),
+            description: None,
+            user_id,
+            parent_id: Some(87654),
+        });
+        let cat_tree = Categories::from(vec_category);
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+
+        testing_logger::validate(|captured_logs| {
+            assert_eq!(captured_logs.len(), 1);
+            assert_eq!(
+                captured_logs[0].body,
+                format!("User {} has 2 orphaned categories", user_id)
+            );
+            assert_eq!(captured_logs[0].level, Level::Warn);
+        });
+    }
+
+    // Returns a tuple with a flat list of test categories as well as a list of expected categories.
+    fn get_test_vec_category_and_expected_categories(
+        user_id: i32,
+    ) -> (Vec<Category>, ExpectedCategories) {
+        // Define a list of test categories. These are intentionally in non-alphabetical order so
+        // that we can assert that the categories are sorted correctly.
+        let test_categories: BTreeMap<i32, (&str, Option<i32>)> = [
+            (0, ("Food", None)),
+            (1, ("Restaurants", Some(0))),
+            (2, ("Groceries", Some(0))),
+            (3, ("Japanese restaurants", Some(1))),
+            (4, ("Sushi", Some(3))),
+            (7, ("Education", None)),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        let mut categories: Vec<Category> = vec![];
+        for (id, (name, parent_id)) in test_categories {
+            let category = Category {
+                id,
+                name: name.to_string(),
+                description: None,
+                user_id,
+                parent_id,
+            };
+            categories.push(category);
+        }
+
+        // The categories are expected to be returned with child categories in alphabetical order.
+        let expected_categories = ExpectedCategories {
+            category: None,
+            children: vec![
+                ExpectedCategories {
+                    category: Some("Education".to_string()),
+                    children: vec![],
+                },
+                ExpectedCategories {
+                    category: Some("Food".to_string()),
+                    children: vec![
+                        ExpectedCategories {
+                            category: Some("Groceries".to_string()),
+                            children: vec![],
+                        },
+                        ExpectedCategories {
+                            category: Some("Restaurants".to_string()),
+                            children: vec![ExpectedCategories {
+                                category: Some("Japanese restaurants".to_string()),
+                                children: vec![ExpectedCategories {
+                                    category: Some("Sushi".to_string()),
+                                    children: vec![],
+                                }],
+                            }],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        (categories, expected_categories)
     }
 
     // Checks recursively that the passed in Categories tree matches the ExpectedCategories tree.
