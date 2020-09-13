@@ -78,25 +78,9 @@ fn get_child_categories_from_flat_list(
             // We found a category that is a child of the passed in parent. Retrieve the children of
             // this category recursively, and build a Categories struct with the result.
             let category = list.remove(i);
-            let (mut children, updated_list) =
+            let (children, updated_list) =
                 get_child_categories_from_flat_list(Some(category.id), list);
             list = updated_list;
-
-            // Sort the child categories alphabetically.
-            // Todo: There must be a simpler way to do this.
-            children.sort_unstable_by(|a, b| {
-                a.category
-                    .as_ref()
-                    .map(|c| c.name.clone())
-                    .unwrap_or_else(|| "".to_string())
-                    .cmp(
-                        b.category
-                            .as_ref()
-                            .map(|c| c.name.clone())
-                            .as_ref()
-                            .unwrap_or(&"".to_string()),
-                    )
-            });
 
             let child_categories = Categories {
                 category: Some(category),
@@ -110,6 +94,22 @@ fn get_child_categories_from_flat_list(
             i += 1;
         };
     }
+    // Sort the categories alphabetically.
+    // Todo: There must be a simpler way to do this.
+    categories.sort_unstable_by(|a, b| {
+        a.category
+            .as_ref()
+            .map(|c| c.name.clone())
+            .unwrap_or_else(|| "".to_string())
+            .cmp(
+                b.category
+                    .as_ref()
+                    .map(|c| c.name.clone())
+                    .as_ref()
+                    .unwrap_or(&"".to_string()),
+            )
+    });
+
     (categories, list)
 }
 
