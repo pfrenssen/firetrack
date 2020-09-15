@@ -10,6 +10,7 @@ mod integration_tests;
 use crate::firetrack_test::*;
 
 mod bootstrap_components;
+mod category;
 mod error;
 mod expense;
 mod user;

@@ -3,6 +3,13 @@
 {% block scripts -%}
 {{ super() -}}
 <script src="/third-party/hierarchy-select.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('#category').hierarchySelect({
+            width: '100%'
+        });
+    });
+</script>
 {%- endblock scripts %}
 
 {% block stylesheets -%}
@@ -13,8 +20,8 @@
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <div class="col-3">
-            <div class="card card-primary expense-form">
+        <div class="col-xl-4 col-lg-6">
+            <div class="card card-secondary expense-form">
                 <div class="card-header">
                     <h3 class="card-title">Expense</h3>
                 </div>
@@ -26,12 +33,27 @@
                                 <div class="input-group-prepend">
                                     <span class="input-group-text">&euro;</span>
                                 </div>
-                                <input type="number" step="0.01" name="amount" id="amount" class="form-control ---amount_validation---" placeholder="0.00" value="---input.email---" required autofocus="">
+                                <input type="number" step="0.01" name="amount" id="amount" class="form-control form-control-lg ---amount_validation---" placeholder="0.00" value="---input.email---" required autofocus="">
                             </div>
                             <div class="invalid-feedback">Please enter a valid amount.</div>
                         </div>
-                        <!-- https://stackoverflow.com/questions/25690778/jinja2-to-put-a-whole-element-in-option -->
-
+                        <div class="form-label-group py-4">
+                            <label for="category">Category</label>
+                            <div class="dropdown hierarchy-select" id="category">
+                                <button type="button" class="btn btn-lg btn-primary dropdown-toggle" id="category-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"></button>
+                                <div class="dropdown-menu" aria-labelledby="category-button">
+                                    <div class="hs-searchbox">
+                                        <input type="text" class="form-control" autocomplete="off">
+                                    </div>
+                                    <div class="hs-menu-inner">
+                                        {% for category in categories %}
+                                            <a class="dropdown-item" data-value="{{ category.id }}" data-level="{{ category.level }}" {% if category.id == current_category_id %}data-default-selected="" {% endif %}href="#">{{ category.name }}</a>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                <input class="d-none" name="category" readonly="readonly" aria-hidden="true" type="text"/>
+                            </div>
+                        </div>
                     </div>
                     <div class="card-footer">
                         <button class="btn btn-primary" type="submit">Add</button>
