@@ -156,7 +156,7 @@ fn render_login(
     // If the user is coming from the activation form, show a success message.
     if session
         .get::<bool>("account_activated")
-        .unwrap_or_else(|_| None)
+        .unwrap_or(None)
         .is_some()
     {
         let alert = Alert {
@@ -333,7 +333,7 @@ pub async fn activate_handler(
 
     // The email address is passed in the session by the registration / login form. Return an error
     // if it is not set or does not correspond with an existing, non-activated user.
-    if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
+    if let Some(email) = session.get::<String>("email").unwrap_or(None) {
         let connection = pool.get().map_err(error::ErrorInternalServerError)?;
         if let Ok(user) = db::user::read(&connection, email.as_str()) {
             if !user.activated {
@@ -390,7 +390,7 @@ pub async fn activate_submit(
         .map_err(error::ErrorInternalServerError)?;
 
     // Load the user from the email that is stored in the session.
-    if let Some(email) = session.get::<String>("email").unwrap_or_else(|_| None) {
+    if let Some(email) = session.get::<String>("email").unwrap_or(None) {
         let connection = pool.get().map_err(error::ErrorInternalServerError)?;
         if let Ok(user) = db::user::read(&connection, email.as_str()) {
             match db::activation_code::activate_user(&connection, user, activation_code) {
