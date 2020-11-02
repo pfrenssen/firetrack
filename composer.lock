@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d148c54be5a508daf99fd52cf81fd754",
+    "content-hash": "725454f0b18b7ac318910aa03b988b20",
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
@@ -46,11 +46,38 @@
             "time": "2020-05-19T20:41:11+00:00"
         },
         {
+            "name": "bower-asset/tempusdominus-bs4",
+            "version": "5.1.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/tempusdominus/bootstrap-4.git",
+                "reference": "540bfae18ca662bacfbea610e0ab8dcce6dd699e"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/tempusdominus/bootstrap-4/zipball/540bfae18ca662bacfbea610e0ab8dcce6dd699e",
+                "reference": "540bfae18ca662bacfbea610e0ab8dcce6dd699e"
+            },
+            "type": "bower-asset"
+        },
+        {
             "name": "npm-asset/hierarchy-select",
             "version": "2.3.0",
             "dist": {
                 "type": "tar",
                 "url": "https://registry.npmjs.org/hierarchy-select/-/hierarchy-select-2.3.0.tgz"
+            },
+            "type": "npm-asset",
+            "license": [
+                "MIT"
+            ]
+        },
+        {
+            "name": "npm-asset/moment",
+            "version": "2.29.1",
+            "dist": {
+                "type": "tar",
+                "url": "https://registry.npmjs.org/moment/-/moment-2.29.1.tgz"
             },
             "type": "npm-asset",
             "license": [
@@ -2330,5 +2357,5 @@
         "php": ">=7.4.0"
     },
     "platform-dev": [],
-    "plugin-api-version": "1.1.0"
+    "plugin-api-version": "2.0.0"
 }

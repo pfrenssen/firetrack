@@ -12,7 +12,9 @@
     "require": {
         "php": ">=7.4.0",
         "almasaeed2010/adminlte": "^3.0",
-        "npm-asset/hierarchy-select": "~2"
+        "bower-asset/tempusdominus-bs4": "^5.1",
+        "npm-asset/hierarchy-select": "~2",
+        "npm-asset/moment": "^2.29"
     },
     "require-dev": {
         "behat/behat": "^3.5",

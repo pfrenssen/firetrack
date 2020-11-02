@@ -3,11 +3,14 @@
 {% block scripts -%}
 {{ super() -}}
 <script src="/third-party/hierarchy-select.min.js"></script>
+<script src="/third-party/moment.min.js"></script>
+<script src="/third-party/tempusdominus-bootstrap-4.min.js"></script>
 <script type="text/javascript">
     $(document).ready(function() {
         $('#category').hierarchySelect({
             width: '100%'
         });
+        $('#datepicker').datetimepicker({format: 'YYYY-MM-DD'});
     });
 </script>
 {%- endblock scripts %}
@@ -15,6 +18,7 @@
 {% block stylesheets -%}
 {{ super() -}}
     <link rel="stylesheet" href="/third-party/hierarchy-select.min.css" />
+    <link rel="stylesheet" href="/third-party/tempusdominus-bootstrap-4.min.css" />
 {%- endblock stylesheets %}
 
 {% block content %}
@@ -25,7 +29,7 @@
                 <div class="card-header">
                     <h3 class="card-title">Expense</h3>
                 </div>
-                <form class="form-add-expense" method="post" enctype="application/x-www-form-urlencoded" action="/expense/add" novalidate>
+                <form class="form-add-expense" method="post" enctype="application/x-www-form-urlencoded" action="/expenses/add" novalidate>
                     <div class="card-body">
                         <div class="form-label-group">
                             <label for="amount">Amount</label>
@@ -46,12 +50,23 @@
                                         <input type="text" class="form-control" autocomplete="off">
                                     </div>
                                     <div class="hs-menu-inner">
-                                        {% for category in categories %}
-                                            <a class="dropdown-item" data-value="{{ category.id }}" data-level="{{ category.level }}" {% if category.id == current_category_id %}data-default-selected="" {% endif %}href="#">{{ category.name }}</a>
-                                        {% endfor %}
+                                        {%- for category in categories %}
+                                        <a class="dropdown-item" data-value="{{ category.id }}" data-level="{{ category.level }}" {% if category.id == current_category_id %}data-default-selected="" {% endif %}href="#">{{ category.name }}</a>
+                                        {%- endfor %}
                                     </div>
                                 </div>
                                 <input class="d-none" name="category" readonly="readonly" aria-hidden="true" type="text"/>
+                            </div>
+                        </div>
+                        <div class="form-label-group py-4">
+                            <label for="date">Date</label>
+                            <div class="form-group">
+                                <div class="input-group date" id="datepicker" data-target-input="nearest">
+                                    <input type="text" class="form-control datetimepicker-input" data-target="#datepicker" id="date" name= "date" value="---placeholder---">
+                                    <div class="input-group-append" data-target="#datepicker" data-toggle="datetimepicker">
+                                        <div class="input-group-text"><i class="fa fa-calendar"></i></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
