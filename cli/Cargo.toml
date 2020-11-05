@@ -16,7 +16,7 @@ db = { path = "../db" }
 log = "~0.4"
 mailgun_mock = { path = "../mailgun_mock" }
 notifications = { path = "../notifications" }
-regex = "~1.3"
+regex = "~1.4"
 rust_decimal = "~1.8"
 serde = "~1.0"
 serde_derive = "~1.0"
