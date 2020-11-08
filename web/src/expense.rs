@@ -5,6 +5,112 @@ use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
 use db::category::get_categories_tree;
 use db::user::read;
+use diesel::PgConnection;
+use rust_decimal::Decimal;
+use std::str::FromStr;
+
+// The POST data of the add expense form.
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub struct AddForm {
+    amount: String,
+    category: String,
+    date: String,
+}
+
+#[cfg(test)]
+impl AddForm {
+    pub fn new(amount: &str, category: &str, date: &str) -> AddForm {
+        AddForm {
+            amount: amount.to_string(),
+            category: category.to_string(),
+            date: date.to_string(),
+        }
+    }
+}
+
+// Whether the form fields of the add expense form are valid.
+#[derive(Serialize, Deserialize, Debug)]
+struct AddFormValidation {
+    form_is_validated: bool,
+    amount: Result<(), String>,
+    category: Result<(), String>,
+    date: Result<(), String>,
+}
+
+impl AddFormValidation {
+    #[cfg(test)]
+    pub fn new(
+        form_is_validated: bool,
+        amount: Result<(), String>,
+        category: Result<(), String>,
+        date: Result<(), String>,
+    ) -> AddFormValidation {
+        AddFormValidation {
+            form_is_validated,
+            amount,
+            category,
+            date,
+        }
+    }
+
+    // Instantiate a form validation struct with default values.
+    pub fn default() -> AddFormValidation {
+        AddFormValidation {
+            form_is_validated: false,
+            amount: Ok(()),
+            category: Ok(()),
+            date: Ok(()),
+        }
+    }
+
+    // Validates the add expense form.
+    pub fn validate(/*connection: &PgConnection,*/ input: &AddForm) -> AddFormValidation {
+        let mut validation_state = AddFormValidation::default();
+
+        // Validate the amount.
+        if input.amount.is_empty() {
+            validation_state.amount = Err("Please enter an amount.".to_string());
+        } else {
+            validation_state.amount = match Decimal::from_str(input.amount.as_str()) {
+                Err(_) => Err("Amount should be in the format '149.99'.".to_string()),
+                Ok(amount) if amount < Decimal::new(1, 2) => {
+                    Err("Amount should be 0.01 or larger.".to_string())
+                }
+                Ok(amount) if amount > Decimal::new(999_999_999, 2) => {
+                    Err("Amount should be 9999999.99 or smaller.".to_string())
+                }
+                Ok(_) => Ok(()),
+            }
+        }
+
+        // Validate the category.
+        if !input.category.is_empty() {
+            validation_state.category = match input.category.parse::<u64>() {
+                Err(_) => Err("Invalid category ID.".to_string()),
+                Ok(_) => Ok(()),
+            }
+        }
+
+        // Validate the date.
+        if input.date.is_empty() {
+            validation_state.date = Err("Please pick a date.".to_string());
+        } else {
+            validation_state.date =
+                match chrono::NaiveDate::parse_from_str(input.date.as_str(), "%Y-%m-%d") {
+                    Err(_) => Err("Date should be in the format YYYY-MM-DD.".to_string()),
+                    Ok(_) => Ok(()),
+                }
+        }
+
+        validation_state.form_is_validated = true;
+        validation_state
+    }
+
+    // Returns whether the form is validated and found valid.
+    pub fn is_valid(&self) -> bool {
+        self.form_is_validated && self.amount.is_ok() && self.category.is_ok() && self.date.is_ok()
+    }
+}
 
 // Request handler for the expenses overview.
 pub async fn overview_handler(
@@ -21,7 +127,7 @@ pub async fn overview_handler(
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
-// Request handler for the add form.
+// Request handler for the form to add an expense.
 pub async fn add_handler(
     id: Identity,
     pool: web::Data<db::ConnectionPool>,
@@ -46,4 +152,100 @@ pub async fn add_handler(
         .render("expenses/add.html", &context)
         .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
+}
+
+// Submit handler for the form to add an expense.
+pub async fn add_submit(
+    id: Identity,
+    pool: web::Data<db::ConnectionPool>,
+    template: web::Data<tera::Tera>,
+    input: web::Form<AddForm>,
+) -> Result<HttpResponse, Error> {
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    let email = assert_authenticated(&id)?;
+    let body = format!(
+        "input: {:?} validation state: {:?} is valid: {:?}",
+        input,
+        AddFormValidation::validate(/* &connection,*/ &input),
+        AddFormValidation::validate(/* &connection,*/ &input).is_valid()
+    );
+    return Ok(HttpResponse::Ok().content_type("text/plain").body(body));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Tests UserFormInputValid::validate() and ::is_valid().
+    #[test]
+    fn test_add_form_validation() {
+        let test_cases = [
+            // The amount and date are required fields.
+            (
+                AddForm::new("", "", ""),
+                AddFormValidation::new(
+                    true,
+                    Err("Please enter an amount.".to_string()),
+                    Ok(()),
+                    Err("Please pick a date.".to_string()),
+                ),
+                false,
+            ),
+            // Invalid formats.
+        ];
+
+        for test_case in &test_cases {
+            let input = &test_case.0;
+            let expected_validate_result = &test_case.1;
+            let expected_is_valid_result = test_case.2;
+            let actual_validate_result = AddFormValidation::validate(input);
+            assert_eq!(
+                expected_validate_result.amount,
+                actual_validate_result.amount
+            );
+            assert_eq!(
+                expected_validate_result.category,
+                actual_validate_result.category
+            );
+            assert_eq!(expected_validate_result.date, actual_validate_result.date);
+            assert_eq!(expected_is_valid_result, actual_validate_result.is_valid());
+        }
+    }
+
+    // Tests UserFormInputValid::validate() and ::is_valid() with invalid formatted input.
+    #[test]
+    fn test_add_form_validation_invalid_input_format() {
+        let test_cases = [
+            AddForm::new("a", "a", "a"),
+            AddForm::new("'", "'", "'"),
+            AddForm::new(";", ";", ";"),
+            AddForm::new(" ", " ", " "),
+            AddForm::new("\"", "-0", "-0"),
+            AddForm::new("\"", "-10", "-10"),
+            AddForm::new("0x0f", "0x0f", "0x0f"),
+            AddForm::new("00a0-11-11", "00a0-11-11", "00a0-11-11"),
+            AddForm::new("99,9", "99,9", "99,9"),
+            AddForm::new("99.9 ", "99.9 ", "99.9 "),
+            AddForm::new("2020-13-12", "2020-13-12", "2020-13-12"),
+            AddForm::new("12-12-2020", "12-12-2020", "12-12-2020"),
+            AddForm::new("2020/12/12", "2020/12/12", "2020/12/12"),
+        ];
+
+        for input in &test_cases {
+            let actual_validate_result = AddFormValidation::validate(input);
+            assert_eq!(
+                Err("Amount should be in the format '149.99'.".to_string()),
+                actual_validate_result.amount
+            );
+            assert_eq!(
+                Err("Invalid category ID.".to_string()),
+                actual_validate_result.category
+            );
+            assert_eq!(
+                Err("Date should be in the format YYYY-MM-DD.".to_string()),
+                actual_validate_result.date
+            );
+            assert_eq!(false, actual_validate_result.is_valid());
+        }
+    }
 }

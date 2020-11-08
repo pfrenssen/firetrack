@@ -3111,6 +3111,7 @@ dependencies = [
  "notifications",
  "r2d2",
  "regex",
+ "rust_decimal",
  "serde",
  "serde_derive",
  "serde_json",

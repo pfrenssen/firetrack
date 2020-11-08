@@ -135,6 +135,7 @@ pub fn configure_application(
                 .route("/", web::get().to(index))
                 .route("/expenses", web::get().to(expense::overview_handler))
                 .route("/expenses/add", web::get().to(expense::add_handler))
+                .route("/expenses/add", web::post().to(expense::add_submit))
                 .route("/favicon.ico", web::get().to(index))
                 .route("/user/activate", web::get().to(user::activate_handler))
                 .route("/user/activate", web::post().to(user::activate_submit))

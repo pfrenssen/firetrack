@@ -451,9 +451,9 @@ fn render_activate(
 mod tests {
     use super::*;
 
-    // Tests UserFormInputValid::is_valid().
+    // Tests UserFormValidation::is_valid().
     #[test]
-    fn test_user_form_input_valid_is_valid() {
+    fn test_user_form_validation_is_valid() {
         let test_cases = [
             // Unvalidated forms are never valid.
             (UserFormValidation::new(false, false, false), false),
