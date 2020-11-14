@@ -15,15 +15,10 @@ pub struct CategoryDropdownItems {
 }
 
 // Converts the given Categories tree into a list of items suitable for rendering the categories
-// dropdown. The root category will be given the name "No category".
+// dropdown.
 impl From<Categories> for CategoryDropdownItems {
     fn from(categories: Categories) -> Self {
-        let items = vec![CategoryDropdownItem {
-            id: None,
-            level: 1,
-            name: "No category".to_string(),
-        }];
-
+        let items: Vec<CategoryDropdownItem> = vec![];
         let items = get_dropdown_items(categories, items, 0);
 
         CategoryDropdownItems { items }
