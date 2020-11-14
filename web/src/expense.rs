@@ -3,8 +3,8 @@ use crate::category::CategoryDropdownItems;
 
 use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
-use db::category::get_categories_tree;
-use db::user::read;
+use db::category::{get_categories_tree, Category};
+use db::user::User;
 use diesel::PgConnection;
 use rust_decimal::Decimal;
 use std::str::FromStr;
@@ -32,18 +32,18 @@ impl AddForm {
 #[derive(Serialize, Deserialize, Debug)]
 struct AddFormValidation {
     form_is_validated: bool,
-    amount: Result<(), String>,
-    category: Result<(), String>,
-    date: Result<(), String>,
+    amount: Result<Decimal, String>,
+    category: Result<Category, String>,
+    date: Result<chrono::NaiveDate, String>,
 }
 
 impl AddFormValidation {
     #[cfg(test)]
     pub fn new(
         form_is_validated: bool,
-        amount: Result<(), String>,
-        category: Result<(), String>,
-        date: Result<(), String>,
+        amount: Result<Decimal, String>,
+        category: Result<Category, String>,
+        date: Result<chrono::NaiveDate, String>,
     ) -> AddFormValidation {
         AddFormValidation {
             form_is_validated,
@@ -57,14 +57,14 @@ impl AddFormValidation {
     pub fn default() -> AddFormValidation {
         AddFormValidation {
             form_is_validated: false,
-            amount: Ok(()),
-            category: Ok(()),
-            date: Ok(()),
+            amount: Err("Not validated".to_string()),
+            category: Err("Not validated".to_string()),
+            date: Err("Not validated".to_string()),
         }
     }
 
     // Validates the add expense form.
-    pub fn validate(/*connection: &PgConnection,*/ input: &AddForm) -> AddFormValidation {
+    pub fn validate(input: &AddForm, user: &User, connection: &PgConnection) -> AddFormValidation {
         let mut validation_state = AddFormValidation::default();
 
         // Validate the amount.
@@ -74,20 +74,25 @@ impl AddFormValidation {
             validation_state.amount = match Decimal::from_str(input.amount.as_str()) {
                 Err(_) => Err("Amount should be in the format '149.99'.".to_string()),
                 Ok(amount) if amount < Decimal::new(1, 2) => {
-                    Err("Amount should be 0.01 or larger.".to_string())
+                    Err("Amount should be 0.01 or greater.".to_string())
                 }
                 Ok(amount) if amount > Decimal::new(999_999_999, 2) => {
                     Err("Amount should be 9999999.99 or smaller.".to_string())
                 }
-                Ok(_) => Ok(()),
+                Ok(amount) => Ok(amount),
             }
         }
 
         // Validate the category.
-        if !input.category.is_empty() {
-            validation_state.category = match input.category.parse::<u64>() {
+        if input.category.is_empty() {
+            validation_state.amount = Err("Please choose a category.".to_string());
+        } else {
+            validation_state.category = match input.category.parse::<i32>() {
                 Err(_) => Err("Invalid category ID.".to_string()),
-                Ok(_) => Ok(()),
+                Ok(id) => match db::category::read(connection, id, Some(user.id)) {
+                    Some(cat) if cat.user_id == user.id => Ok(cat),
+                    _ => Err("Unknown category.".to_string()),
+                },
             }
         }
 
@@ -98,7 +103,7 @@ impl AddFormValidation {
             validation_state.date =
                 match chrono::NaiveDate::parse_from_str(input.date.as_str(), "%Y-%m-%d") {
                     Err(_) => Err("Date should be in the format YYYY-MM-DD.".to_string()),
-                    Ok(_) => Ok(()),
+                    Ok(date) => Ok(date),
                 }
         }
 
@@ -137,7 +142,8 @@ pub async fn add_handler(
 
     // Retrieve the categories for the current user.
     let connection = pool.get().map_err(error::ErrorInternalServerError)?;
-    let user = read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
+    let user =
+        db::user::read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
     let categories =
         get_categories_tree(&connection, &user).map_err(error::ErrorInternalServerError)?;
 
@@ -161,13 +167,16 @@ pub async fn add_submit(
     template: web::Data<tera::Tera>,
     input: web::Form<AddForm>,
 ) -> Result<HttpResponse, Error> {
-    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
     let email = assert_authenticated(&id)?;
+
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    let user =
+        db::user::read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
     let body = format!(
         "input: {:?} validation state: {:?} is valid: {:?}",
         input,
-        AddFormValidation::validate(/* &connection,*/ &input),
-        AddFormValidation::validate(/* &connection,*/ &input).is_valid()
+        AddFormValidation::validate(&input, &user, &connection),
+        AddFormValidation::validate(&input, &user, &connection).is_valid()
     );
     return Ok(HttpResponse::Ok().content_type("text/plain").body(body));
 }
