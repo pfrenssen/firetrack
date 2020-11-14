@@ -231,9 +231,15 @@ pub fn create(
     result.map_err(CategoryErrorKind::DatabaseError)
 }
 
-/// Retrieves the category with the given ID.
-pub fn read(connection: &PgConnection, id: i32) -> Option<Category> {
-    let category = dsl::categories.find(id).first::<Category>(connection);
+/// Retrieves the category with the given ID, with optional user filter.
+pub fn read(connection: &PgConnection, id: i32, user_id: Option<i32>) -> Option<Category> {
+    let category = match user_id {
+        Some(user_id) => dsl::categories
+            .filter(dsl::id.eq(id))
+            .filter(dsl::user_id.eq(user_id))
+            .first::<Category>(connection),
+        None => dsl::categories.find(id).first::<Category>(connection),
+    };
 
     match category {
         Ok(c) => Some(c),
@@ -603,18 +609,51 @@ mod tests {
 
         conn.test_transaction::<_, Error, _>(|| {
             // When no category with the given ID exists, `None` should be returned.
-            assert!(read(&conn, 1).is_none());
+            assert!(read(&conn, 1, None).is_none());
 
-            // Create a root category and assert that the `read()` function returns it.
-            let user = create_test_user(&conn, &config);
+            // Create two root categories for two different users and assert that the `read()`
+            // function returns them.
+            let users = (
+                create_test_user(&conn, &config),
+                create_test_user(&conn, &config),
+            );
             let name = "Groceries";
-            let result = create(&conn, &user, name, None, None).unwrap();
-            let cat = read(&conn, result.id).unwrap();
-            assert_category(&cat, Some(result.id), name, None, user.id, None);
+            let cats = (
+                create(&conn, &users.0, name, None, None).unwrap(),
+                create(&conn, &users.1, name, None, None).unwrap(),
+            );
 
-            // Delete the category. Now the `read()` function should return `None` again.
-            assert!(delete(&conn, cat.id).is_ok());
-            assert!(read(&conn, cat.id).is_none());
+            // Check reading of both categories, filtered by user 0.
+            let result = read(&conn, cats.0.id, Some(users.0.id)).unwrap();
+            assert_category(&result, Some(cats.0.id), name, None, users.0.id, None);
+            let result = read(&conn, cats.1.id, Some(users.0.id));
+            assert!(result.is_none());
+
+            // Check reading of both categories, filtered by user 1.
+            let result = read(&conn, cats.0.id, Some(users.1.id));
+            assert!(result.is_none());
+            let result = read(&conn, cats.1.id, Some(users.1.id)).unwrap();
+            assert_category(&result, Some(cats.1.id), name, None, users.1.id, None);
+
+            // Check the reading of both categories while not filtering on user.
+            let result = read(&conn, cats.0.id, None).unwrap();
+            assert_category(&result, Some(cats.0.id), name, None, users.0.id, None);
+
+            let result = read(&conn, cats.1.id, None).unwrap();
+            assert_category(&result, Some(cats.1.id), name, None, users.1.id, None);
+
+            // Delete the categories. Now the `read()` function should return `None` again in all
+            // cases.
+            assert!(delete(&conn, cats.0.id).is_ok());
+            assert!(delete(&conn, cats.1.id).is_ok());
+
+            assert!(read(&conn, cats.0.id, None).is_none());
+            assert!(read(&conn, cats.0.id, Some(users.0.id)).is_none());
+            assert!(read(&conn, cats.0.id, Some(users.1.id)).is_none());
+
+            assert!(read(&conn, cats.1.id, None).is_none());
+            assert!(read(&conn, cats.1.id, Some(users.0.id)).is_none());
+            assert!(read(&conn, cats.1.id, Some(users.1.id)).is_none());
 
             Ok(())
         });
@@ -1240,7 +1279,7 @@ mod tests {
             for i in 0..2 {
                 let id = result.get(i).unwrap();
                 let (name, description) = cats.get(i).unwrap();
-                let category = read(&conn, *id).unwrap();
+                let category = read(&conn, *id, None).unwrap();
                 assert_category(&category, Some(*id), name, *description, user_id, parent_id);
             }
         };

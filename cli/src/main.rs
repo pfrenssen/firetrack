@@ -323,7 +323,7 @@ async fn main() {
                 // Check that the parent with the given ID exists.
                 let parent = match parent_id {
                     Some(id) => {
-                        let category = db::category::read(&connection, id);
+                        let category = db::category::read(&connection, id, None);
                         if category.is_none() {
                             let message = format!("Category with ID {} could not be loaded", id);
                             Err::<String, _>(message).unwrap_or_exit();
@@ -345,7 +345,7 @@ async fn main() {
             ("get", Some(arguments)) => {
                 let id = assert_integer_argument(arguments.value_of("id"), "category ID").unwrap();
                 let connection = establish_connection(&config.database_url()).unwrap_or_exit();
-                let category = db::category::read(&connection, id);
+                let category = db::category::read(&connection, id, None);
                 if category.is_none() {
                     Err::<String, _>("Category not found").unwrap_or_exit();
                 };
@@ -402,7 +402,7 @@ async fn main() {
                         .unwrap();
 
                 // Load the category.
-                let category = db::category::read(&connection, category_id);
+                let category = db::category::read(&connection, category_id, None);
                 if category.is_none() {
                     let message = format!("Category with ID {} could not be loaded", category_id);
                     Err::<String, _>(message).unwrap_or_exit();
