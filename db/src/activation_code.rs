@@ -159,7 +159,11 @@ impl fmt::Display for ActivationCodeErrorKind {
                 write!(f, "The maximum number of allowed attempts to retrieve or validate an activation code has been exceeded. Please wait 30 minutes before requesting a new activation code.")
             }
             ActivationCodeErrorKind::PurgingFailed(ref err) => {
-                write!(f, "Database error when purging expired activation codes: {}", err)
+                write!(
+                    f,
+                    "Database error when purging expired activation codes: {}",
+                    err
+                )
             }
             ActivationCodeErrorKind::UpdateFailed(ref err) => {
                 write!(f, "Database error when updating activation code: {}", err)
