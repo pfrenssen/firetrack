@@ -3,6 +3,7 @@ use crate::category::CategoryDropdownItems;
 
 use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
+use chrono::Utc;
 use db::category::{get_categories_tree, Category};
 use db::user::User;
 use diesel::PgConnection;
@@ -17,7 +18,6 @@ pub struct AddForm {
     date: String,
 }
 
-#[cfg(test)]
 impl AddForm {
     pub fn new(amount: &str, category: &str, date: &str) -> AddForm {
         AddForm {
@@ -138,6 +138,19 @@ pub async fn add_handler(
     pool: web::Data<db::ConnectionPool>,
     template: web::Data<tera::Tera>,
 ) -> Result<HttpResponse, Error> {
+    let today = Utc::now().naive_utc().date().format("%Y-%m-%d").to_string();
+    let input = AddForm::new("", "", today.as_str());
+    let validation_state = AddFormValidation::default();
+    render_add(id, pool, template, input, validation_state)
+}
+
+fn render_add(
+    id: Identity,
+    pool: web::Data<db::ConnectionPool>,
+    template: web::Data<tera::Tera>,
+    input: AddForm,
+    validation_state: AddFormValidation,
+) -> Result<HttpResponse, Error> {
     let email = assert_authenticated(&id)?;
 
     // Retrieve the categories for the current user.
@@ -149,8 +162,14 @@ pub async fn add_handler(
 
     let categories_dropdown_items = CategoryDropdownItems::from(categories);
 
+    // Convert the category provided by the form input to an integer so we can select the chosen
+    // category in the dropdown. Tera cannot compare two values of different types and doesn't
+    // support type casting
+    let current_category_id: Option<i32> = input.category.parse().ok();
+
     let mut context = get_tera_context("Add expense", id);
-    let current_category_id: Option<i32> = None;
+    context.insert("input", &input);
+    context.insert("validation", &validation_state);
     context.insert("categories", &categories_dropdown_items.items);
     context.insert("current_category_id", &current_category_id);
 
