@@ -14,11 +14,16 @@ default:
       filters:
         tags: '~@wip'
   extensions:
+    DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     Behat\MinkExtension:
-      base_url:  'http://localhost:8088'
+      base_url:  'http://localhost:8090'
       sessions:
         default:
           goutte: ~
+      javascript_session: chrome
+      browser_name: chrome
+      chrome:
+        api_url: http://localhost:9222
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:
