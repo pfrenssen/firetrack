@@ -5,6 +5,7 @@ default:
         - ActivationCodeContext
         - BootstrapContext
         - FeatureContext
+        - HierarchySelectContext
         - HtmlContext:
             region_map:
               sidebar navigation: '.sidebar nav'

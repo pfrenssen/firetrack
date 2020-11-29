@@ -98,6 +98,11 @@ class UserContext extends RawMinkContext
         $email = escapeshellarg($email);
         $code = escapeshellarg($code);
         $this->executeCommand("user activate $email $code");
+
+        // Create a set of default categories for the activated user.
+        // Todo: This should be done automatically.
+        // Ref. https://github.com/pfrenssen/firetrack/issues/193
+        $this->executeCommand("category populate $email");
     }
 
     /**

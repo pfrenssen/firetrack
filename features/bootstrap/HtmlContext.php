@@ -5,6 +5,7 @@ declare(strict_types = 1);
 use Behat\Mink\Element\NodeElement;
 use Behat\Mink\Exception\UnsupportedDriverActionException;
 use Behat\MinkExtension\Context\RawMinkContext;
+use Firetrack\Tests\Exception\ExpectationException;
 
 /**
  * Step definitions for interacting with HTML pages.
@@ -17,7 +18,7 @@ class HtmlContext extends RawMinkContext
      *
      * @var array
      */
-    protected $regionMap;
+    protected array $regionMap;
 
     /**
      * Constructs a new HtmlContext object.
@@ -242,5 +243,70 @@ class HtmlContext extends RawMinkContext
             throw new \Exception(sprintf('The link "%s" was not found in the region "%s" on the page %s', $link, $region, $this->getSession()->getCurrentUrl()));
         }
         $link_element->click();
+    }
+
+    /**
+     * Checks that the given field is empty.
+     *
+     * @param string $field
+     *   The ID, name or label of the field to check.
+     *
+     * @throws \Exception
+     *   If the field cannot be found.
+     *
+     * @Then the :field field should be empty
+     * @Then the :field field should not contain a value
+     */
+    public function assertFieldEmpty(string $field): void
+    {
+        $field = $this->getSession()->getPage()->findField($field);
+        if (!$field instanceof NodeElement) {
+            throw new \Exception("Field '$field' not found.");
+        }
+
+        if (!empty($field->getValue())) {
+            throw new ExpectationException("The '$field' field was expected to be empty but it was not.");
+        }
+    }
+
+    /**
+     * Checks that the given field contains the current date in YYYY-MM-DD format.
+     *
+     * @param string $field
+     *   The ID, name or label of the field to check.
+     *
+     * @throws \Exception
+     *   If the field cannot be found.
+     *
+     * @Then the :field field should contain today's date
+     */
+    public function assertFieldContainsCurrentDate(string $field): void
+    {
+        // Todo: Use the user's timezone.
+        // Ref. https://github.com/pfrenssen/firetrack/issues/194
+        $this->assertFieldContains($field, gmdate('Y-m-d'));
+    }
+
+    /**
+     * Checks that the given field contains the given value.
+     *
+     * @param string $field
+     *   The ID, name or label of the field to check.
+     * @param string $expected_value
+     *
+     * @throws \Exception
+     *   If the field cannot be found.
+     */
+    protected function assertFieldContains(string $field, string $expected_value): void
+    {
+        $element = $this->getSession()->getPage()->findField($field);
+        if (!$element instanceof NodeElement) {
+            throw new \Exception("Field '$field' not found.");
+        }
+
+        $actual_value = $element->getValue();
+        if ($actual_value !== $expected_value) {
+            throw new ExpectationException("The '$field' field was expected to contain '$expected_value' but it contained '$actual_value'.");
+        }
     }
 }
