@@ -97,7 +97,7 @@ dependencies = [
  "ring",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.6.1",
  "sha1",
  "slab",
  "time",
@@ -293,7 +293,7 @@ dependencies = [
  "regex",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.6.1",
  "time",
  "url",
 ]
@@ -339,7 +339,7 @@ version = "0.1.0-dev"
 dependencies = [
  "dotenv",
  "env_logger 0.8.2",
- "mockito 0.28.0",
+ "mockito 0.29.0",
  "regex",
 ]
 
@@ -443,7 +443,7 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.6.1",
 ]
 
 [[package]]
@@ -729,6 +729,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "colored"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3616f750b84d8f0de8a58bda93e08e2a81ad3f523089b05f1dffecab48c6cbd"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi 0.3.8",
+]
+
+[[package]]
 name = "copyless"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -982,6 +993,16 @@ name = "foreign-types-shared"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
+
+[[package]]
+name = "form_urlencoded"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ece68d15c92e84fa4f19d3780f1294e5ca82a78a6d515f1efaabcc144688be00"
+dependencies = [
+ "matches",
+ "percent-encoding",
+]
 
 [[package]]
 name = "fuchsia-cprng"
@@ -1637,7 +1658,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a3ae325bcceb48a24302ac57e1055f9173f5fd53be535603ea0ed41dea92db5"
 dependencies = [
  "assert-json-diff",
- "colored",
+ "colored 1.9.3",
  "difference",
  "httparse",
  "lazy_static",
@@ -1645,25 +1666,25 @@ dependencies = [
  "rand 0.7.3",
  "regex",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.6.1",
 ]
 
 [[package]]
 name = "mockito"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36a0eb7e686b49b02c1cb87c14b8e2a05de0d36c6eee0293653d0a875906d499"
+checksum = "102f0986ade96028c3227fc14fcbbbee0358ca33b3fedc9a400a97a6f5ad4a6e"
 dependencies = [
  "assert-json-diff",
- "colored",
+ "colored 2.0.0",
  "difference",
  "httparse",
  "lazy_static",
  "log",
- "rand 0.7.3",
+ "rand 0.8.0",
  "regex",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.7.0",
 ]
 
 [[package]]
@@ -2340,7 +2361,7 @@ dependencies = [
  "pin-project-lite",
  "serde",
  "serde_json",
- "serde_urlencoded",
+ "serde_urlencoded 0.6.1",
  "time",
  "tokio",
  "tokio-tls",
@@ -2504,6 +2525,18 @@ dependencies = [
  "itoa",
  "serde",
  "url",
+]
+
+[[package]]
+name = "serde_urlencoded"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edfa57a7f8d9c1d260a549e7224100f6c43d43f9103e06dd8b4095a9b2b43ce9"
+dependencies = [
+ "form_urlencoded",
+ "itoa",
+ "ryu",
+ "serde",
 ]
 
 [[package]]
@@ -3161,7 +3194,7 @@ dependencies = [
  "diesel",
  "dotenv",
  "libxml",
- "mockito 0.28.0",
+ "mockito 0.29.0",
  "notifications",
  "r2d2",
  "regex",
