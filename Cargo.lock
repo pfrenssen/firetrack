@@ -792,7 +792,7 @@ dependencies = [
  "dotenv",
  "log",
  "r2d2",
- "rand 0.7.3",
+ "rand 0.8.0",
  "rust_decimal",
  "serde",
  "serde_json",
