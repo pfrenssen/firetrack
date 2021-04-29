@@ -1,0 +1,38 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "13:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: rust_decimal
+    versions:
+    - 1.10.3
+    - 1.11.1
+  - dependency-name: tera
+    versions:
+    - 1.7.0
+    - 1.7.1
+  - dependency-name: regex
+    versions:
+    - 1.4.4
+    - 1.4.5
+  - dependency-name: serde
+    versions:
+    - 1.0.124
+  - dependency-name: serde_json
+    versions:
+    - 1.0.62
+    - 1.0.63
+  - dependency-name: hyper
+    versions:
+    - 0.14.2
+    - 0.14.4
+- package-ecosystem: composer
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "13:00"
+  open-pull-requests-limit: 10
