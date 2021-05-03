@@ -4,6 +4,7 @@ default:
       contexts:
         - ActivationCodeContext
         - BootstrapContext
+        - ExpenseContext
         - FeatureContext
         - HierarchySelectContext
         - HtmlContext:

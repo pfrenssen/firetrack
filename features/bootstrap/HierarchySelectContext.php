@@ -47,7 +47,8 @@ class HierarchySelectContext extends RawMinkContext
      * @param string $label
      *
      * @throws \Exception
-     *   Thrown when the hierarchy select element is not found.
+     *   Thrown when the hierarchy select element is not found or does not
+     *   expand.
      *
      * @When I expand the :label hierarchical dropdown
      */
@@ -55,6 +56,15 @@ class HierarchySelectContext extends RawMinkContext
     {
         if (!$this->isExpanded($label)) {
             $this->toggle($label);
+            // Wait for the search box to become visible.
+            for ($i = 0; $i < 200; $i++) {
+              $search_box = $this->getSearchBoxElement($label);
+              if ($search_box->isVisible()) {
+                return;
+              }
+              usleep(50000);
+            }
+            throw new \Exception('Hierarchical select element did not expand.');
         }
     }
 
