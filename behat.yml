@@ -15,16 +15,23 @@ default:
       filters:
         tags: '~@wip'
   extensions:
-    DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     Behat\MinkExtension:
       base_url:  'http://localhost:8090'
+      javascript_session: selenium_chrome
       sessions:
         default:
           goutte: ~
-      javascript_session: chrome
-      browser_name: chrome
-      chrome:
-        api_url: http://localhost:9222
+        selenium_chrome:
+          selenium2:
+            wd_host: http://localhost:4444/wd/hub
+            browser: chrome
+            capabilities:
+              extra_capabilities:
+                chromeOptions:
+                  args:
+                    - "--no-sandbox"
+                    - "--headless"
+                    - "--disable-gpu"
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:
