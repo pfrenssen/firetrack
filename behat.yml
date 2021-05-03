@@ -33,6 +33,7 @@ default:
                     - "--no-sandbox"
                     - "--headless"
                     - "--disable-gpu"
+                    - "--window-size=1920,1080"
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:
