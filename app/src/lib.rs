@@ -443,6 +443,8 @@ pub fn initialize_logger() {
 }
 
 // Imports environment variables by reading the .env files.
+// Todo: Since test code is only visible inside its own crate, this function is duplicated in
+//   other crates. Deduplicate once https://github.com/rust-lang/cargo/issues/8379 is fixed.
 fn import_env_vars() {
     // Populate environment variables from the local `.env` file.
     dotenv::dotenv().ok();
