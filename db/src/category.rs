@@ -7,11 +7,11 @@ use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
 use diesel::result::Error::DatabaseError;
 use diesel::{dsl::exists, select};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, Value};
 use std::{fmt, fs::File};
 
-#[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize)]
+#[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize, Deserialize)]
 #[belongs_to(User, foreign_key = "id")]
 #[table_name = "categories"]
 pub struct Category {
