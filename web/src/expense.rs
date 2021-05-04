@@ -1,10 +1,12 @@
 use super::{assert_authenticated, get_tera_context};
 use crate::category::CategoryDropdownItems;
 
+use crate::bootstrap_components::{Alert, AlertType};
 use actix_identity::Identity;
 use actix_web::{error, web, Error, HttpResponse};
 use chrono::Utc;
 use db::category::{get_categories_tree, Category};
+use db::expense::create;
 use db::user::User;
 use diesel::PgConnection;
 use rust_decimal::Decimal;
@@ -24,6 +26,17 @@ impl AddForm {
             amount: amount.to_string(),
             category: category.to_string(),
             date: date.to_string(),
+        }
+    }
+
+    // Resets the form input so it is ready for entering the next expense. This is intended to be
+    // called after successfully saving an expense. The date and category are kept intact so that
+    // multiple related expenses can be entered conveniently.
+    pub fn reset(&self) -> AddForm {
+        AddForm {
+            amount: "".to_string(),
+            category: self.category.clone(),
+            date: self.date.clone(),
         }
     }
 }
@@ -85,7 +98,7 @@ impl AddFormValidation {
 
         // Validate the category.
         if input.category.is_empty() {
-            validation_state.amount = Err("Please choose a category.".to_string());
+            validation_state.category = Err("Please choose a category.".to_string());
         } else {
             validation_state.category = match input.category.parse::<i32>() {
                 Err(_) => Err("Invalid category ID.".to_string()),
@@ -111,9 +124,16 @@ impl AddFormValidation {
         validation_state
     }
 
-    // Returns whether the form is validated and found valid.
-    pub fn is_valid(&self) -> bool {
-        self.form_is_validated && self.amount.is_ok() && self.category.is_ok() && self.date.is_ok()
+    // Resets the form state so it is ready for entering the next expense. This is intended to be
+    // called after successfully saving an expense. The date and category are kept intact so that
+    // multiple related expenses can be entered conveniently.
+    pub fn reset(&self) -> AddFormValidation {
+        AddFormValidation {
+            form_is_validated: false,
+            amount: Err("Not validated".to_string()),
+            category: self.category.clone(),
+            date: self.date.clone(),
+        }
     }
 }
 
@@ -132,7 +152,7 @@ pub async fn overview_handler(
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
-// Request handler for the form to add an expense.
+// GET request handler for the form to add an expense.
 pub async fn add_handler(
     id: Identity,
     pool: web::Data<db::ConnectionPool>,
@@ -141,15 +161,82 @@ pub async fn add_handler(
     let today = Utc::now().naive_utc().date().format("%Y-%m-%d").to_string();
     let input = AddForm::new("", "", today.as_str());
     let validation_state = AddFormValidation::default();
-    render_add(id, pool, template, input, validation_state)
+    let alerts = vec![];
+
+    render_add(id, pool, template, input, validation_state, alerts)
 }
 
+// POST Submit handler for the form to add an expense.
+pub async fn add_submit(
+    id: Identity,
+    pool: web::Data<db::ConnectionPool>,
+    template: web::Data<tera::Tera>,
+    input: web::Form<AddForm>,
+) -> Result<HttpResponse, Error> {
+    let email = assert_authenticated(&id)?;
+
+    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
+    let user =
+        db::user::read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
+
+    let input = input.into_inner();
+    let validation_state = AddFormValidation::validate(&input, &user, &connection);
+
+    // Create the expense if the form validates and return a success or failure alert. If the form
+    // doesn't validate, don't set an alert since the user will already be notified about invalid
+    // values through the form feedback messages.
+    let (input, validation_state, alerts): (AddForm, AddFormValidation, Vec<Alert>) = match (
+        validation_state.form_is_validated,
+        &validation_state.amount,
+        &validation_state.category,
+        &validation_state.date,
+    ) {
+        (true, Ok(amount), Ok(category), Ok(date)) => {
+            let (input, validation_state, alert) =
+                match create(&connection, &user, amount, category, None, Some(date)) {
+                    Ok(_) => {
+                        (
+                            // The expense was saved successfully. Reset the form state so the next
+                            // expense can be entered. Keep the date and category intact so that
+                            // multiple related expenses can be entered conveniently.
+                            input.reset(),
+                            validation_state.reset(),
+                            Alert {
+                                alert_type: AlertType::Success,
+                                message: format!(
+                                    "Added €{:.2} expense to the {} category.",
+                                    amount, category.name
+                                ),
+                            },
+                        )
+                    }
+                    Err(e) => (
+                        input,
+                        validation_state,
+                        Alert {
+                            alert_type: AlertType::Danger,
+                            message: format!("Error: {}", e),
+                        },
+                    ),
+                };
+            (input, validation_state, vec![alert])
+        }
+        _ => (input, validation_state, vec![]),
+    };
+
+    let input = AddForm::new("", input.category.as_str(), input.date.as_str());
+
+    render_add(id, pool, template, input, validation_state, alerts)
+}
+
+// Renders the form to add an expense. Used by both GET and POST requests.
 fn render_add(
     id: Identity,
     pool: web::Data<db::ConnectionPool>,
     template: web::Data<tera::Tera>,
     input: AddForm,
     validation_state: AddFormValidation,
+    alerts: Vec<Alert>,
 ) -> Result<HttpResponse, Error> {
     let email = assert_authenticated(&id)?;
 
@@ -172,32 +259,12 @@ fn render_add(
     context.insert("validation", &validation_state);
     context.insert("categories", &categories_dropdown_items.items);
     context.insert("current_category_id", &current_category_id);
+    context.insert("alerts", &alerts);
 
     let content = template
         .render("expenses/add.html", &context)
         .map_err(|err| error::ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
-}
-
-// Submit handler for the form to add an expense.
-pub async fn add_submit(
-    id: Identity,
-    pool: web::Data<db::ConnectionPool>,
-    template: web::Data<tera::Tera>,
-    input: web::Form<AddForm>,
-) -> Result<HttpResponse, Error> {
-    let email = assert_authenticated(&id)?;
-
-    let connection = pool.get().map_err(error::ErrorInternalServerError)?;
-    let user =
-        db::user::read(&connection, email.as_str()).map_err(error::ErrorInternalServerError)?;
-    let body = format!(
-        "input: {:?} validation state: {:?} is valid: {:?}",
-        input,
-        AddFormValidation::validate(&input, &user, &connection),
-        AddFormValidation::validate(&input, &user, &connection).is_valid()
-    );
-    return Ok(HttpResponse::Ok().content_type("text/plain").body(body));
 }
 
 #[cfg(test)]

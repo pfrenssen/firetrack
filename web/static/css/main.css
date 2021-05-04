@@ -30,3 +30,8 @@ body.layout-boxed {
 .content-header-with-cta .btn i {
     margin-right: .5rem;
 }
+
+/* Alerts */
+.alerts {
+    padding: 0 1rem;
+}
