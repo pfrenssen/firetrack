@@ -11,6 +11,9 @@ rust:
 services:
   - postgresql
 
+addons:
+  chrome: stable
+
 env:
   global:
     - DATABASE_URL=postgres://postgres@localhost/firetrack
