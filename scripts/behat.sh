@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start chromedriver.
-chromedriver --port=8643 --url-base=wd/hub &
+chromedriver --port=9222 --url-base=wd/hub &
 CHROMIUM_PID=$!
 
 # Reset database.
