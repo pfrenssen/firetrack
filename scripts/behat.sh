@@ -1,7 +1,16 @@
 #!/bin/bash
 
+# We can use either headless chrome or chromedriver for browser testing.
+# Headless chrome is faster and supported by Travis CI, but cannot be inspected
+# during the test run. Chromedriver can be launched in a window so the test can
+# be followed live. Switch between both using the `javascript_session` option in
+# `behat.yml`.
+
 # Start chromedriver.
-chromedriver --port=9222 --url-base=wd/hub &
+#chromedriver --port=9222 --url-base=wd/hub &
+
+# Start headless chrome.
+chromium --remote-debugging-port=9222 --headless --disable-gpu http://localhost &
 CHROMIUM_PID=$!
 
 # Reset database.
