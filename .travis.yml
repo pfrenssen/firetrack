@@ -55,11 +55,11 @@ before_install:
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
   # Start chrome headless.
-  - google-chrome-stable --headless --disable-gpu --remote-debugging-port=9222 http://localhost &
+  #- google-chrome-stable --headless --disable-gpu --remote-debugging-port=9222 http://localhost &
 
 install:
   - php composer.phar install --no-interaction
-  - docker run -p 4444:4444 --shm-size=256m -d selenium/standalone-chrome:3.11
+  - docker run -d -p 4444:4444 --network=host selenium/standalone-chrome:3.11
 
 script:
   # Check coding standards.
