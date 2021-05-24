@@ -17,17 +17,17 @@ default:
         tags: '~@wip'
   extensions:
     Behat\MinkExtension:
-      base_url:  'http://localhost:8090'
-      javascript_session: chrome_headless
+      base_url:  'http://localhost:8088'
+      javascript_session: chromedriver
       sessions:
-        chrome_headless:
-          chrome:
-            api_url: 'http://localhost:9222'
+        #chrome_headless:
+        #  chrome:
+        #    api_url: 'http://localhost:9222'
         default:
           goutte: ~
         chromedriver:
           selenium2:
-            wd_host: http://localhost:9222
+            wd_host: http://localhost:4444/wd/hub
             browser: chrome
             capabilities:
               extra_capabilities:
@@ -37,7 +37,7 @@ default:
                     - "--headless"
                     - "--disable-gpu"
                     - "--window-size=1920,1080"
-    DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
+    #DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:

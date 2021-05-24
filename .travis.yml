@@ -59,6 +59,7 @@ before_install:
 
 install:
   - php composer.phar install --no-interaction
+  - docker run -p 4444:4444 --shm-size=256m -d selenium/standalone-chrome:3.11
 
 script:
   # Check coding standards.
