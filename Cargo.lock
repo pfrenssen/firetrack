@@ -338,7 +338,7 @@ name = "app"
 version = "0.1.0-dev"
 dependencies = [
  "dotenv",
- "env_logger 0.8.2",
+ "env_logger 0.8.4",
  "mockito 0.29.0",
  "regex",
 ]
@@ -910,9 +910,9 @@ dependencies = [
 
 [[package]]
 name = "env_logger"
-version = "0.8.2"
+version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f26ecb66b4bdca6c1409b40fb255eefc2bd4f6d135dab3c3124f80ffa2a9661e"
+checksum = "a19187fea3ac7e84da7dacf48de0c45d63c6a76f9490dae389aead16c243fce3"
 dependencies = [
  "atty",
  "humantime 2.0.1",
