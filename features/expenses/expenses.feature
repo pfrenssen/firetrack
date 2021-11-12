@@ -13,6 +13,7 @@ Feature: Expenses
     Then I should be on "/expenses/add"
     And I should see the heading "Add expense"
     And the "Amount" field should not contain a value
+    And "Education" should be selected in the "Category" hierarchical dropdown
     And the "Category" hierarchical dropdown should not be expanded
     And the "Date" field should contain today's date
 

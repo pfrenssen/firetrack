@@ -25,6 +25,7 @@ class HierarchySelectContext extends RawMinkContext
      * to select the topmost option in the dropdown.
      *
      * @param string $label
+     * @param string $option
      *
      * @throws \Exception
      *   Thrown when the hierarchy select element is not found.
@@ -39,6 +40,27 @@ class HierarchySelectContext extends RawMinkContext
         $search_box_element->setValue($option);
         $this->pressKeyInElement('down', $search_box_element);
         $this->pressKeyInElement('enter', $search_box_element);
+    }
+
+    /**
+     * Checks that the given option is selected in the hierarchical dropdown with the given name.
+     *
+     * @param string $label
+     * @param string $option
+     *
+     * @throws \Exception
+     *   Thrown when the hierarchy select element is not found or does not have the expected option
+     *   selected.
+     *
+     * @Then :option should be selected in the :label hierarchical dropdown
+     */
+    public function assertHierarchicalSelectContains(string $label, string $option): void
+    {
+        $dropdown_toggle_element = $this->getDropdownToggleElement($label);
+        $actual_text = $dropdown_toggle_element->getText();
+        if ($actual_text !== $option) {
+            throw new \Exception(sprintf('Hierarchical select element with label "%s" was set to "%s" instead of the expected option "%s".', $label, $actual_text, $option));
+        }
     }
 
     /**
