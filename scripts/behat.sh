@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start Selenium.
-docker run -d -p 4444:4444 --name=firetrack_selenium --rm --network=host selenium/standalone-chrome:3.11
+docker run -d -p 4444:4444 --name=firetrack_selenium --rm --network=host selenium/standalone-chrome:3.141.59-20210929
 
 # Reset database.
 cd db/ || exit 1
