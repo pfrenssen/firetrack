@@ -17,30 +17,27 @@ default:
         tags: '~@wip'
   extensions:
     Behat\MinkExtension:
-      base_url:  'http://localhost:8088'
-      javascript_session: chromedriver
+      base_url: http://localhost:8088
+      javascript_session: javascript
       sessions:
-        #chrome_headless:
-        #  chrome:
-        #    api_url: 'http://localhost:9222'
         default:
           goutte: ~
-        chromedriver:
+        javascript:
           selenium2:
             wd_host: http://localhost:4444/wd/hub
             browser: chrome
             capabilities:
-              extra_capabilities:
-                chromeOptions:
-                  args:
-                    - "--no-sandbox"
-                    - "--headless"
-                    - "--disable-gpu"
-                    - "--window-size=1920,1080"
-    #DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
+              browserName: "chrome"
+              browser: "chrome"
+              chrome:
+                switches:
+                  - '--no-sandbox'
+                  - '--headless'
+                  - '--disable-gpu'
+                  - '--window-size=1920,1080'
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:
-          path: '/tmp/screenshots/'
+          path: 'tmp/screenshots/'
   formatters:
     progress: ~
