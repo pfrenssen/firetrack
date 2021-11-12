@@ -1,7 +1,5 @@
 language: rust
-# Using Xenial instead of Bionic because PostgreSQL doesn't work in Bionic.
-# https://travis-ci.community/t/postgresql-fails-to-start/4558
-dist: xenial
+dist: focal
 
 rust:
   - stable
@@ -36,8 +34,6 @@ before_install:
   # the default profile which includes clippy and rustfmt.
   - rustup toolchain uninstall $TRAVIS_RUST_VERSION
   - rustup toolchain install $TRAVIS_RUST_VERSION --profile=default
-  # Use a PPA to get a more recent version of PHP in Xenial.
-  - sudo add-apt-repository -y ppa:ondrej/php
   - sudo apt-get update
   - sudo apt-get install php7.4 php7.4-xml php7.4-mbstring php7.4-curl
   - php --version
