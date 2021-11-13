@@ -33,6 +33,8 @@ cache:
     - $HOME/.cache/composer/files
 
 before_install:
+  - sudo systemctl status postgresql@12-main
+  - sudo journalctl | grep postgresql
   # Travis CI uses the minimal profile for the Rust toolchain. Replace it with
   # the default profile which includes clippy and rustfmt.
   - rustup toolchain uninstall $TRAVIS_RUST_VERSION
