@@ -21,8 +21,16 @@ Feature: Expenses
     And I select the "Groceries" option in the "Category" hierarchical dropdown
     And I fill in "Date" with "2020-02-21"
     And I press "Add"
+
+    # The amount should be reset so a new expense can be entered. The other
+    # fields retain their values to facilitate entering multiple related
+    # expenses quickly.
     Then I should see the success alert "Successfully added €99.95 expense to the Groceries category."
-    And I should have 1 expense
+    And the user "pallas.park@email.gr" should have 1 expense
+    And the "Amount" field should not contain a value
+    And "Groceries" should be selected in the "Category" hierarchical dropdown
+    And the "Category" hierarchical dropdown should not be expanded
+    And the "Date" field should contain "2020-02-21"
 
   @javascript
   Scenario Outline: JS validation of correct input
