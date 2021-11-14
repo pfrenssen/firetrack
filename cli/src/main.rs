@@ -233,6 +233,9 @@ async fn main() {
                         SubCommand::with_name("delete")
                             .about("Deletes an expense")
                             .arg(Arg::with_name("id").required(true).help("The expense ID")),
+                        SubCommand::with_name("list")
+                            .about("Lists expenses as a JSON data array")
+                            .arg(Arg::with_name("email").takes_value(true).help("Optional email of user for which to return the expenses.")),
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -431,6 +434,18 @@ async fn main() {
                 let id = assert_integer_argument(arguments.value_of("id"), "expense ID").unwrap();
                 let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 db::expense::delete(&connection, id).unwrap_or_exit();
+            }
+            ("list", Some(arguments)) => {
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
+                let expenses = match arguments.value_of("email") {
+                    Some(email) => {
+                        let user = db::user::read(&connection, email).unwrap_or_exit();
+                        db::expense::list(&connection, Some(user.id))
+                    }
+                    None => db::expense::list(&connection, None),
+                }
+                .unwrap_or_exit();
+                println!("{}", json!(expenses));
             }
             ("", None) => {}
             _ => unreachable!(),
