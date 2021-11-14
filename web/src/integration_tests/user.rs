@@ -43,7 +43,7 @@ async fn register_with_valid_data() {
         password,
         config.secret_key()
     ));
-    assert_eq!(user.activated, false);
+    assert!(!user.activated);
 
     let now = chrono::Local::now().naive_local();
     let two_seconds_ago = chrono::Local::now()

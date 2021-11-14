@@ -264,7 +264,7 @@ async fn main() {
         ("user", Some(arguments)) => match arguments.subcommand() {
             ("add", Some(arguments)) => {
                 db::user::create(
-                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &establish_connection(config.database_url()).unwrap_or_exit(),
                     arguments.value_of("email").unwrap(),
                     arguments.value_of("password").unwrap(),
                     &config,
@@ -273,13 +273,13 @@ async fn main() {
             }
             ("delete", Some(arguments)) => {
                 db::user::delete(
-                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &establish_connection(config.database_url()).unwrap_or_exit(),
                     arguments.value_of("email").unwrap(),
                 )
                 .unwrap_or_exit();
             }
             ("activate", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = arguments.value_of("code").unwrap().parse().unwrap_or_exit();
@@ -291,20 +291,20 @@ async fn main() {
         },
         ("activation-code", Some(arguments)) => match arguments.subcommand() {
             ("get", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();
                 println!("{}", activation_code.code);
             }
             ("delete", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 db::activation_code::delete(&connection, &user).unwrap_or_exit();
             }
             ("purge", _) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 db::activation_code::purge(&connection).unwrap_or_exit();
             }
             ("", None) => {}
@@ -312,7 +312,7 @@ async fn main() {
         },
         ("category", Some(arguments)) => match arguments.subcommand() {
             ("add", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
 
@@ -334,7 +334,7 @@ async fn main() {
                 };
 
                 db::category::create(
-                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &establish_connection(config.database_url()).unwrap_or_exit(),
                     &user,
                     arguments.value_of("name").unwrap(),
                     arguments.value_of("description"),
@@ -344,7 +344,7 @@ async fn main() {
             }
             ("get", Some(arguments)) => {
                 let id = assert_integer_argument(arguments.value_of("id"), "category ID").unwrap();
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let category = db::category::read(&connection, id, None);
                 if category.is_none() {
                     Err::<String, _>("Category not found").unwrap_or_exit();
@@ -353,16 +353,16 @@ async fn main() {
             }
             ("delete", Some(arguments)) => {
                 let id = assert_integer_argument(arguments.value_of("id"), "category ID").unwrap();
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 db::category::delete(&connection, id).unwrap_or_exit();
             }
             ("populate", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
 
                 db::category::populate_categories(
-                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &establish_connection(config.database_url()).unwrap_or_exit(),
                     &user,
                     &config,
                 )
@@ -373,7 +373,7 @@ async fn main() {
         },
         ("expense", Some(arguments)) => match arguments.subcommand() {
             ("add", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
 
@@ -409,7 +409,7 @@ async fn main() {
                 };
 
                 db::expense::create(
-                    &establish_connection(&config.database_url()).unwrap_or_exit(),
+                    &establish_connection(config.database_url()).unwrap_or_exit(),
                     &user,
                     &amount,
                     &category.unwrap(),
@@ -420,7 +420,7 @@ async fn main() {
             }
             ("get", Some(arguments)) => {
                 let id = assert_integer_argument(arguments.value_of("id"), "expense ID").unwrap();
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let expense = db::expense::read(&connection, id);
                 if expense.is_none() {
                     Err::<String, _>("Expense not found").unwrap_or_exit();
@@ -429,7 +429,7 @@ async fn main() {
             }
             ("delete", Some(arguments)) => {
                 let id = assert_integer_argument(arguments.value_of("id"), "expense ID").unwrap();
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 db::expense::delete(&connection, id).unwrap_or_exit();
             }
             ("", None) => {}
@@ -437,7 +437,7 @@ async fn main() {
         },
         ("notify", Some(notify)) => match notify.subcommand() {
             ("activate", Some(arguments)) => {
-                let connection = establish_connection(&config.database_url()).unwrap_or_exit();
+                let connection = establish_connection(config.database_url()).unwrap_or_exit();
                 let email = arguments.value_of("email").unwrap();
                 let user = db::user::read(&connection, email).unwrap_or_exit();
                 let activation_code = db::activation_code::get(&connection, &user).unwrap_or_exit();

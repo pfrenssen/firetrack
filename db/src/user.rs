@@ -280,7 +280,7 @@ mod tests {
                 password,
                 config.secret_key()
             ));
-            assert_eq!(user.activated, false);
+            assert!(!user.activated);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
@@ -361,7 +361,7 @@ mod tests {
                 password,
                 config.secret_key(),
             ));
-            assert_eq!(user.activated, false);
+            assert!(!user.activated);
 
             // Check that the creation timestamp is located somewhere in the last few seconds.
             let now = chrono::Local::now().naive_local();
@@ -394,14 +394,14 @@ mod tests {
             // A newly created user should not be activated.
             create(&connection, email, password, &config).unwrap();
             let user = read(&connection, email).unwrap();
-            assert_eq!(user.activated, false);
+            assert!(!user.activated);
 
             // Test that the user can be activated, and that the activation status remains the same
             // when calling the function multiple times.
             let user = activate(&connection, user).unwrap();
-            assert_eq!(user.activated, true);
+            assert!(user.activated);
             let user = activate(&connection, user).unwrap();
-            assert_eq!(user.activated, true);
+            assert!(user.activated);
             Ok(())
         });
     }

@@ -159,11 +159,11 @@ mod tests {
                 let amount = Decimal::from_str(amount).unwrap();
                 let date = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap();
                 for (user, (cat1, cat2)) in &test_user_cats {
-                    let expense = create(&conn, &user, &amount, &cat1, desc, Some(&date)).unwrap();
+                    let expense = create(&conn, user, &amount, cat1, desc, Some(&date)).unwrap();
                     assert_expense(&expense, None, &amount, desc, cat1.id, user.id, date);
                     expected_count += 1;
                     assert_expense_count(&conn, expected_count);
-                    let expense = create(&conn, &user, &amount, &cat2, desc, Some(&date)).unwrap();
+                    let expense = create(&conn, user, &amount, cat2, desc, Some(&date)).unwrap();
                     assert_expense(&expense, None, &amount, desc, cat2.id, user.id, date);
                     expected_count += 1;
                     assert_expense_count(&conn, expected_count);

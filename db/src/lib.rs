@@ -48,7 +48,7 @@ pub fn create_connection_pool(database_url: &str) -> Result<ConnectionPool, Data
 
 // Establishes a non-pooled database connection.
 pub fn establish_connection(database_url: &str) -> Result<PgConnection, ConnectionError> {
-    match PgConnection::establish(&database_url) {
+    match PgConnection::establish(database_url) {
         Ok(value) => Ok(value),
         Err(e) => {
             error!("Could not connect to PostgreSQL.");

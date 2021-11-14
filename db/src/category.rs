@@ -320,7 +320,7 @@ pub fn populate_categories(
         from_reader(file).map_err(|_| CategoryErrorKind::MalformedCategoryList)?;
 
     connection.transaction::<(), CategoryErrorKind, _>(|| {
-        populate_categories_from_json(&connection, user.id, &categories, None)
+        populate_categories_from_json(connection, user.id, &categories, None)
     })
 }
 
@@ -346,14 +346,13 @@ fn populate_categories_from_json(
     match json {
         Value::Object(o) => {
             let categories = o.keys().map(|k| (k.as_str(), None)).collect();
-            let category_ids =
-                insert_child_categories(&connection, user_id, parent_id, categories)?;
+            let category_ids = insert_child_categories(connection, user_id, parent_id, categories)?;
             let iter = category_ids.iter().zip(o.keys());
             for (id, key) in iter {
                 let children = json
                     .get(key)
                     .ok_or(CategoryErrorKind::MalformedCategoryList)?;
-                populate_categories_from_json(&connection, user_id, children, Some(*id))?;
+                populate_categories_from_json(connection, user_id, children, Some(*id))?;
             }
             Ok(())
         }
@@ -368,7 +367,7 @@ fn populate_categories_from_json(
 
             // Todo: add support for category descriptions.
             let categories = category_names.iter().map(|c| (*c, None)).collect();
-            insert_child_categories(&connection, user_id, parent_id, categories)?;
+            insert_child_categories(connection, user_id, parent_id, categories)?;
             Ok(())
         }
         _ => Err(CategoryErrorKind::MalformedCategoryList),
@@ -493,7 +492,7 @@ mod tests {
                         .map(|id| categories.get(&(id, u.id)))
                         .unwrap_or(None);
                     // Create the category for test user 1.
-                    let category = create(&conn, &u, name, description, parent);
+                    let category = create(&conn, u, name, description, parent);
                     categories.insert((id, u.id), category.unwrap());
                     count += 1;
                     assert_category_count(&conn, count);
@@ -854,14 +853,14 @@ mod tests {
         conn.test_transaction::<_, Error, _>(|| {
             let user1 = create_test_user(&conn, &config);
             let user2 = create_test_user(&conn, &config);
-            assert_eq!(false, has_categories(&conn, &user1).unwrap());
-            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            assert!(!has_categories(&conn, &user1).unwrap());
+            assert!(!has_categories(&conn, &user2).unwrap());
             create_test_category(&conn, &user1);
-            assert_eq!(true, has_categories(&conn, &user1).unwrap());
-            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            assert!(has_categories(&conn, &user1).unwrap());
+            assert!(!has_categories(&conn, &user2).unwrap());
             create_test_category(&conn, &user2);
-            assert_eq!(true, has_categories(&conn, &user1).unwrap());
-            assert_eq!(true, has_categories(&conn, &user2).unwrap());
+            assert!(has_categories(&conn, &user1).unwrap());
+            assert!(has_categories(&conn, &user2).unwrap());
 
             Ok(())
         });
@@ -1147,10 +1146,7 @@ mod tests {
         if expected_child_count > 0 {
             // Pass on the ID of the current category when recursing, so that we can check that the
             // children have the parent ID set correctly.
-            let parent_id = match &categories.category {
-                None => None,
-                Some(c) => Some(c.id),
-            };
+            let parent_id = categories.category.as_ref().map(|c| c.id);
 
             for i in 0..expected_child_count {
                 let expected_child_cat = &expected_categories.children[i];

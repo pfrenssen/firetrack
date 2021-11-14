@@ -25,7 +25,7 @@ use std::env;
 
 // Starts the web server on the host address and port as configured in the application.
 pub async fn serve(config: AppConfig) -> Result<(), String> {
-    let pool = db::create_connection_pool(&config.database_url()).unwrap();
+    let pool = db::create_connection_pool(config.database_url()).unwrap();
     let cloned_config = config.clone();
 
     // Configure the application.
