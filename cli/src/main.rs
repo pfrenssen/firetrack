@@ -235,7 +235,9 @@ async fn main() {
                             .arg(Arg::with_name("id").required(true).help("The expense ID")),
                         SubCommand::with_name("list")
                             .about("Lists expenses as a JSON data array")
-                            .arg(Arg::with_name("email").takes_value(true).help("Optional email of user for which to return the expenses.")),
+                            .arg(Arg::with_name("email").takes_value(true).help("Optional email of user for which to return the expenses."))
+                            .arg(Arg::with_name("count").long("count").short("c").help("Return the number of expenses."))
+                        ,
                     ])
                     .setting(AppSettings::SubcommandRequiredElseHelp),
             )
@@ -437,15 +439,30 @@ async fn main() {
             }
             ("list", Some(arguments)) => {
                 let connection = establish_connection(config.database_url()).unwrap_or_exit();
-                let expenses = match arguments.value_of("email") {
-                    Some(email) => {
-                        let user = db::user::read(&connection, email).unwrap_or_exit();
-                        db::expense::list(&connection, Some(user.id))
+                match arguments.is_present("count") {
+                    true => {
+                        let count = match arguments.value_of("email") {
+                            Some(email) => {
+                                let user = db::user::read(&connection, email).unwrap_or_exit();
+                                db::expense::count(&connection, Some(user.id))
+                            }
+                            None => db::expense::count(&connection, None),
+                        }
+                        .unwrap_or_exit();
+                        println!("{}", count);
                     }
-                    None => db::expense::list(&connection, None),
+                    false => {
+                        let expenses = match arguments.value_of("email") {
+                            Some(email) => {
+                                let user = db::user::read(&connection, email).unwrap_or_exit();
+                                db::expense::list(&connection, Some(user.id))
+                            }
+                            None => db::expense::list(&connection, None),
+                        }
+                        .unwrap_or_exit();
+                        println!("{}", json!(expenses));
+                    }
                 }
-                .unwrap_or_exit();
-                println!("{}", json!(expenses));
             }
             ("", None) => {}
             _ => unreachable!(),
