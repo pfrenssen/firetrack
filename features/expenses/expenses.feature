@@ -21,7 +21,7 @@ Feature: Expenses
     And I select the "Groceries" option in the "Category" hierarchical dropdown
     And I fill in "Date" with "2020-02-21"
     And I press "Add"
-    Then I should see the success message "Added €99.95 expense to the Internet category."
+    Then I should see the success alert "Successfully added €99.95 expense to the Groceries category."
     And I should have 1 expense
 
   @javascript

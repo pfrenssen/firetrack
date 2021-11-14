@@ -204,7 +204,7 @@ pub async fn add_submit(
                             Alert {
                                 alert_type: AlertType::Success,
                                 message: format!(
-                                    "Added €{:.2} expense to the {} category.",
+                                    "Successfully added €{:.2} expense to the {} category.",
                                     amount, category.name
                                 ),
                             },

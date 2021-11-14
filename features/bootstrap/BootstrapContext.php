@@ -112,4 +112,34 @@ class BootstrapContext extends RawMinkContext
         }
     }
 
+    /**
+     * Checks that the expected alert is present on the page.
+     *
+     * @param string $type
+     *   One of the 8 Bootstrap alert types.
+     * @param string $message
+     *   The expected message.
+     *
+     * @see https://getbootstrap.com/docs/4.0/components/alerts/
+     *
+     * @Then I should see the :type alert :message
+     */
+    public function assertAlert(string $type, string $message): void
+    {
+        $alerts = $this->getSession()->getPage()->findAll('css', '.alert.alert-' . $type);
+        foreach ($alerts as $alert) {
+            if ($alert->getText() === $message) {
+                return;
+            }
+        }
+        throw new \RuntimeException(
+            sprintf(
+                "The %s alert with message '%s' was not found on the page %s",
+                $type,
+                $message,
+                $this->getSession()->getCurrentUrl()
+            )
+        );
+    }
+
 }
