@@ -71,7 +71,7 @@ class BootstrapContext extends RawMinkContext
      * @Then I should see :count form validation error message(s)
      * @Then I should not see any form validation error messages
      */
-    public function assertErrorMessagesCount(?int $count = 0): void
+    public function assertValidationErrorMessagesCount(?int $count = 0): void
     {
         $actual_count = count(
             $this->getSession()->getPage()->findAll('css', '.form-control.is-invalid ~ .invalid-feedback')
