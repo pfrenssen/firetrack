@@ -487,7 +487,7 @@ async fn main() {
         _ => unreachable!(),
     }
 
-    // Checks that the given argument can be casted to an integer.
+    // Checks that the given argument can be cast to an integer.
     fn assert_integer_argument(arg: Option<&str>, arg_type: &str) -> Option<i32> {
         let msg = format!("The {} must be an integer", arg_type);
         arg.map(|v| v.parse().map_err(|_| msg).unwrap_or_exit())
