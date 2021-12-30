@@ -176,6 +176,10 @@ impl AppConfig {
     /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
     /// # assert_eq!(config.mailgun_mock_server_port(), mailgun_mock_server_port);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// When a required environment variable is not set.
     pub fn from_environment() -> AppConfig {
         import_env_vars();
 
