@@ -10,8 +10,7 @@ use diesel::r2d2::CustomizeConnection;
 use diesel::ConnectionError;
 use std::fmt;
 
-#[cfg(test)]
-mod db_test;
+pub mod db_test;
 mod schema;
 
 pub mod activation_code;

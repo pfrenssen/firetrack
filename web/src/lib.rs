@@ -180,3 +180,23 @@ fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
     }
     Ok(())
 }
+
+// Imports environment variables by reading the .env files.
+// Todo: Since test code is only visible inside its own crate, this function is duplicated in
+//   other crates. Deduplicate once https://github.com/rust-lang/cargo/issues/8379 is fixed.
+#[cfg(test)]
+fn import_env_vars() {
+    // Populate environment variables from the local `.env` file.
+    dotenv::dotenv().ok();
+
+    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
+    // as a fallback.
+    dotenv::from_filename(".env.dist").ok();
+}
+
+// Retrieves the database URL from the environment variables.
+#[cfg(test)]
+pub fn get_database_url() -> String {
+    import_env_vars();
+    std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable is not set.")
+}

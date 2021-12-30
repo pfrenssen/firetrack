@@ -66,6 +66,11 @@ impl AddFormValidation {
         }
     }
 
+    #[cfg(test)]
+    pub fn is_valid(&self) -> bool {
+        self.form_is_validated && self.category.is_ok() && self.date.is_ok() && self.amount.is_ok()
+    }
+
     // Instantiate a form validation struct with default values.
     pub fn default() -> AddFormValidation {
         AddFormValidation {
@@ -270,6 +275,10 @@ fn render_add(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::get_database_url;
+    use app::AppConfig;
+    use db::db_test::create_test_user;
+    use diesel::Connection;
 
     // Tests UserFormInputValid::validate() and ::is_valid().
     #[test]
@@ -281,7 +290,7 @@ mod tests {
                 AddFormValidation::new(
                     true,
                     Err("Please enter an amount.".to_string()),
-                    Ok(()),
+                    Err("Please choose a category.".to_string()),
                     Err("Please pick a date.".to_string()),
                 ),
                 false,
@@ -289,22 +298,29 @@ mod tests {
             // Invalid formats.
         ];
 
-        for test_case in &test_cases {
-            let input = &test_case.0;
-            let expected_validate_result = &test_case.1;
-            let expected_is_valid_result = test_case.2;
-            let actual_validate_result = AddFormValidation::validate(input);
-            assert_eq!(
-                expected_validate_result.amount,
-                actual_validate_result.amount
-            );
-            assert_eq!(
-                expected_validate_result.category,
-                actual_validate_result.category
-            );
-            assert_eq!(expected_validate_result.date, actual_validate_result.date);
-            assert_eq!(expected_is_valid_result, actual_validate_result.is_valid());
-        }
+        let conn = db::establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+        let user = create_test_user(&conn, &config);
+
+        conn.test_transaction::<_, Error, _>(|| {
+            for test_case in &test_cases {
+                let input = &test_case.0;
+                let expected_validate_result = &test_case.1;
+                let expected_is_valid_result = test_case.2;
+                let actual_validate_result = AddFormValidation::validate(input, &user, &conn);
+                assert_eq!(
+                    expected_validate_result.amount,
+                    actual_validate_result.amount
+                );
+                assert_eq!(
+                    expected_validate_result.category,
+                    actual_validate_result.category
+                );
+                assert_eq!(expected_validate_result.date, actual_validate_result.date);
+                assert_eq!(expected_is_valid_result, actual_validate_result.is_valid());
+            }
+            Ok(())
+        });
     }
 
     // Tests UserFormInputValid::validate() and ::is_valid() with invalid formatted input.
@@ -315,8 +331,8 @@ mod tests {
             AddForm::new("'", "'", "'"),
             AddForm::new(";", ";", ";"),
             AddForm::new(" ", " ", " "),
-            AddForm::new("\"", "-0", "-0"),
-            AddForm::new("\"", "-10", "-10"),
+            AddForm::new("\"", "-z", "-0"),
+            AddForm::new("\"", "-1.0", "-10"),
             AddForm::new("0x0f", "0x0f", "0x0f"),
             AddForm::new("00a0-11-11", "00a0-11-11", "00a0-11-11"),
             AddForm::new("99,9", "99,9", "99,9"),
@@ -326,21 +342,28 @@ mod tests {
             AddForm::new("2020/12/12", "2020/12/12", "2020/12/12"),
         ];
 
-        for input in &test_cases {
-            let actual_validate_result = AddFormValidation::validate(input);
-            assert_eq!(
-                Err("Amount should be in the format '149.99'.".to_string()),
-                actual_validate_result.amount
-            );
-            assert_eq!(
-                Err("Invalid category ID.".to_string()),
-                actual_validate_result.category
-            );
-            assert_eq!(
-                Err("Date should be in the format YYYY-MM-DD.".to_string()),
-                actual_validate_result.date
-            );
-            assert_eq!(false, actual_validate_result.is_valid());
-        }
+        let conn = db::establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+        let user = create_test_user(&conn, &config);
+
+        conn.test_transaction::<_, Error, _>(|| {
+            for input in &test_cases {
+                let actual_validate_result = AddFormValidation::validate(input, &user, &conn);
+                assert_eq!(
+                    Err("Amount should be in the format '149.99'.".to_string()),
+                    actual_validate_result.amount
+                );
+                assert_eq!(
+                    Err("Invalid category ID.".to_string()),
+                    actual_validate_result.category
+                );
+                assert_eq!(
+                    Err("Date should be in the format YYYY-MM-DD.".to_string()),
+                    actual_validate_result.date
+                );
+                assert_eq!(false, actual_validate_result.is_valid());
+            }
+            Ok(())
+        });
     }
 }
