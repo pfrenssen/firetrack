@@ -13,7 +13,7 @@ async fn test_404() {
         .to_request();
 
     let response = app.call(req).await.unwrap();
-    let body = get_response_body(&response.response());
+    let body = get_response_body(response.response());
 
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 

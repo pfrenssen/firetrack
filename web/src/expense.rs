@@ -361,7 +361,7 @@ mod tests {
                     Err("Date should be in the format YYYY-MM-DD.".to_string()),
                     actual_validate_result.date
                 );
-                assert_eq!(false, actual_validate_result.is_valid());
+                assert!(!actual_validate_result.is_valid());
             }
             Ok(())
         });
