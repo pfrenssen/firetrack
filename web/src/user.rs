@@ -127,17 +127,17 @@ pub async fn login_submit(
     }
 
     // The user has been validated, create a session.
-    start_session(id, input.email.to_owned())
+    Ok(start_session(id, input.email.to_owned()))
 }
 
 // Initiates a session for the user with the given email and redirects to the homepage.
-fn start_session(id: Identity, email: String) -> Result<HttpResponse, Error> {
+fn start_session(id: Identity, email: String) -> HttpResponse {
     // Start the session.
     id.remember(email);
 
     // Redirect to the homepage, using HTTP 303 redirect which will execute the redirection as a GET
     // request.
-    Ok(HttpResponse::SeeOther().header("location", "/").finish())
+    HttpResponse::SeeOther().header("location", "/").finish()
 }
 
 // Renders the login form.
@@ -232,7 +232,7 @@ pub async fn register_submit(
             .is_ok()
         {
             // If the supplied credentials are correct, just transparently log in the user.
-            start_session(id, input.email.to_owned())
+            Ok(start_session(id, input.email.to_owned()))
         } else {
             // If the supplied credentials are incorrect, inform the user by email that someone
             // is trying to register using their email.
