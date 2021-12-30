@@ -43,7 +43,7 @@ pub async fn serve(config: AppConfig) -> Result<(), String> {
             "Failed to start web server on {}:{} - {}",
             config.host(),
             config.port(),
-            e.to_string()
+            e
         )),
     }
 }
