@@ -18,8 +18,6 @@ pub fn error_handlers() -> ErrorHandlers<Body> {
 
 // Error handler for a 404 Page not found error.
 // This conforms to an error handler signature. Ignore clippy warning that the Result is unneeded.
-// Todo: Remove unknown_clippy_lints line when we are on Rust 1.50.0.
-#[allow(clippy::unknown_clippy_lints)]
 #[allow(clippy::unnecessary_wraps)]
 fn not_found<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
     let response = get_response(
@@ -35,8 +33,6 @@ fn not_found<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
 
 // Error handler for a 403 Forbidden error.
 // This conforms to an error handler signature. Ignore clippy warning that the Result is unneeded.
-// Todo: Remove unknown_clippy_lints line when we are on Rust 1.50.0.
-#[allow(clippy::unknown_clippy_lints)]
 #[allow(clippy::unnecessary_wraps)]
 fn forbidden(res: ServiceResponse<Body>) -> Result<ErrorHandlerResponse<Body>> {
     let resp = res.response();
