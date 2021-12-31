@@ -59,8 +59,6 @@ before_install:
   - cargo install diesel_cli --no-default-features --features "postgres" || true
   - diesel --version
   - diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
-  # Start chrome headless.
-  #- google-chrome-stable --headless --disable-gpu --remote-debugging-port=9222 http://localhost &
 
 install:
   - php composer.phar install --no-interaction
