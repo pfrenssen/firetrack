@@ -200,7 +200,7 @@ class HtmlContext extends RawMinkContext
     }
 
     /**
-     * Checks that a link is present in a given region on the page.
+     * Checks that a link is not present in a given region on the page.
      *
      * @param string $link
      *   Link ID, title, text or image alt text.
