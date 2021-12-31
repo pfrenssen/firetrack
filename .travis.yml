@@ -66,8 +66,10 @@ install:
 
 script:
   # Check coding standards.
+  - cargo fmt --version
   - cargo fmt --all -- --check
   # Run clippy.
+  - cargo clippy --version
   - cargo clippy --all-targets --all-features -- -D warnings
   # Run Rust test suites.
   - cargo test --all
