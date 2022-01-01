@@ -52,7 +52,6 @@ class ExpenseContext extends RawMinkContext
                 $this->getSession()->getDriver()
             );
         }
-
     }
 
     /**
