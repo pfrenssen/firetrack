@@ -1486,9 +1486,9 @@ dependencies = [
 
 [[package]]
 name = "libxml"
-version = "0.2.16"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0f71e821b82fe8ad377edf23ed7a66328df62a49be11377f21230e3955ea1f7"
+checksum = "02c07ecb409949e5c5c0818e189e6bc766bcb8b08b3401772ca8c61a58c682b8"
 dependencies = [
  "libc",
  "pkg-config",
