@@ -9,4 +9,4 @@ app = { path = "../app" }
 hyper = "~0.13"
 log = "~0.4"
 serde_json = "^1.0.61"
-urlencoding = "~1.1"
+urlencoding = "~2.1"
