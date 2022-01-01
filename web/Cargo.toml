@@ -17,7 +17,7 @@ diesel = { version = "~1.4", features = ['chrono', 'postgres', 'r2d2'] }
 dotenv = "~0.15"
 notifications = { path = "../notifications" }
 r2d2 = "~0.8"
-rust_decimal = { version = "~1.10", features = ['diesel'] }
+rust_decimal = { version = "~1.19", features = ['diesel'] }
 regex = "~1.4"
 serde = "~1.0"
 serde_derive = "~1.0"
