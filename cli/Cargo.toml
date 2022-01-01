@@ -11,7 +11,7 @@ actix-rt = "~1.0"
 actix-web = "~2.0"
 app = { path = "../app" }
 chrono = "~0.4"
-clap = "~2.33"
+clap = "~2.34"
 db = { path = "../db" }
 log = "~0.4"
 mailgun_mock = { path = "../mailgun_mock" }
