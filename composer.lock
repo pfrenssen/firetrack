@@ -47,16 +47,16 @@
         },
         {
             "name": "bower-asset/tempusdominus-bs4",
-            "version": "5.1.2",
+            "version": "5.39.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/tempusdominus/bootstrap-4.git",
-                "reference": "540bfae18ca662bacfbea610e0ab8dcce6dd699e"
+                "reference": "8e64d3e01ac1c56f10da0b7ba94a4593f267ee1f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tempusdominus/bootstrap-4/zipball/540bfae18ca662bacfbea610e0ab8dcce6dd699e",
-                "reference": "540bfae18ca662bacfbea610e0ab8dcce6dd699e"
+                "url": "https://api.github.com/repos/tempusdominus/bootstrap-4/zipball/8e64d3e01ac1c56f10da0b7ba94a4593f267ee1f",
+                "reference": "8e64d3e01ac1c56f10da0b7ba94a4593f267ee1f"
             },
             "type": "bower-asset"
         },
