@@ -295,7 +295,17 @@ mod tests {
                 ),
                 false,
             ),
-            // Invalid formats.
+            // Unknown category.
+            (
+                AddForm::new("-10", "-10", "-10"),
+                AddFormValidation::new(
+                    true,
+                    Err("Amount should be 0.01 or greater.".to_string()),
+                    Err("Unknown category.".to_string()),
+                    Err("Date should be in the format YYYY-MM-DD.".to_string()),
+                ),
+                false,
+            ),
         ];
 
         let conn = db::establish_connection(&get_database_url()).unwrap();
