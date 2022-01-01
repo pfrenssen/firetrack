@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content_header -%}
+<div class="content-header content-header-with-cta">
+    <div class="row mb-1 ml-1">
+        <div class="col">
+            <h1 class="m-0 text-dark">{{ title }}</h1>
+        </div>
+        <div class="col-auto">
+            <a href="/expenses/add" class="btn btn-primary btn-lg float-right"><i class="fa fa-plus-circle"></i> Add expense</a>
+        </div>
+    </div>
+</div>
+{% endblock content_header -%}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <table id="example2" class="table table-bordered table-hover">
+                        <thead>
+                        <tr>
+                            <th>Rendering engine</th>
+                            <th>Browser</th>
+                            <th>Platform(s)</th>
+                            <th>Engine version</th>
+                            <th>CSS grade</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <td>Trident</td>
+                            <td>Internet
+                                Explorer 4.0
+                            </td>
+                            <td>Win 95+</td>
+                            <td> 4</td>
+                            <td>X</td>
+                        </tr>
+                        <tr>
+                            <td>Trident</td>
+                            <td>Internet
+                                Explorer 5.0
+                            </td>
+                            <td>Win 95+</td>
+                            <td>5</td>
+                            <td>C</td>
+                        </tr>
+                    </table>
+                </div>
+                <!-- /.card-body -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

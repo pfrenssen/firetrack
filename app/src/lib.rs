@@ -176,6 +176,10 @@ impl AppConfig {
     /// # assert_eq!(config.mailgun_user_name(), mailgun_user_name);
     /// # assert_eq!(config.mailgun_mock_server_port(), mailgun_mock_server_port);
     /// ```
+    ///
+    /// # Panics
+    ///
+    /// When a required environment variable is not set.
     pub fn from_environment() -> AppConfig {
         import_env_vars();
 
@@ -443,6 +447,8 @@ pub fn initialize_logger() {
 }
 
 // Imports environment variables by reading the .env files.
+// Todo: Since test code is only visible inside its own crate, this function is duplicated in
+//   other crates. Deduplicate once https://github.com/rust-lang/cargo/issues/8379 is fixed.
 fn import_env_vars() {
     // Populate environment variables from the local `.env` file.
     dotenv::dotenv().ok();

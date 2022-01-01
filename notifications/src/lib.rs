@@ -86,7 +86,7 @@ pub async fn activate(
     };
 
     let credentials = Credentials::new(config.mailgun_api_key(), config.mailgun_user_domain());
-    let request_builder = get_request_builder(&config);
+    let request_builder = get_request_builder(config);
     send_with_request_builder(request_builder, &credentials, &sender, message)
         .await
         .map_err(|err| {

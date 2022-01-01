@@ -10,9 +10,12 @@ mod integration_tests;
 use crate::firetrack_test::*;
 
 mod bootstrap_components;
+mod category;
 mod error;
+mod expense;
 mod user;
 
+use actix_http::cookie::SameSite;
 use actix_identity::{CookieIdentityPolicy, Identity, IdentityService};
 use actix_session::CookieSession;
 use actix_web::error::ErrorInternalServerError;
@@ -22,7 +25,7 @@ use std::env;
 
 // Starts the web server on the host address and port as configured in the application.
 pub async fn serve(config: AppConfig) -> Result<(), String> {
-    let pool = db::create_connection_pool(&config.database_url()).unwrap();
+    let pool = db::create_connection_pool(config.database_url()).unwrap();
     let cloned_config = config.clone();
 
     // Configure the application.
@@ -40,7 +43,7 @@ pub async fn serve(config: AppConfig) -> Result<(), String> {
             "Failed to start web server on {}:{} - {}",
             config.host(),
             config.port(),
-            e.to_string()
+            e
         )),
     }
 }
@@ -51,7 +54,7 @@ async fn index(id: Identity, template: web::Data<tera::Tera>) -> Result<HttpResp
 
     let content = template
         .render("index.html", &context)
-        .map_err(|_| ErrorInternalServerError("Template error"))?;
+        .map_err(|err| ErrorInternalServerError(format!("Template error: {:?}", err)))?;
     Ok(HttpResponse::Ok().content_type("text/html").body(content))
 }
 
@@ -118,13 +121,21 @@ pub fn configure_application(
                 .wrap(error::error_handlers())
                 // Todo: Allow to toggle the secure flag on both the session and identity providers.
                 // Ref. https://github.com/pfrenssen/firetrack/issues/96
-                .wrap(CookieSession::signed(&session_key).secure(false))
+                .wrap(
+                    CookieSession::signed(&session_key)
+                        .same_site(SameSite::Lax)
+                        .secure(false),
+                )
                 .wrap(IdentityService::new(
                     CookieIdentityPolicy::new(&session_key)
                         .name("auth")
+                        .same_site(SameSite::Lax)
                         .secure(false),
                 ))
                 .route("/", web::get().to(index))
+                .route("/expenses", web::get().to(expense::overview_handler))
+                .route("/expenses/add", web::get().to(expense::add_handler))
+                .route("/expenses/add", web::post().to(expense::add_submit))
                 .route("/favicon.ico", web::get().to(index))
                 .route("/user/activate", web::get().to(user::activate_handler))
                 .route("/user/activate", web::post().to(user::activate_submit))
@@ -147,4 +158,45 @@ fn compile_templates() -> tera::Tera {
         "web/templates/**/*"
     };
     tera::Tera::new(path).unwrap()
+}
+
+// Checks that the user is authenticated.
+fn assert_authenticated(id: &Identity) -> Result<String, Error> {
+    if let Some(email) = id.identity() {
+        return Ok(email);
+    }
+    Err(actix_http::error::ErrorForbidden(
+        "You need to be logged in to access this page.",
+    ))
+}
+
+// Checks that the user is not authenticated. Used to control access on login and registration
+// forms.
+fn assert_not_authenticated(id: &Identity) -> Result<(), Error> {
+    if id.identity().is_some() {
+        return Err(actix_http::error::ErrorForbidden(
+            "You are already logged in.",
+        ));
+    }
+    Ok(())
+}
+
+// Imports environment variables by reading the .env files.
+// Todo: Since test code is only visible inside its own crate, this function is duplicated in
+//   other crates. Deduplicate once https://github.com/rust-lang/cargo/issues/8379 is fixed.
+#[cfg(test)]
+fn import_env_vars() {
+    // Populate environment variables from the local `.env` file.
+    dotenv::dotenv().ok();
+
+    // Populate environment variables from the `.env.dist` file. This file contains sane defaults
+    // as a fallback.
+    dotenv::from_filename(".env.dist").ok();
+}
+
+// Retrieves the database URL from the environment variables.
+#[cfg(test)]
+pub fn get_database_url() -> String {
+    import_env_vars();
+    std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable is not set.")
 }

@@ -10,8 +10,7 @@ use diesel::r2d2::CustomizeConnection;
 use diesel::ConnectionError;
 use std::fmt;
 
-#[cfg(test)]
-mod db_test;
+pub mod db_test;
 mod schema;
 
 pub mod activation_code;
@@ -48,7 +47,7 @@ pub fn create_connection_pool(database_url: &str) -> Result<ConnectionPool, Data
 
 // Establishes a non-pooled database connection.
 pub fn establish_connection(database_url: &str) -> Result<PgConnection, ConnectionError> {
-    match PgConnection::establish(&database_url) {
+    match PgConnection::establish(database_url) {
         Ok(value) => Ok(value),
         Err(e) => {
             error!("Could not connect to PostgreSQL.");
@@ -80,6 +79,8 @@ pub fn create_test_connection_pool(database_url: &str) -> Result<ConnectionPool,
 }
 
 // Imports environment variables by reading the .env files.
+// Todo: Since test code is only visible inside its own crate, this function is duplicated in
+//   other crates. Deduplicate once https://github.com/rust-lang/cargo/issues/8379 is fixed.
 #[cfg(test)]
 fn import_env_vars() {
     // Populate environment variables from the local `.env` file.

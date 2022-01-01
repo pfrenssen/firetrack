@@ -1,11 +1,13 @@
 {
-    "Food": [
-        "Alcohol",
-        "Groceries"
-    ],
     "Utilities": [
-        "Electricity",
         "Internet",
+        "Electricity",
         "Water"
-    ]
+    ],
+    "Food": {
+        "Alcohol": [
+            "Rakia"
+        ],
+        "Groceries": []
+    }
 }

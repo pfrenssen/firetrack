@@ -19,3 +19,4 @@ validator = "~0.12"
 
 [dev-dependencies]
 dotenv = "~0.15"
+testing_logger = "^0.1.1"

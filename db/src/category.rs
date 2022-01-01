@@ -7,11 +7,11 @@ use diesel::prelude::*;
 use diesel::result::DatabaseErrorKind::{ForeignKeyViolation, UniqueViolation};
 use diesel::result::Error::DatabaseError;
 use diesel::{dsl::exists, select};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{from_reader, Value};
 use std::{fmt, fs::File};
 
-#[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize)]
+#[derive(Associations, Clone, Debug, PartialEq, Queryable, Serialize, Deserialize)]
 #[belongs_to(User, foreign_key = "id")]
 #[table_name = "categories"]
 pub struct Category {
@@ -20,6 +20,97 @@ pub struct Category {
     pub description: Option<String>,
     pub user_id: i32,
     pub parent_id: Option<i32>,
+}
+
+#[derive(Debug)]
+pub struct Categories {
+    pub category: Option<Category>,
+    pub children: Vec<Categories>,
+}
+
+// Converts a flat list of Category objects into a Categories tree. This can be used to convert the
+// flat list of objects that is returned by the database.
+impl From<Vec<Category>> for Categories {
+    fn from(list: Vec<Category>) -> Self {
+        let mut categories = Categories {
+            category: None,
+            children: vec![],
+        };
+
+        let (children, remaining_list) = get_child_categories_from_flat_list(None, list);
+        categories.children = children;
+
+        // Log a warning if there are orphaned categories. This shouldn't happen in practice since
+        // the database should maintain the integrity of the relationships.
+        let orphan_count = remaining_list.len();
+        if orphan_count > 0 {
+            let user_id = remaining_list.first().map(|c| c.user_id).unwrap_or(0);
+            warn!(
+                "User {} has {} orphaned {}",
+                user_id,
+                orphan_count,
+                if orphan_count > 1 {
+                    "categories"
+                } else {
+                    "category"
+                }
+            );
+        }
+
+        categories
+    }
+}
+
+// Recursive function which iterates over the given flat list of Category objects, finds the child
+// categories of the given parent category and return them as a Categories tree. Any categories that
+// are not a descendant of the parent category are also returned as a new flat list.
+fn get_child_categories_from_flat_list(
+    parent_id: Option<i32>,
+    mut list: Vec<Category>,
+) -> (Vec<Categories>, Vec<Category>) {
+    let mut categories = vec![];
+
+    let mut i = 0;
+    while i != list.len() {
+        let cat = &mut list[i];
+
+        if cat.parent_id == parent_id {
+            // We found a category that is a child of the passed in parent. Retrieve the children of
+            // this category recursively, and build a Categories struct with the result.
+            let category = list.remove(i);
+            let (children, updated_list) =
+                get_child_categories_from_flat_list(Some(category.id), list);
+            list = updated_list;
+
+            let child_categories = Categories {
+                category: Some(category),
+                children,
+            };
+            categories.push(child_categories);
+
+            // Start counting again from the beginning, since the list has been reshuffled.
+            i = 0;
+        } else {
+            i += 1;
+        };
+    }
+    // Sort the categories alphabetically.
+    // Todo: There must be a simpler way to do this.
+    categories.sort_unstable_by(|a, b| {
+        a.category
+            .as_ref()
+            .map(|c| c.name.clone())
+            .unwrap_or_else(|| "".to_string())
+            .cmp(
+                b.category
+                    .as_ref()
+                    .map(|c| c.name.clone())
+                    .as_ref()
+                    .unwrap_or(&"".to_string()),
+            )
+    });
+
+    (categories, list)
 }
 
 // Possible errors thrown when handling categories.
@@ -140,9 +231,15 @@ pub fn create(
     result.map_err(CategoryErrorKind::DatabaseError)
 }
 
-/// Retrieves the category with the given ID.
-pub fn read(connection: &PgConnection, id: i32) -> Option<Category> {
-    let category = dsl::categories.find(id).first::<Category>(connection);
+/// Retrieves the category with the given ID, with optional user filter.
+pub fn read(connection: &PgConnection, id: i32, user_id: Option<i32>) -> Option<Category> {
+    let category = match user_id {
+        Some(user_id) => dsl::categories
+            .filter(dsl::id.eq(id))
+            .filter(dsl::user_id.eq(user_id))
+            .first::<Category>(connection),
+        None => dsl::categories.find(id).first::<Category>(connection),
+    };
 
     match category {
         Ok(c) => Some(c),
@@ -181,7 +278,7 @@ pub fn has_categories(connection: &PgConnection, user: &User) -> Result<bool, Ca
         .map_err(CategoryErrorKind::DatabaseError)
 }
 
-/// Returns the given user's categories.
+/// Returns the given user's categories as a flat list.
 pub fn get_categories(
     connection: &PgConnection,
     user: &User,
@@ -189,6 +286,17 @@ pub fn get_categories(
     Ok(dsl::categories
         .filter(dsl::user_id.eq(user.id))
         .load::<Category>(connection)?)
+}
+
+/// Returns the given user's categories as a tree.
+pub fn get_categories_tree(
+    connection: &PgConnection,
+    user: &User,
+) -> Result<Categories, CategoryErrorKind> {
+    let categories: Vec<Category> = dsl::categories
+        .filter(dsl::user_id.eq(user.id))
+        .load::<Category>(connection)?;
+    Ok(Categories::from(categories))
 }
 
 /// Creates a set of default categories for the given user. The categories are sourced from a JSON
@@ -212,7 +320,7 @@ pub fn populate_categories(
         from_reader(file).map_err(|_| CategoryErrorKind::MalformedCategoryList)?;
 
     connection.transaction::<(), CategoryErrorKind, _>(|| {
-        populate_categories_from_json(&connection, user.id, &categories, None)
+        populate_categories_from_json(connection, user.id, &categories, None)
     })
 }
 
@@ -238,14 +346,13 @@ fn populate_categories_from_json(
     match json {
         Value::Object(o) => {
             let categories = o.keys().map(|k| (k.as_str(), None)).collect();
-            let category_ids =
-                insert_child_categories(&connection, user_id, parent_id, categories)?;
+            let category_ids = insert_child_categories(connection, user_id, parent_id, categories)?;
             let iter = category_ids.iter().zip(o.keys());
             for (id, key) in iter {
                 let children = json
                     .get(key)
                     .ok_or(CategoryErrorKind::MalformedCategoryList)?;
-                populate_categories_from_json(&connection, user_id, children, Some(*id))?;
+                populate_categories_from_json(connection, user_id, children, Some(*id))?;
             }
             Ok(())
         }
@@ -260,7 +367,7 @@ fn populate_categories_from_json(
 
             // Todo: add support for category descriptions.
             let categories = category_names.iter().map(|c| (*c, None)).collect();
-            insert_child_categories(&connection, user_id, parent_id, categories)?;
+            insert_child_categories(connection, user_id, parent_id, categories)?;
             Ok(())
         }
         _ => Err(CategoryErrorKind::MalformedCategoryList),
@@ -304,6 +411,7 @@ mod tests {
     use crate::{establish_connection, get_database_url};
     use app::AppConfig;
     use diesel::result::Error;
+    use log::Level;
     use serde_json::json;
     use std::collections::{BTreeMap, HashMap};
 
@@ -384,7 +492,7 @@ mod tests {
                         .map(|id| categories.get(&(id, u.id)))
                         .unwrap_or(None);
                     // Create the category for test user 1.
-                    let category = create(&conn, &u, name, description, parent);
+                    let category = create(&conn, u, name, description, parent);
                     categories.insert((id, u.id), category.unwrap());
                     count += 1;
                     assert_category_count(&conn, count);
@@ -500,18 +608,51 @@ mod tests {
 
         conn.test_transaction::<_, Error, _>(|| {
             // When no category with the given ID exists, `None` should be returned.
-            assert!(read(&conn, 1).is_none());
+            assert!(read(&conn, 1, None).is_none());
 
-            // Create a root category and assert that the `read()` function returns it.
-            let user = create_test_user(&conn, &config);
+            // Create two root categories for two different users and assert that the `read()`
+            // function returns them.
+            let users = (
+                create_test_user(&conn, &config),
+                create_test_user(&conn, &config),
+            );
             let name = "Groceries";
-            let result = create(&conn, &user, name, None, None).unwrap();
-            let cat = read(&conn, result.id).unwrap();
-            assert_category(&cat, Some(result.id), name, None, user.id, None);
+            let cats = (
+                create(&conn, &users.0, name, None, None).unwrap(),
+                create(&conn, &users.1, name, None, None).unwrap(),
+            );
 
-            // Delete the category. Now the `read()` function should return `None` again.
-            assert!(delete(&conn, cat.id).is_ok());
-            assert!(read(&conn, cat.id).is_none());
+            // Check reading of both categories, filtered by user 0.
+            let result = read(&conn, cats.0.id, Some(users.0.id)).unwrap();
+            assert_category(&result, Some(cats.0.id), name, None, users.0.id, None);
+            let result = read(&conn, cats.1.id, Some(users.0.id));
+            assert!(result.is_none());
+
+            // Check reading of both categories, filtered by user 1.
+            let result = read(&conn, cats.0.id, Some(users.1.id));
+            assert!(result.is_none());
+            let result = read(&conn, cats.1.id, Some(users.1.id)).unwrap();
+            assert_category(&result, Some(cats.1.id), name, None, users.1.id, None);
+
+            // Check the reading of both categories while not filtering on user.
+            let result = read(&conn, cats.0.id, None).unwrap();
+            assert_category(&result, Some(cats.0.id), name, None, users.0.id, None);
+
+            let result = read(&conn, cats.1.id, None).unwrap();
+            assert_category(&result, Some(cats.1.id), name, None, users.1.id, None);
+
+            // Delete the categories. Now the `read()` function should return `None` again in all
+            // cases.
+            assert!(delete(&conn, cats.0.id).is_ok());
+            assert!(delete(&conn, cats.1.id).is_ok());
+
+            assert!(read(&conn, cats.0.id, None).is_none());
+            assert!(read(&conn, cats.0.id, Some(users.0.id)).is_none());
+            assert!(read(&conn, cats.0.id, Some(users.1.id)).is_none());
+
+            assert!(read(&conn, cats.1.id, None).is_none());
+            assert!(read(&conn, cats.1.id, Some(users.0.id)).is_none());
+            assert!(read(&conn, cats.1.id, Some(users.1.id)).is_none());
 
             Ok(())
         });
@@ -660,14 +801,15 @@ mod tests {
             // No error should be returned.
             assert_eq!(result, Ok(()));
 
-            // The test file contains 7 categories. All should be created.
-            assert_category_count(&conn, 7);
+            // The test file contains 8 categories. All should be created.
+            assert_category_count(&conn, 8);
 
             // Verify that the categories were created with the correct parents.
             let expected_parent_cat_names: Vec<(&str, Option<&str>)> = vec![
                 ("Food", None),
                 ("Utilities", None),
                 ("Alcohol", Some("Food")),
+                ("Rakia", Some("Alcohol")),
                 ("Groceries", Some("Food")),
                 ("Electricity", Some("Utilities")),
                 ("Internet", Some("Utilities")),
@@ -711,14 +853,14 @@ mod tests {
         conn.test_transaction::<_, Error, _>(|| {
             let user1 = create_test_user(&conn, &config);
             let user2 = create_test_user(&conn, &config);
-            assert_eq!(false, has_categories(&conn, &user1).unwrap());
-            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            assert!(!has_categories(&conn, &user1).unwrap());
+            assert!(!has_categories(&conn, &user2).unwrap());
             create_test_category(&conn, &user1);
-            assert_eq!(true, has_categories(&conn, &user1).unwrap());
-            assert_eq!(false, has_categories(&conn, &user2).unwrap());
+            assert!(has_categories(&conn, &user1).unwrap());
+            assert!(!has_categories(&conn, &user2).unwrap());
             create_test_category(&conn, &user2);
-            assert_eq!(true, has_categories(&conn, &user1).unwrap());
-            assert_eq!(true, has_categories(&conn, &user2).unwrap());
+            assert!(has_categories(&conn, &user1).unwrap());
+            assert!(has_categories(&conn, &user2).unwrap());
 
             Ok(())
         });
@@ -789,6 +931,238 @@ mod tests {
 
             Ok(())
         });
+    }
+
+    // Simplified version of the Categories struct, used for testing.
+    struct ExpectedCategories {
+        pub category: Option<String>,
+        pub children: Vec<ExpectedCategories>,
+    }
+
+    #[test]
+    // Tests super::get_categories_tree.
+    fn test_get_categories_tree() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            let user = create_test_user(&conn, &config);
+            populate_categories(&conn, &user, &config).unwrap();
+
+            let expected_categories = ExpectedCategories {
+                category: None,
+                children: vec![
+                    ExpectedCategories {
+                        category: Some("Food".to_string()),
+                        children: vec![
+                            ExpectedCategories {
+                                category: Some("Alcohol".to_string()),
+                                children: vec![ExpectedCategories {
+                                    category: Some("Rakia".to_string()),
+                                    children: vec![],
+                                }],
+                            },
+                            ExpectedCategories {
+                                category: Some("Groceries".to_string()),
+                                children: vec![],
+                            },
+                        ],
+                    },
+                    ExpectedCategories {
+                        category: Some("Utilities".to_string()),
+                        children: vec![
+                            // Child categories are defined with an arbitrary sorting order in the
+                            // fixtures file but they should be sorted in alphabetical order.
+                            ExpectedCategories {
+                                category: Some("Electricity".to_string()),
+                                children: vec![],
+                            },
+                            ExpectedCategories {
+                                category: Some("Internet".to_string()),
+                                children: vec![],
+                            },
+                            ExpectedCategories {
+                                category: Some("Water".to_string()),
+                                children: vec![],
+                            },
+                        ],
+                    },
+                ],
+            };
+
+            let cat_tree = get_categories_tree(&conn, &user).unwrap();
+            assert_category_tree(&expected_categories, &cat_tree, user.id, None);
+
+            Ok(())
+        });
+    }
+
+    #[test]
+    // Tests the conversion of Vec<Category> into Categories.
+    fn test_categories_from_vec_category() {
+        let user_id = rand::random::<i32>();
+        let (vec_category, expected_categories) =
+            get_test_vec_category_and_expected_categories(user_id);
+        let cat_tree = Categories::from(vec_category);
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+    }
+
+    #[test]
+    // Tests that a possible orphaned category is excluded from the return value when converting a
+    // list of Vec<Category> into Categories. A warning should be logged.
+    fn test_categories_from_vec_category_logs_warning_if_category_is_orphaned() {
+        testing_logger::setup();
+
+        let user_id = rand::random::<i32>();
+        let (mut vec_category, expected_categories) =
+            get_test_vec_category_and_expected_categories(user_id);
+        // Append a category that has a parent ID that points to a non-existing category. We don't
+        // append this to the `expected_categories` since the orphaned category should not be
+        // returned by the function. Instead it should log a warning.
+        vec_category.push(Category {
+            id: user_id,
+            name: "Orphan".to_string(),
+            description: None,
+            user_id,
+            parent_id: Some(98765),
+        });
+        let cat_tree = Categories::from(vec_category.clone());
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+
+        // Check that a warning was logged.
+        testing_logger::validate(|captured_logs| {
+            assert_eq!(captured_logs.len(), 1);
+            assert_eq!(
+                captured_logs[0].body,
+                format!("User {} has 1 orphaned category", user_id)
+            );
+            assert_eq!(captured_logs[0].level, Level::Warn);
+        });
+
+        // Add another orphaned category to check that the warning shows the updated count.
+        vec_category.push(Category {
+            id: user_id,
+            name: "Another orphan".to_string(),
+            description: None,
+            user_id,
+            parent_id: Some(87654),
+        });
+        let cat_tree = Categories::from(vec_category);
+        assert_category_tree(&expected_categories, &cat_tree, user_id, None);
+
+        testing_logger::validate(|captured_logs| {
+            assert_eq!(captured_logs.len(), 1);
+            assert_eq!(
+                captured_logs[0].body,
+                format!("User {} has 2 orphaned categories", user_id)
+            );
+            assert_eq!(captured_logs[0].level, Level::Warn);
+        });
+    }
+
+    // Returns a tuple with a flat list of test categories as well as a list of expected categories.
+    fn get_test_vec_category_and_expected_categories(
+        user_id: i32,
+    ) -> (Vec<Category>, ExpectedCategories) {
+        // Define a list of test categories. These are intentionally in non-alphabetical order so
+        // that we can assert that the categories are sorted correctly.
+        let test_categories: BTreeMap<i32, (&str, Option<i32>)> = [
+            (0, ("Food", None)),
+            (1, ("Restaurants", Some(0))),
+            (2, ("Groceries", Some(0))),
+            (3, ("Japanese restaurants", Some(1))),
+            (4, ("Sushi", Some(3))),
+            (7, ("Education", None)),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        let mut categories: Vec<Category> = vec![];
+        for (id, (name, parent_id)) in test_categories {
+            let category = Category {
+                id,
+                name: name.to_string(),
+                description: None,
+                user_id,
+                parent_id,
+            };
+            categories.push(category);
+        }
+
+        // The categories are expected to be returned with child categories in alphabetical order.
+        let expected_categories = ExpectedCategories {
+            category: None,
+            children: vec![
+                ExpectedCategories {
+                    category: Some("Education".to_string()),
+                    children: vec![],
+                },
+                ExpectedCategories {
+                    category: Some("Food".to_string()),
+                    children: vec![
+                        ExpectedCategories {
+                            category: Some("Groceries".to_string()),
+                            children: vec![],
+                        },
+                        ExpectedCategories {
+                            category: Some("Restaurants".to_string()),
+                            children: vec![ExpectedCategories {
+                                category: Some("Japanese restaurants".to_string()),
+                                children: vec![ExpectedCategories {
+                                    category: Some("Sushi".to_string()),
+                                    children: vec![],
+                                }],
+                            }],
+                        },
+                    ],
+                },
+            ],
+        };
+
+        (categories, expected_categories)
+    }
+
+    // Checks recursively that the passed in Categories tree matches the ExpectedCategories tree.
+    // Each category is checked that it belongs to the correct user and has the expected parent ID.
+    fn assert_category_tree(
+        expected_categories: &ExpectedCategories,
+        categories: &Categories,
+        expected_user_id: i32,
+        expected_parent_id: Option<i32>,
+    ) {
+        assert_eq!(
+            expected_categories.category,
+            categories.category.as_ref().map(|c| c.name.clone())
+        );
+        if let Some(cat) = categories.category.clone() {
+            assert_eq!(expected_user_id, cat.user_id);
+            assert_eq!(expected_parent_id, cat.parent_id);
+        }
+
+        // Check that the child categories are in the expected order.
+        let expected_child_count = expected_categories.children.len();
+        assert_eq!(expected_child_count, categories.children.len());
+        if expected_child_count > 0 {
+            // Pass on the ID of the current category when recursing, so that we can check that the
+            // children have the parent ID set correctly.
+            let parent_id = categories.category.as_ref().map(|c| c.id);
+
+            for i in 0..expected_child_count {
+                let expected_child_cat = &expected_categories.children[i];
+                let actual_child_cat = &categories.children[i];
+                assert_eq!(
+                    expected_child_cat.category,
+                    actual_child_cat.category.as_ref().map(|c| c.name.clone())
+                );
+                assert_category_tree(
+                    expected_child_cat,
+                    actual_child_cat,
+                    expected_user_id,
+                    parent_id,
+                );
+            }
+        }
     }
 
     #[test]
@@ -901,7 +1275,7 @@ mod tests {
             for i in 0..2 {
                 let id = result.get(i).unwrap();
                 let (name, description) = cats.get(i).unwrap();
-                let category = read(&conn, *id).unwrap();
+                let category = read(&conn, *id, None).unwrap();
                 assert_category(&category, Some(*id), name, *description, user_id, parent_id);
             }
         };

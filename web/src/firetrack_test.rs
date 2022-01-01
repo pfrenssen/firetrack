@@ -236,7 +236,7 @@ pub fn mailgun_mock(config: &AppConfig) -> mockito::Mock {
     });
 
     // Return a valid response for any request to the endpoint.
-    let uri = notifications::get_mailgun_uri(&config);
+    let uri = notifications::get_mailgun_uri(config);
     mockito::mock("POST", uri.as_str())
         .with_status(200)
         .with_header("content-type", "application/json")

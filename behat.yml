@@ -4,8 +4,12 @@ default:
       contexts:
         - ActivationCodeContext
         - BootstrapContext
+        - ExpenseContext
         - FeatureContext
-        - HtmlContext
+        - HierarchySelectContext
+        - HtmlContext:
+            region_map:
+              sidebar navigation: '.sidebar nav'
         - MailgunContext
         - UserContext
         - Behat\MinkExtension\Context\MinkContext
@@ -13,13 +17,27 @@ default:
         tags: '~@wip'
   extensions:
     Behat\MinkExtension:
-      base_url:  'http://localhost:8088'
+      base_url: http://localhost:8088
+      javascript_session: javascript
       sessions:
         default:
           goutte: ~
+        javascript:
+          selenium2:
+            wd_host: http://localhost:4444/wd/hub
+            browser: chrome
+            capabilities:
+              browserName: "chrome"
+              browser: "chrome"
+              chrome:
+                switches:
+                  - '--no-sandbox'
+                  - '--headless'
+                  - '--disable-gpu'
+                  - '--window-size=1920,1080'
     LoversOfBehat\ScreenshotExtension:
       storage:
         filesystem:
-          path: '/tmp/screenshots/'
+          path: 'tmp/screenshots/'
   formatters:
     progress: ~

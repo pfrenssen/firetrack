@@ -32,7 +32,7 @@ async fn register_with_valid_data() {
 
     // We should get redirected to the activation form.
     let response = app.call(req).await.unwrap();
-    assert_response_see_other(&response.response(), "/user/activate");
+    assert_response_see_other(response.response(), "/user/activate");
 
     // Check that a user with the given username and password exists in the database.
     let user = db::user::read(&pool.get().unwrap(), email).unwrap();
@@ -43,7 +43,7 @@ async fn register_with_valid_data() {
         password,
         config.secret_key()
     ));
-    assert_eq!(user.activated, false);
+    assert!(!user.activated);
 
     let now = chrono::Local::now().naive_local();
     let two_seconds_ago = chrono::Local::now()
@@ -65,7 +65,7 @@ async fn register_with_valid_data() {
     // form.
     // See https://github.com/pfrenssen/firetrack/issues/148
     // assert_response_see_other(&response.response(), "/user/activate");
-    assert_response_see_other(&response.response(), "/");
+    assert_response_see_other(response.response(), "/");
 
     // Try to register an account using the user's email address and an invalid password.
     // Todo This should not result in an error and should not disclose that the user exists.
@@ -79,7 +79,7 @@ async fn register_with_valid_data() {
 
     let response = app.call(req).await.unwrap();
     assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR,);
-    let body = get_response_body(&response.response());
+    let body = get_response_body(response.response());
     assert_eq!(
         body.as_str(),
         "email test@example.com already exists but password is incorrect. Ref https://github.com/pfrenssen/firetrack/issues/68"
@@ -94,9 +94,9 @@ async fn test_login_handler() {
     let req = test::TestRequest::get().uri("/user/login").to_request();
 
     let response = app.call(req).await.unwrap();
-    let body = get_response_body(&response.response());
+    let body = get_response_body(response.response());
 
-    assert_response_ok(&response.response());
+    assert_response_ok(response.response());
     assert_page(
         &body,
         PageAssertOptions {
@@ -116,9 +116,9 @@ async fn test_register_handler() {
     let req = test::TestRequest::get().uri("/user/register").to_request();
 
     let response = app.call(req).await.unwrap();
-    let body = get_response_body(&response.response());
+    let body = get_response_body(response.response());
 
-    assert_response_ok(&response.response());
+    assert_response_ok(response.response());
     assert_page(
         &body,
         PageAssertOptions {

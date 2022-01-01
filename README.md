@@ -11,6 +11,7 @@ Requirements
 * [PostgreSQL](https://www.postgresql.org/)
 * [Diesel CLI](https://github.com/diesel-rs/diesel/tree/master/diesel_cli)
 * [Composer](https://getcomposer.org/)
+* [Clang](https://clang.llvm.org/)
 
 
 Installation

@@ -34,6 +34,8 @@ pub enum ExpenseErrorKind {
     InvalidAmount,
     // An expense does not exist.
     NotFound(i32),
+    // A database error occurred while reading expenses.
+    ReadFailed(diesel::result::Error),
 }
 
 impl fmt::Display for ExpenseErrorKind {
@@ -50,6 +52,9 @@ impl fmt::Display for ExpenseErrorKind {
                 write!(f, "Amount should be between 0.01 and 9999999.99")
             }
             ExpenseErrorKind::NotFound(ref id) => write!(f, "Expense {} not found", id),
+            ExpenseErrorKind::ReadFailed(ref err) => {
+                write!(f, "Database error when reading expense: {}", err)
+            }
         }
     }
 }
@@ -116,6 +121,36 @@ pub fn delete(connection: &PgConnection, id: i32) -> Result<(), ExpenseErrorKind
     Ok(())
 }
 
+/// Returns all expenses, optionally filtered by user ID.
+pub fn list(
+    connection: &PgConnection,
+    user_id: Option<i32>,
+) -> Result<Vec<Expense>, ExpenseErrorKind> {
+    let result = match user_id {
+        Some(user_id) => dsl::expenses
+            .filter(expenses::user_id.eq(&user_id))
+            .load::<Expense>(connection),
+        None => dsl::expenses.load::<Expense>(connection),
+    };
+
+    result.map_err(ExpenseErrorKind::ReadFailed)
+}
+
+/// Counts all expenses, optionally filtered by user ID.
+pub fn count(connection: &PgConnection, user_id: Option<i32>) -> Result<i64, ExpenseErrorKind> {
+    let result = match user_id {
+        Some(user_id) => dsl::expenses
+            .filter(expenses::user_id.eq(&user_id))
+            .select(diesel::dsl::count_star())
+            .first(connection),
+        None => dsl::expenses
+            .select(diesel::dsl::count_star())
+            .first(connection),
+    };
+
+    result.map_err(ExpenseErrorKind::ReadFailed)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -159,11 +194,11 @@ mod tests {
                 let amount = Decimal::from_str(amount).unwrap();
                 let date = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d").unwrap();
                 for (user, (cat1, cat2)) in &test_user_cats {
-                    let expense = create(&conn, &user, &amount, &cat1, desc, Some(&date)).unwrap();
+                    let expense = create(&conn, user, &amount, cat1, desc, Some(&date)).unwrap();
                     assert_expense(&expense, None, &amount, desc, cat1.id, user.id, date);
                     expected_count += 1;
                     assert_expense_count(&conn, expected_count);
-                    let expense = create(&conn, &user, &amount, &cat2, desc, Some(&date)).unwrap();
+                    let expense = create(&conn, user, &amount, cat2, desc, Some(&date)).unwrap();
                     assert_expense(&expense, None, &amount, desc, cat2.id, user.id, date);
                     expected_count += 1;
                     assert_expense_count(&conn, expected_count);
@@ -284,6 +319,49 @@ mod tests {
             // Delete the expense. Now the `read()` function should return `None` again.
             assert!(delete(&conn, expense.id).is_ok());
             assert!(read(&conn, expense.id).is_none());
+
+            Ok(())
+        });
+    }
+
+    // Tests super::list() and super::count().
+    #[test]
+    fn test_list_and_count() {
+        let conn = establish_connection(&get_database_url()).unwrap();
+        let config = AppConfig::from_test_defaults();
+
+        conn.test_transaction::<_, Error, _>(|| {
+            // When no expenses exist, an empty vector should be returned.
+            assert!(list(&conn, None).unwrap().is_empty());
+            assert!(list(&conn, Some(1)).unwrap().is_empty());
+            assert_eq!(0, count(&conn, None).unwrap());
+            assert_eq!(0, count(&conn, Some(1)).unwrap());
+
+            // Create 2 users with 2 expenses each.
+            let mut users: Vec<User> = vec![];
+            let mut expenses: Vec<Expense> = vec![];
+            for _ in 0..2 {
+                let user = create_test_user(&conn, &config);
+                for _ in 0..2 {
+                    let cat = create_test_category(&conn, &user);
+                    expenses.push(create_test_expense(&conn, &user, &cat));
+                }
+                users.push(user);
+            }
+            assert_expense_count(&conn, 4);
+
+            // Check that all expenses are returned when we don't filter by user.
+            assert_eq!(expenses, list(&conn, None).unwrap());
+            assert_eq!(4, count(&conn, None).unwrap());
+
+            // Check that we can retrieve the expenses of both users.
+            for _ in 0..2 {
+                let user = users.remove(0);
+                let expected_expenses = expenses.drain(0..2);
+                let result = list(&conn, Some(user.id)).unwrap();
+                assert_eq!(expected_expenses.as_slice(), result.as_slice());
+                assert_eq!(2, count(&conn, Some(user.id)).unwrap());
+            }
 
             Ok(())
         });

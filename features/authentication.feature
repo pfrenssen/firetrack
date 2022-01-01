@@ -12,3 +12,12 @@ Feature: User authentication
       | /             |
       | user/login    |
       | user/register |
+
+  Scenario Outline: Anonymous user cannot access private pages
+    When I go to "<path>"
+    Then the response status code should be 403
+
+    Examples:
+      | path         |
+      | expenses     |
+      | expenses/add |
