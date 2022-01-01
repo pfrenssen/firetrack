@@ -23,7 +23,7 @@ checksum = "c95cc9569221e9802bf4c377f6c18b90ef10227d787611decf79fd47d2a8e76c"
 dependencies = [
  "actix-codec",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-utils",
  "derive_more",
  "either",
@@ -41,7 +41,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "193b22cb1f7b4ff12a4eb2415d6d19e47e44ea93e05930b30d05375ea29d3529"
 dependencies = [
  "actix-http",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-web",
  "bitflags",
  "bytes",
@@ -64,7 +64,7 @@ dependencies = [
  "actix-codec",
  "actix-connect",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-threadpool",
  "actix-utils",
  "base64 0.11.0",
@@ -109,7 +109,7 @@ version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a379b0639c293292d71defb8cc1f94c87b7705c904adf044338ad392df77c7a"
 dependencies = [
- "actix-service",
+ "actix-service 1.0.6",
  "actix-web",
  "futures 0.3.5",
  "serde",
@@ -161,7 +161,7 @@ checksum = "582a7173c281a4f46b5aa168a11e7f37183dcb71177a39312cc2264da7a632c9"
 dependencies = [
  "actix-codec",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-utils",
  "futures 0.3.5",
  "log",
@@ -183,12 +183,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "actix-service"
+version = "2.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b894941f818cfdc7ccc4b9e60fa7e53b5042a2e8567270f9147d5591893373a"
+dependencies = [
+ "futures-core",
+ "paste",
+ "pin-project-lite 0.2.8",
+]
+
+[[package]]
 name = "actix-session"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca833a08799c95281204f9cc76223da4d12d2caa03de24362b3e268c60da328c"
 dependencies = [
- "actix-service",
+ "actix-service 1.0.6",
  "actix-web",
  "bytes",
  "derive_more",
@@ -207,7 +218,7 @@ dependencies = [
  "actix-macros",
  "actix-rt",
  "actix-server",
- "actix-service",
+ "actix-service 1.0.6",
  "futures 0.3.5",
  "log",
  "net2",
@@ -236,7 +247,7 @@ checksum = "a4e5b4faaf105e9a6d389c606c298dcdb033061b00d532af9df56ff3a54995a8"
 dependencies = [
  "actix-codec",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-utils",
  "derive_more",
  "either",
@@ -252,7 +263,7 @@ checksum = "fcf8f5631bf01adec2267808f00e228b761c60c0584cc9fa0b5364f41d147f4e"
 dependencies = [
  "actix-codec",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "bitflags",
  "bytes",
  "either",
@@ -274,7 +285,7 @@ dependencies = [
  "actix-router",
  "actix-rt",
  "actix-server",
- "actix-service",
+ "actix-service 1.0.6",
  "actix-testing",
  "actix-threadpool",
  "actix-tls",
@@ -432,7 +443,7 @@ dependencies = [
  "actix-codec",
  "actix-http",
  "actix-rt",
- "actix-service",
+ "actix-service 1.0.6",
  "base64 0.11.0",
  "bytes",
  "derive_more",
@@ -1060,9 +1071,9 @@ dependencies = [
 
 [[package]]
 name = "futures-core"
-version = "0.3.5"
+version = "0.3.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59f5fff90fd5d971f936ad674802482ba441b6f09ba5e15fd8b39145582ca399"
+checksum = "d0c8ff0461b82559810cdccfde3215c3f373807f5e5232b71479bff7bb2583d7"
 
 [[package]]
 name = "futures-cpupool"
@@ -1877,6 +1888,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "paste"
+version = "1.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0744126afe1a6dd7f394cb50a716dbe086cb06e255e53d8d0185d82828358fb5"
+
+[[package]]
 name = "peeking_take_while"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1976,6 +1993,12 @@ name = "pin-project-lite"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7505eeebd78492e0f6108f7171c4948dbb120ee8119d9d77d0afa5469bef67f"
+
+[[package]]
+name = "pin-project-lite"
+version = "0.2.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e280fbe77cc62c91527259e9442153f4688736748d24660126286329742b4c6c"
 
 [[package]]
 name = "pin-utils"
@@ -2359,7 +2382,7 @@ dependencies = [
  "mime_guess",
  "native-tls",
  "percent-encoding",
- "pin-project-lite",
+ "pin-project-lite 0.1.5",
  "serde",
  "serde_json",
  "serde_urlencoded 0.6.1",
@@ -2764,7 +2787,7 @@ dependencies = [
  "mio",
  "mio-uds",
  "num_cpus",
- "pin-project-lite",
+ "pin-project-lite 0.1.5",
  "signal-hook-registry",
  "slab",
  "winapi 0.3.8",
@@ -2790,7 +2813,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "log",
- "pin-project-lite",
+ "pin-project-lite 0.1.5",
  "tokio",
 ]
 
@@ -2804,7 +2827,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "log",
- "pin-project-lite",
+ "pin-project-lite 0.1.5",
  "tokio",
 ]
 
@@ -3195,7 +3218,7 @@ dependencies = [
  "actix-http",
  "actix-identity",
  "actix-rt",
- "actix-service",
+ "actix-service 2.0.2",
  "actix-session",
  "actix-web",
  "app",
