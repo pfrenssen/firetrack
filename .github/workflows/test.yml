@@ -1,0 +1,100 @@
+name: Test
+on: [push]
+jobs:
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: rustup component add clippy
+      - uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --all-features --all-targets -- -D warnings
+  rust-fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+  unit-tests:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://firetrack:testing123@localhost/firetrack
+      SECRET_KEY: testing123
+      SESSION_KEY: 0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
+    steps:
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          pg_isready
+      - name: Create database user
+        run: |
+          sudo -u postgres psql --command="CREATE USER firetrack PASSWORD 'testing123'" --command="\du"
+      - name: Create database
+        run: |
+          sudo -u postgres createdb --owner=firetrack firetrack
+          PGPASSWORD=testing123 psql --username=firetrack --host=localhost --list firetrack
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: 7.4
+      - name: Install Diesel CLI
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: diesel_cli --no-default-features --features "postgres"
+      - run: diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
+      - name: Run tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+  behat-tests:
+    runs-on: ubuntu-latest
+    container: node:current
+    services:
+      selenium:
+        image: selenium/standalone-chrome
+        options: --health-cmd '/opt/bin/check-grid.sh'
+    env:
+      DATABASE_URL: postgres://firetrack:testing123@localhost/firetrack
+      SECRET_KEY: testing123
+      SESSION_KEY: 0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
+    steps:
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          pg_isready
+      - name: Create database user
+        run: |
+          sudo -u postgres psql --command="CREATE USER firetrack PASSWORD 'testing123'" --command="\du"
+      - name: Create database
+        run: |
+          sudo -u postgres createdb --owner=firetrack firetrack
+          PGPASSWORD=testing123 psql --username=firetrack --host=localhost --list firetrack
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: 7.4
+      - name: Install Diesel CLI
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: diesel_cli --no-default-features --features "postgres"
+      - run: diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
+      - name: Build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+      # Start the Mailgun mock server and wait for it to come online.
+      - run: cargo run -- mailgun-mock-server &> mailgun.log &
+      - run: until curl -s localhost:8089; do true; done &> /dev/null
+      # Start the webserver and wait for it to come online.
+      - run: MAILGUN_API_ENDPOINT=http://localhost:8089 cargo run -- serve &> actix.log &
+      - run: until curl -s localhost:8088; do true; done &> /dev/null
+      # Run BDD test suite.
+      - run: ./vendor/bin/behat --no-interaction
