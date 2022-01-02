@@ -21,8 +21,8 @@ jobs:
           args: --all -- --check
   test:
     runs-on: ubuntu-latest
-    container: alpine
-		services:
+    container: alpine:latest
+    services:
       postgres:
         image: postgres
         env:
