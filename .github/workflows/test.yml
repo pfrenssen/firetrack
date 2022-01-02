@@ -34,7 +34,7 @@ jobs:
           --health-retries 5
     steps:
       - run: apt-get update
-      - run: apt-get install curl
+      - run: apt-get install curl -y
       - uses: actions/checkout@v2
       - name: Install dependencies
         uses: php-actions/composer@v6
