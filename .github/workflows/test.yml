@@ -33,6 +33,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
+      - run: apt-get install curl
       - uses: actions/checkout@v2
       - name: Install dependencies
         uses: php-actions/composer@v6
