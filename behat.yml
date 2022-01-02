@@ -24,7 +24,7 @@ default:
           goutte: ~
         javascript:
           selenium2:
-            wd_host: http://localhost:4444/wd/hub
+            wd_host: http://selenium:4444/wd/hub
             browser: chrome
             capabilities:
               browserName: "chrome"
