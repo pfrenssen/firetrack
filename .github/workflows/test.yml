@@ -21,20 +21,18 @@ jobs:
           args: --all -- --check
   test:
     runs-on: ubuntu-latest
-    container: ubuntu:latest
-    services:
-      postgres:
-        image: postgres
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
-      - run: apt-get update
-      - run: apt-get install curl -y
+      - name: Start PostgreSQL
+        run: |
+          sudo systemctl start postgresql.service
+          pg_isready
+      - name: Create database user
+        run: |
+          sudo -u postgres psql --command="CREATE USER firetrack PASSWORD 'test123'" --command="\du"
+      - name: Create database
+        run: |
+          sudo -u postgres createdb --owner=firetrack firetrack
+          PGPASSWORD=test123 psql --username=firetrack --host=localhost --list timetable
       - uses: actions/checkout@v2
       - name: Install dependencies
         uses: php-actions/composer@v6
