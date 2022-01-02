@@ -54,6 +54,7 @@ jobs:
           command: test
   behat-tests:
     runs-on: ubuntu-latest
+    container: node:current
     services:
       selenium:
         image: selenium/standalone-chrome
