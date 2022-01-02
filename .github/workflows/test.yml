@@ -49,9 +49,9 @@ jobs:
         with:
           command: test
         env:
-          DATABASE_URL=postgres://postgres@postgres/firetrack
-          PGUSER=postgres
-          PGPORT=5432
-          PGHOST=postgres
-          SECRET_KEY=testing123
-          SESSION_KEY=0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
+          DATABASE_URL: postgres://postgres@postgres/firetrack
+          PGUSER: postgres
+          PGPORT: 5432
+          PGHOST: postgres
+          SECRET_KEY: testing123
+          SESSION_KEY: 0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
