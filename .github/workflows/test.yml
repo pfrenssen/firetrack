@@ -21,6 +21,10 @@ jobs:
           args: --all -- --check
   test:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://firetrack:testing123@localhost/firetrack
+      SECRET_KEY: testing123
+      SESSION_KEY: 0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
     steps:
       - name: Start PostgreSQL
         run: |
@@ -28,11 +32,11 @@ jobs:
           pg_isready
       - name: Create database user
         run: |
-          sudo -u postgres psql --command="CREATE USER firetrack PASSWORD 'test123'" --command="\du"
+          sudo -u postgres psql --command="CREATE USER firetrack PASSWORD 'testing123'" --command="\du"
       - name: Create database
         run: |
           sudo -u postgres createdb --owner=firetrack firetrack
-          PGPASSWORD=test123 psql --username=firetrack --host=localhost --list timetable
+          PGPASSWORD=test123 psql --username=firetrack --host=localhost --list firetrack
       - uses: actions/checkout@v2
       - name: Install dependencies
         uses: php-actions/composer@v6
@@ -48,10 +52,3 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-        env:
-          DATABASE_URL: postgres://postgres@postgres/firetrack
-          PGUSER: postgres
-          PGPORT: 5432
-          PGHOST: postgres
-          SECRET_KEY: testing123
-          SESSION_KEY: 0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
