@@ -21,7 +21,7 @@ jobs:
           args: --all -- --check
   test:
     runs-on: ubuntu-latest
-    container: alpine:latest
+    container: ubuntu:latest
     services:
       postgres:
         image: postgres
@@ -34,7 +34,6 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v2
-      - run: apk add --update-cache bash curl
       - name: Install dependencies
         uses: php-actions/composer@v6
         with:
