@@ -21,13 +21,37 @@ jobs:
           args: --all -- --check
   test:
     runs-on: ubuntu-latest
+    container: alpine
+		services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
         uses: php-actions/composer@v6
         with:
           php_version: 7.4
+      - name: Install Diesel CLI
+        uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: diesel_cli --no-default-features --features "postgres"
+      - run: diesel database setup --config-file=db/diesel.toml --migration-dir=db/migrations
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
+        env:
+          DATABASE_URL=postgres://postgres@postgres/firetrack
+          PGUSER=postgres
+          PGPORT=5432
+          PGHOST=postgres
+          SECRET_KEY=testing123
+          SESSION_KEY=0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1,2,3,4,5,6,7,8,9,0,1
