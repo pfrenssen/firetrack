@@ -17,6 +17,21 @@ Requirements
 Installation
 ------------
 
+### Docker
+
+Copy `docker-compose.override.yml.dist` to `docker-compose.override.yml` and
+edit it to match your needs.
+
+```
+$ git clone https://github.com/pfrenssen/firetrack.git
+$ cd firetrack
+$ docker-compose run composer composer install
+$ cargo build --release
+$ sudo ln -s `pwd`/target/release/cli /usr/local/bin/firetrack
+```
+
+### Native
+
 ```
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack

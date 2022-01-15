@@ -1,0 +1,7 @@
+services:
+  composer:
+    build: ./resources/docker/composer
+    environment:
+      COMPOSER_CACHE_DIR: /app/.cache/composer
+    volumes:
+      - .:/app
