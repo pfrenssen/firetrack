@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
-            "version": "v3.0.5",
+            "version": "v3.2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ColorlibHQ/AdminLTE.git",
-                "reference": "6b8b69261f1aacbb4be037c934f3c3652e6dff27"
+                "reference": "bd4d9c72931f1dd28601b6bfb387554a381ad540"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ColorlibHQ/AdminLTE/zipball/6b8b69261f1aacbb4be037c934f3c3652e6dff27",
-                "reference": "6b8b69261f1aacbb4be037c934f3c3652e6dff27",
+                "url": "https://api.github.com/repos/ColorlibHQ/AdminLTE/zipball/bd4d9c72931f1dd28601b6bfb387554a381ad540",
+                "reference": "bd4d9c72931f1dd28601b6bfb387554a381ad540",
                 "shasum": ""
             },
             "type": "library",
@@ -31,7 +31,7 @@
                 }
             ],
             "description": "AdminLTE - admin control panel and dashboard that's based on Bootstrap 4",
-            "homepage": "http://adminlte.io/",
+            "homepage": "https://adminlte.io/",
             "keywords": [
                 "JS",
                 "admin",
@@ -43,7 +43,11 @@
                 "theme",
                 "web"
             ],
-            "time": "2020-05-19T20:41:11+00:00"
+            "support": {
+                "issues": "https://github.com/ColorlibHQ/AdminLTE/issues",
+                "source": "https://github.com/ColorlibHQ/AdminLTE/tree/v3.2.0"
+            },
+            "time": "2022-02-07T20:33:09+00:00"
         },
         {
             "name": "bower-asset/tempusdominus-bs4",
@@ -2977,5 +2981,5 @@
         "php": ">=7.4.0"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.1.0"
+    "plugin-api-version": "2.2.0"
 }
