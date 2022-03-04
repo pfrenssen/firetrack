@@ -25,7 +25,7 @@ tera = "~1.6"
 validator = "~0.12"
 
 [dev-dependencies]
-actix-rt = "~1.0"
+actix-rt = "~2.6"
 actix-service = "~1.0"
 chrono = "~0.4"
 libxml = "~0.2"

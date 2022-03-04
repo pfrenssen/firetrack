@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 actix-files = "~0.2"
 actix-http = "^1.0.1"
-actix-rt = "~1.0"
+actix-rt = "~2.6"
 actix-web = "~2.0"
 app = { path = "../app" }
 chrono = "~0.4"
