@@ -26,8 +26,9 @@ edit it to match your needs.
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack
 $ docker-compose run composer composer install
-$ cargo build --release
-$ sudo ln -s `pwd`/target/release/cli /usr/local/bin/firetrack
+$ docker-compose build
+$ docker-compose run diesel-cli database setup
+$ docker-compose up
 ```
 
 ### Native

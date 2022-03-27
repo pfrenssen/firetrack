@@ -5,3 +5,42 @@ services:
       COMPOSER_CACHE_DIR: /app/.cache/composer
     volumes:
       - .:/app
+
+  diesel-cli:
+    build:
+      dockerfile: ./resources/docker/diesel-cli/Dockerfile
+      context: .
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgresql/firetrack
+    depends_on:
+      - "postgresql"
+
+  mailgun-mock:
+    build:
+      dockerfile: ./resources/docker/mailgun-mock/Dockerfile
+      context: .
+    ports:
+      - 8089:8089
+    environment:
+      MAILGUN_MOCK_SERVER_PORT: 8089
+    volumes:
+      - "./mailgun-mock-server.log:/usr/src/firetrack/mailgun-mock-server.log"
+
+  firetrack:
+    build:
+      dockerfile: ./resources/docker/firetrack/Dockerfile
+      context: .
+    ports:
+      - 8088:8088
+    environment:
+      MAILGUN_API_ENDPOINT: 'http://mailgun-mock:8089'
+    depends_on:
+      - "mailgun-mock"
+      - "postgresql"
+
+  postgresql:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'firetrack'
