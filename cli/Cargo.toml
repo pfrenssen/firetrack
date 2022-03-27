@@ -1,5 +1,5 @@
 [package]
-name = "cli"
+name = "firetrack-cli"
 version = "0.1.0-dev"
 authors = ["Pieter Frenssen <pieter@frenssen.be>"]
 edition = "2018"
