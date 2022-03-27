@@ -7,13 +7,17 @@ use hyper::{header, Body, Request, Response, Server, StatusCode};
 use serde_json::json;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddr};
 use std::str::from_utf8;
 
 // Starts the mock server on the port as configured in the application.
 pub async fn serve(config: AppConfig) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let addr = SocketAddr::from(([127, 0, 0, 1], config.mailgun_mock_server_port()));
+    let port = config.mailgun_mock_server_port();
+    // Todo: Make configurable, should be 127, 0, 0, 1 on localhost, but 0, 0, 0, 0 on docker.
+    let ip: Ipv4Addr = [0, 0, 0, 0].into();
+    let addr = SocketAddr::from((ip, port));
     let service = make_service_fn(|_conn| async { Ok::<_, hyper::Error>(service_fn(messages)) });
+    info!("Starting Mailgun mock server on {}:{}.", ip, port);
     Server::bind(&addr).serve(service).await?;
     Ok(())
 }
