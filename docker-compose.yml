@@ -13,7 +13,8 @@ services:
     environment:
       DATABASE_URL: postgres://postgres:postgres@postgresql/firetrack
     depends_on:
-      - "postgresql"
+      postgresql:
+        condition: service_healthy
 
   mailgun-mock:
     build:
@@ -35,8 +36,10 @@ services:
     environment:
       MAILGUN_API_ENDPOINT: 'http://mailgun-mock:8089'
     depends_on:
-      - "mailgun-mock"
-      - "postgresql"
+      mailgun-mock:
+        condition: service_started
+      postgresql:
+        condition: service_healthy
 
   postgresql:
     image: postgres:latest
@@ -44,3 +47,8 @@ services:
       POSTGRES_USER: 'postgres'
       POSTGRES_PASSWORD: 'postgres'
       POSTGRES_DB: 'firetrack'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
