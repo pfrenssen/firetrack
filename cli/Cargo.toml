@@ -20,7 +20,7 @@ regex = "~1.4"
 rust_decimal = "~1.10"
 serde = "~1.0"
 serde_derive = "~1.0"
-serde_json = "^1.0.61"
+serde_json = "^1.0.82"
 tera = "~1.6"
 validator = "~0.12"
 web = { path = "../web" }
