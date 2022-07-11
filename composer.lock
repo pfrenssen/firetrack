@@ -74,10 +74,10 @@
         },
         {
             "name": "npm-asset/moment",
-            "version": "2.29.1",
+            "version": "2.29.4",
             "dist": {
                 "type": "tar",
-                "url": "https://registry.npmjs.org/moment/-/moment-2.29.1.tgz"
+                "url": "https://registry.npmjs.org/moment/-/moment-2.29.4.tgz"
             },
             "type": "npm-asset",
             "license": [
@@ -2977,5 +2977,5 @@
         "php": ">=7.4.0"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.1.0"
+    "plugin-api-version": "2.3.0"
 }
