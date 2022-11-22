@@ -8,5 +8,5 @@ edition = "2018"
 app = { path = "../app" }
 hyper = "~0.13"
 log = "~0.4"
-serde_json = "^1.0.61"
+serde_json = "^1.0.89"
 urlencoding = "~2.1"
