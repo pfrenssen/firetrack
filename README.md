@@ -114,8 +114,20 @@ $ ./vendor/bin/behat
 Usage
 -----
 
+### Web application
+
 Start the webserver on [http://localhost:8088](http://localhost:8088):
 
 ```
 $ firetrack serve
+```
+
+### Command line interface
+
+```
+# Using Docker:
+$ ./scripts/firetrack-exec.sh
+
+# Native:
+$ firetrack
 ```
