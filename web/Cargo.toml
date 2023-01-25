@@ -13,7 +13,7 @@ actix-web = "~2.0"
 app = { path = "../app" }
 db = { path = "../db" }
 chrono = { version = "~0.4", features = ['serde'] }
-diesel = { version = "~1.4", features = ['chrono', 'postgres', 'r2d2'] }
+diesel = { version = "~2.0", features = ['chrono', 'postgres', 'r2d2'] }
 dotenv = "~0.15"
 notifications = { path = "../notifications" }
 r2d2 = "~0.8"
