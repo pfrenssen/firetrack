@@ -1,15 +1,14 @@
-# Todo:
-# - We are rebuilding the entire Firetrack binary, reuse the standard one.
+FROM firetrack-firetrack
 
-FROM rust:1.59-bullseye
+FROM debian:bullseye-slim
 
-RUN apt-get update && apt-get install -y libpq-dev libclang-dev
+WORKDIR /usr/src/firetrack/
 
-WORKDIR /usr/src/firetrack
+RUN apt-get update \
+  && apt-get install libpq5 -y
 
-COPY . .
+# Copy the compiled Firetrack CLI binary over from the main image.
+COPY --from=firetrack-firetrack /usr/local/cargo/bin/firetrack-cli .
 
-RUN cargo install --path cli --locked
-
-ENTRYPOINT ["firetrack-cli"]
+ENTRYPOINT ["./firetrack-cli"]
 CMD ["mailgun-mock-server"]

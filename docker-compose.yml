@@ -18,12 +18,13 @@ services:
 
   mailgun-mock:
     build:
-      dockerfile: ./resources/docker/mailgun-mock/Dockerfile
-      context: .
+      context: resources/docker/mailgun-mock
+      dockerfile: Dockerfile
+    env_file:
+      - .env.dist
+      - .env
     ports:
       - 8089:8089
-    environment:
-      MAILGUN_MOCK_SERVER_PORT: 8089
     volumes:
       - "./mailgun-mock-server.log:/usr/src/firetrack/mailgun-mock-server.log"
 
