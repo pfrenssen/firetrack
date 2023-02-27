@@ -20,7 +20,7 @@ class MailgunContext extends RawMinkContext
     public function purgeMailgunLog(): void
     {
         // @todo Make the path to the log file configurable in behat.yml.
-        $filename = getcwd() . '/mailgun-mock-server.log';
+        $filename = getcwd() . '/logs/mailgun-mock-server.log';
         if (is_file($filename)) {
             unlink($filename);
         }

@@ -53,7 +53,7 @@ trait MailgunTrait
     protected function getLog(): array
     {
         // @todo Make the path to the log file configurable in behat.yml.
-        $filename = getcwd() . '/mailgun-mock-server.log';
+        $filename = getcwd() . '/logs/mailgun-mock-server.log';
         return file($filename, FILE_IGNORE_NEW_LINES);
     }
 

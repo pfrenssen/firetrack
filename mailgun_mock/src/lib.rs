@@ -29,7 +29,8 @@ async fn messages(req: Request<Body>) -> Result<Response<Body>, hyper::Error> {
     let full_body = hyper::body::to_bytes(req.into_body()).await?;
     let body_content = urlencoding::decode(from_utf8(&full_body).unwrap()).unwrap();
 
-    let filename = "mailgun-mock-server.log";
+    // Todo: make the log file location configurable.
+    let filename = "logs/mailgun-mock-server.log";
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)
