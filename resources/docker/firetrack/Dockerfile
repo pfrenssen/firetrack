@@ -5,7 +5,7 @@
 #   ignore this folder and make the assets available through a volume, but does
 #   this make it slower to access the assets?
 # - At the moment when building the container all cargo dependencies need to be
-#   downloaded and compiled from scratch. Allow to do incremental compilation.
+#   compiled from scratch. Allow to do incremental compilation.
 
 FROM rust:1.59-bullseye
 
@@ -15,6 +15,9 @@ WORKDIR /usr/src/firetrack
 
 COPY . .
 
+RUN cargo fetch
+# Compile Firetrack and install the CLI tool at
+# /usr/local/cargo/bin/firetrack-cli
 RUN cargo install --path cli --locked
 
 ENTRYPOINT ["firetrack-cli"]
