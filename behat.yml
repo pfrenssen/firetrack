@@ -17,14 +17,16 @@ default:
         tags: '~@wip'
   extensions:
     Behat\MinkExtension:
-      base_url: http://localhost:8088
+      base_url: http://firetrack:8088
       javascript_session: javascript
       sessions:
         default:
           goutte: ~
         javascript:
           selenium2:
-            wd_host: http://localhost:4444/wd/hub
+            # Newer versions of Selenium no longer use the route /wd/hub.
+            # wd_host: http://selenium:4444
+            wd_host: http://selenium:4444/wd/hub
             browser: chrome
             capabilities:
               browserName: "chrome"

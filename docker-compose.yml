@@ -1,4 +1,18 @@
 services:
+  behat:
+    build:
+      dockerfile: ./resources/docker/behat/Dockerfile
+      context: .
+    env_file:
+      - .env.dist
+      - .env
+    volumes:
+      - ./behat.yml:/app/behat.yml
+      - ./features:/app/features
+      - ./logs:/app/logs
+      - ./resources:/app/resources
+      - ./vendor:/app/vendor
+
   composer:
     build: ./resources/docker/composer
     environment:
@@ -53,3 +67,10 @@ services:
       interval: 2s
       timeout: 2s
       retries: 15
+
+  selenium:
+    image: selenium/standalone-chrome:3.141.59-20210929
+    shm_size: 2gb
+    ports:
+      - 4444:4444
+      - 7900:7900

@@ -62,6 +62,8 @@ trait FiretrackCliTrait
         return [
             'target/release/cli',
             'target/debug/cli',
+            'firetrack-cli',
+            'scripts/firetrack-exec.sh',
         ];
     }
 
