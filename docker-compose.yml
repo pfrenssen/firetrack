@@ -5,6 +5,7 @@ services:
       context: .
     env_file:
       - .env.dist
+      - .env.docker-compose
       - .env
     volumes:
       - ./behat.yml:/app/behat.yml
@@ -36,6 +37,7 @@ services:
       dockerfile: Dockerfile
     env_file:
       - .env.dist
+      - .env.docker-compose
       - .env
     ports:
       - 8089:8089
