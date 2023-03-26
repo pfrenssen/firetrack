@@ -1,0 +1,9 @@
+# Overrides for local development.
+#
+# Copy this file to `docker-compose.override.yml` and edit the values to your
+# needs.
+services:
+  composer:
+    # By default the composer commands are executed as the root user. To use
+    # a different user, set the UID:GID of the desired user.
+    user: 1000:1000

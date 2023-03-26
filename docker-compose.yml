@@ -1,0 +1,78 @@
+services:
+  behat:
+    build:
+      dockerfile: ./resources/docker/behat/Dockerfile
+      context: .
+    env_file:
+      - .env.dist
+      - .env.docker-compose
+      - .env
+    volumes:
+      - ./behat.yml:/app/behat.yml
+      - ./features:/app/features
+      - ./logs:/app/logs
+      - ./resources:/app/resources
+      - ./vendor:/app/vendor
+
+  composer:
+    build: ./resources/docker/composer
+    environment:
+      COMPOSER_CACHE_DIR: /app/.cache/composer
+    volumes:
+      - .:/app
+
+  diesel-cli:
+    build:
+      dockerfile: ./resources/docker/diesel-cli/Dockerfile
+      context: .
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgresql/firetrack
+    depends_on:
+      postgresql:
+        condition: service_healthy
+
+  mailgun-mock:
+    build:
+      context: resources/docker/mailgun-mock
+      dockerfile: Dockerfile
+    env_file:
+      - .env.dist
+      - .env.docker-compose
+      - .env
+    ports:
+      - 8089:8089
+    volumes:
+      - "./logs:/usr/src/firetrack/logs"
+
+  firetrack:
+    build:
+      dockerfile: ./resources/docker/firetrack/Dockerfile
+      context: .
+    ports:
+      - 8088:8088
+    environment:
+      MAILGUN_API_ENDPOINT: 'http://mailgun-mock:8089'
+    depends_on:
+      mailgun-mock:
+        condition: service_started
+      postgresql:
+        condition: service_healthy
+
+  postgresql:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: 'postgres'
+      POSTGRES_PASSWORD: 'postgres'
+      POSTGRES_DB: 'firetrack'
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+
+  selenium:
+    image: selenium/standalone-chrome:3.141.59-20210929
+    shm_size: 2gb
+    ports:
+      - 4444:4444
+      - 7900:7900

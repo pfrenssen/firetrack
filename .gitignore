@@ -1,6 +1,8 @@
+/.cache
 /.env
 /.idea
-/mailgun-mock-server.log
+/docker-compose.override.yml
+/logs
 /target
 **/*.rs.bk
 

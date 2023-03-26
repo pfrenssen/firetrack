@@ -17,6 +17,23 @@ Requirements
 Installation
 ------------
 
+### Docker
+
+Copy `docker-compose.override.yml.dist` to `docker-compose.override.yml` and
+edit it to match your needs.
+
+```
+$ git clone https://github.com/pfrenssen/firetrack.git
+$ cd firetrack
+$ docker-compose build firetrack
+$ docker-compose run composer composer install
+$ docker-compose build
+$ docker-compose run diesel-cli database setup
+$ docker-compose up
+```
+
+### Native
+
 ```
 $ git clone https://github.com/pfrenssen/firetrack.git
 $ cd firetrack
@@ -98,8 +115,20 @@ $ ./vendor/bin/behat
 Usage
 -----
 
+### Web application
+
 Start the webserver on [http://localhost:8088](http://localhost:8088):
 
 ```
 $ firetrack serve
+```
+
+### Command line interface
+
+```
+# Using Docker:
+$ ./scripts/firetrack-exec.sh
+
+# Native:
+$ firetrack
 ```
